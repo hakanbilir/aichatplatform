@@ -1,0 +1,9 @@
+{
+  "title": "Knowledge‑augmented answers",
+  "useOrgKnowledge": "Use org knowledge base for this conversation",
+  "knowledgeSpace": "Knowledge space",
+  "allSpaces": "All spaces",
+  "maxChunks": "Max chunks per turn",
+  "maxChunksHelper": "The model will receive the top matching chunks from the selected space(s) as additional context."
+}
+

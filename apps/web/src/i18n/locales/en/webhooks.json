@@ -1,0 +1,22 @@
+{
+  "title": "Webhooks",
+  "subtitle": "Notify external systems when events happen in this organization.",
+  "newWebhook": "New webhook",
+  "loading": "Loading webhooks…",
+  "name": "Name",
+  "description": "Description",
+  "noDescription": "No description",
+  "targetUrl": "Target URL",
+  "targetUrlHelper": "Use an HTTPS endpoint that can verify HMAC signatures.",
+  "url": "URL",
+  "eventTypes": "Event type prefixes (comma separated)",
+  "eventTypesHelper": "Example: conversation., org.ai_policy_updated",
+  "allEvents": "All events",
+  "create": "Create",
+  "creating": "Creating…",
+  "delete": "Delete",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "noWebhooks": "No webhooks yet. Create one to receive signed HTTP POST calls on events."
+}
+

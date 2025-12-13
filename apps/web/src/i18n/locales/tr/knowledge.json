@@ -1,0 +1,28 @@
+{
+  "title": "Bilgi Tabanı",
+  "subtitle": "Organizasyonunuz için merkezi bir bilgi deposu oluşturun ve yönetin.",
+  "createSpace": "Alan Oluştur",
+  "ingestText": "Metin Yükle",
+  "spaces": "Alanlar",
+  "noSpaces": "Henüz bilgi alanı yok. Belge yüklemeye başlamak için bir tane oluşturun.",
+  "search": "Ara",
+  "searchPlaceholder": "Organizasyonunuzun bilgilerinde ara...",
+  "noResults": "Henüz sonuç yok. Bir arama yapmayı deneyin.",
+  "ingestDialog": {
+    "title": "Metin belgesi yükle",
+    "titleLabel": "Başlık",
+    "spaceLabel": "Alan seç",
+    "textLabel": "Metin",
+    "ingest": "Yükle",
+    "ingesting": "Yükleniyor…",
+    "cancel": "İptal"
+  },
+  "createSpaceDialog": {
+    "title": "Yeni Alan Oluştur",
+    "nameLabel": "Alan Adı",
+    "create": "Oluştur",
+    "creating": "Oluşturuluyor…",
+    "cancel": "İptal"
+  }
+}
+

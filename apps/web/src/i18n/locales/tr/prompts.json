@@ -1,0 +1,43 @@
+{
+  "newTemplate": "Yeni prompt şablonu",
+  "editTemplate": "Prompt şablonunu düzenle",
+  "title": "Başlık",
+  "description": "Açıklama",
+  "kind": "Tür",
+  "kindUser": "Kullanıcı istemi",
+  "kindSystem": "Sistem istemi",
+  "kindMacro": "Makro",
+  "template": "Şablon",
+  "templateHelper": "Değişkenlere referans vermek için {{variableName}} sözdizimini kullanın.",
+  "shareWithOrg": "Tüm organizasyonla paylaş",
+  "variables": "Değişkenler",
+  "noVariables": "Henüz değişken yok. Bu şablonun form gibi davranmasını istiyorsanız değişken ekleyin.",
+  "variableName": "Ad",
+  "variableLabel": "Etiket",
+  "variableType": {
+    "string": "Tek satır",
+    "multiline": "Çok satırlı",
+    "number": "Sayı",
+    "boolean": "Boolean (true/false)"
+  },
+  "addVariable": "Değişken ekle",
+  "save": "Kaydet",
+  "saving": "Kaydediliyor…",
+  "cancel": "İptal",
+  "library": {
+    "title": "İstek Kütüphanesi",
+    "all": "Tümü",
+    "mine": "İsteklerim",
+    "org": "Org istekleri",
+    "description": "Tutarlı çıktılar için yapılandırılmış istekleri yeniden kullanın.",
+    "newTemplate": "Yeni şablon",
+    "loading": "Şablonlar yükleniyor…",
+    "noTemplates": "Henüz şablon yok. İlk yeniden kullanılabilir isteğinizi oluşturun.",
+    "orgChip": "Org",
+    "fillVariables": "Şablon değişkenlerini doldur",
+    "noVariables": "Bu şablonun değişkeni yok. Doğrudan uygulayabilirsiniz.",
+    "booleanHelper": "\"true\" veya \"false\" girin",
+    "applyToInput": "Girişe uygula"
+  }
+}
+

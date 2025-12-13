@@ -1,0 +1,15 @@
+{
+  "title": "Gelen kutusu",
+  "subtitle": "Bu organizasyondaki tüm konuşmalarınızı arayın ve filtreleyin.",
+  "searchPlaceholder": "Konuşmalarda ara…",
+  "advancedFilters": "Gelişmiş filtreler",
+  "sort": "Sırala",
+  "recent": "Son",
+  "relevance": "İlgililik",
+  "rag": "RAG",
+  "tools": "Araçlar",
+  "files": "Dosyalar",
+  "noResults": "Konuşma bulunamadı.",
+  "loading": "Yükleniyor…"
+}
+

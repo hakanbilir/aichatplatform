@@ -1,0 +1,16 @@
+{
+  "title": "Audit log",
+  "subtitle": "See who did what, and when, across this organization.",
+  "refresh": "Refresh",
+  "eventTypeContains": "Event type contains",
+  "pageSize": "Page size",
+  "action": "Type",
+  "user": "User",
+  "timestamp": "Time",
+  "conversation": "Conversation",
+  "metadata": "Metadata",
+  "system": "System",
+  "openConversation": "Open conversation",
+  "noEvents": "No audit events yet."
+}
+

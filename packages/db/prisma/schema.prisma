@@ -1,0 +1,1478 @@
+// packages/db/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================
+// ENUMS
+// =========================
+
+enum OrgRole {
+  SUPERADMIN
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum MessageRole {
+  SYSTEM
+  USER
+  ASSISTANT
+  TOOL
+}
+
+enum OrgPlan {
+  FREE
+  PRO
+  ENTERPRISE
+  CUSTOM
+}
+
+// =========================
+// MODELS
+// =========================
+
+model User {
+  id                 String  @id @default(cuid())
+  email              String  @unique
+  name               String?
+  passwordHash       String
+  customInstructions String? @db.Text
+  isSuperadmin       Boolean @default(false)
+
+  orgMemberships            OrgMember[]
+  conversations             Conversation[]          @relation("UserConversations")
+  apiKeys                   ApiKey[]
+  promptTemplates           PromptTemplate[]
+  promptTemplateVersions    PromptTemplateVersion[]
+  promptUsages              PromptUsage[]
+  conversationPresets       ConversationPreset[]
+  events                    Event[]
+  exports                   ConversationExport[]
+  shareLinks                ConversationShareLink[]
+  createdInvitations        OrgInvitation[]
+  createdApiKeys            OrgApiKey[]
+  refreshTokens             RefreshToken[]
+  usageMetrics              UsageMetric[]
+  uploadedFiles             File[]
+  createdChatProfiles       ChatProfile[]
+  moderationIncidents       ModerationIncident[]
+  blockedUsers              BlockedUser[]
+  playgroundSessions        PlaygroundSession[]
+  createdExperiments        Experiment[]
+  createdExperimentVariants ExperimentVariant[]     @relation("ExperimentVariantCreator")
+  createdExperimentInputs   ExperimentInput[]       @relation("ExperimentInputCreator")
+  createdEvalScores         EvalScore[]
+  createdEvalMetrics        EvalMetricDefinition[]  @relation("EvalMetricCreator")
+  orgUserDailyUsage         OrgUserDailyUsage[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  ssoLoginAudits SsoLoginAudit[]
+
+  @@index([email])
+}
+
+model Organization {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+
+  // Plan & Quota fields
+  plan                   OrgPlan @default(FREE)
+  monthlySoftLimitTokens Int?    @default(100000)
+  monthlyHardLimitTokens Int?    @default(120000)
+
+  members                 OrgMember[]
+  conversations           Conversation[]           @relation("OrgConversations")
+  messages                Message[]
+  tools                   Tool[]
+  files                   File[]
+  knowledgeBases          KnowledgeBase[]
+  knowledgeSpaces         KnowledgeSpace[]
+  knowledgeDocuments      KnowledgeDocument[]
+  knowledgeDocumentChunks KnowledgeDocumentChunk[]
+  usageMetrics            UsageMetric[]
+  orgIntegrations         OrgIntegration[]
+  orgAiPolicy             OrgAiPolicy?
+  promptTemplates         PromptTemplate[]
+  promptUsages            PromptUsage[]
+  conversationPresets     ConversationPreset[]
+  events                  Event[]
+  exports                 ConversationExport[]
+  shareLinks              ConversationShareLink[]
+  retentionConfig         OrgDataRetentionConfig?
+  invitations             OrgInvitation[]
+  apiKeys                 ApiKey[]
+  orgApiKeys              OrgApiKey[]
+  brandingConfig          OrgBrandingConfig?
+
+  // New relations from docs 41-50
+  safetyConfig           OrgSafetyConfig?
+  moderationIncidents    ModerationIncident[]
+  blockedUsers           BlockedUser[]
+  chatProfiles           ChatProfile[]
+  modelRegistryEntries   ModelRegistryEntry[]
+  orgProviderCredentials OrgProviderCredential[]
+  playgroundSessions     PlaygroundSession[]
+  experiments            Experiment[]
+  orgDailyUsage          OrgDailyUsage[]
+  orgUserDailyUsage      OrgUserDailyUsage[]
+  subscriptions          OrgSubscription[]
+  paymentTransactions    PaymentTransaction[]
+  orgDomains             OrgDomain[]
+  ssoConnections         SsoConnection[]
+  ssoLoginAudits         SsoLoginAudit[]
+  scimConnections        ScimConnection[]
+  scimResourceMaps       ScimResourceMap[]
+  scimAudits             ScimAudit[]
+  evalMetrics            EvalMetricDefinition[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model OrgMember {
+  id         String       @id @default(cuid())
+  user       User         @relation(fields: [userId], references: [id])
+  userId     String
+  org        Organization @relation(fields: [orgId], references: [id])
+  orgId      String
+  role       OrgRole      @default(MEMBER)
+  isDisabled Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, orgId])
+  @@index([orgId, role])
+}
+
+model Conversation {
+  id String @id @default(cuid())
+
+  // creator / owner
+  user   User?   @relation("UserConversations", fields: [userId], references: [id])
+  userId String?
+
+  // organization this conversation belongs to (optional for personal)
+  org   Organization? @relation("OrgConversations", fields: [orgId], references: [id])
+  orgId String?
+
+  // Optional link to a ChatProfile (42.md)
+  chatProfileId String?
+  chatProfile   ChatProfile? @relation(fields: [chatProfileId], references: [id])
+
+  // Conversation metadata for sidebar
+  title          String    @default("New chat")
+  lastActivityAt DateTime  @default(now())
+  archivedAt     DateTime?
+  deletedAt      DateTime?
+  pinned         Boolean   @default(false)
+
+  // Model & settings
+  model        String  @default("llama3.1")
+  systemPrompt String? @db.Text
+  temperature  Float?  @default(0.7)
+  topP         Float?  @default(1)
+  toolsEnabled Json?
+
+  // JSON configuration for tools and attached knowledge bases
+  toolConfig Json?
+  kbConfig   Json?
+
+  // JSON metadata: tags, presetId, hasRag, toolsUsed, etc.
+  metadata Json @default("{}")
+
+  // For full-text search over titles (Postgres specific)
+  titleTsv Unsupported("tsvector")?
+
+  messages            Message[]
+  promptUsages        PromptUsage[]
+  events              Event[]
+  shareLinks          ConversationShareLink[]
+  exports             ConversationExport[]
+  usageMetrics        UsageMetric[]
+  moderationIncidents ModerationIncident[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, createdAt])
+  @@index([userId, createdAt])
+  @@index([orgId, archivedAt])
+  @@index([orgId, pinned])
+  @@index([chatProfileId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+
+  // Denormalized orgId for faster queries
+  org   Organization? @relation(fields: [orgId], references: [id])
+  orgId String?
+
+  authorId String?
+
+  role    MessageRole
+  content String      @db.Text
+  // meta can contain tool call details, error info, token counts, etc.
+  meta    Json?
+
+  // Whether this message includes tool calls, RAG context, etc.
+  flags Json @default("{}")
+
+  // Full-text indexable body
+  contentTsv Unsupported("tsvector")?
+
+  // optional: link to a tool used in this message
+  tool   Tool?   @relation(fields: [toolId], references: [id])
+  toolId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([orgId])
+}
+
+model Tool {
+  id    String        @id @default(cuid())
+  org   Organization? @relation(fields: [orgId], references: [id])
+  orgId String?
+
+  name             String
+  description      String  @db.Text
+  parametersSchema Json
+  isEnabled        Boolean @default(true)
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, name])
+}
+
+model File {
+  id    String       @id @default(cuid())
+  org   Organization @relation(fields: [orgId], references: [id])
+  orgId String
+
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+  uploadedById String?
+
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String // key/path in object storage (S3, MinIO, etc.)
+
+  knowledgeBase   KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId String?
+
+  status       String  @default("READY") // READY, PROCESSING, ERROR
+  errorMessage String? @db.Text
+
+  chunks KnowledgeChunk[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, createdAt])
+}
+
+model KnowledgeBase {
+  id    String       @id @default(cuid())
+  org   Organization @relation(fields: [orgId], references: [id])
+  orgId String
+
+  name        String
+  description String? @db.Text
+
+  files  File[]
+  chunks KnowledgeChunk[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, name])
+}
+
+model KnowledgeChunk {
+  id String @id @default(cuid())
+
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId String
+
+  file   File?   @relation(fields: [fileId], references: [id])
+  fileId String?
+
+  chunkIndex Int
+  content    String @db.Text
+  tokenCount Int?
+
+  // pgvector column for embeddings
+  embedding Unsupported("vector")?
+
+  createdAt DateTime @default(now())
+
+  @@index([knowledgeBaseId])
+  @@index([fileId])
+}
+
+model UsageMetric {
+  id String @id @default(cuid())
+
+  org   Organization? @relation(fields: [orgId], references: [id])
+  orgId String?
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  conversationId String?
+
+  model String
+  day   DateTime // normalized date (UTC midnight)
+
+  requestCount   Int @default(0)
+  tokensIn       Int @default(0)
+  tokensOut      Int @default(0)
+  totalLatencyMs Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([day, orgId])
+  @@index([day, model])
+}
+
+model ApiKey {
+  id String @id @default(cuid())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  org   Organization? @relation(fields: [orgId], references: [id])
+  orgId String?
+
+  name     String
+  keyHash  String  @unique // store hash, not raw key
+  scopes   String? @db.Text
+  isActive Boolean @default(true)
+
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([orgId])
+}
+
+model IntegrationProvider {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  key         String   @unique // e.g. "slack", "generic-webhook"
+  name        String
+  description String   @db.Text
+  // Optional manifest JSON (capabilities, logo, docs URL, etc.)
+  manifest    Json?
+
+  orgIntegrations OrgIntegration[]
+
+  @@index([key])
+}
+
+model OrgIntegration {
+  id         String              @id @default(cuid())
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  org        Organization        @relation(fields: [orgId], references: [id])
+  orgId      String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id])
+  providerId String
+  name       String
+  isEnabled  Boolean             @default(true)
+
+  // Encrypted/opaque credential payload (tokens, webhooks, config)
+  credentials Json
+  config      Json?
+
+  webhookSubscriptions WebhookSubscription[]
+  externalTools        ExternalToolDefinition[]
+
+  @@index([orgId])
+  @@index([providerId])
+}
+
+model WebhookSubscription {
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  orgIntegration   OrgIntegration @relation(fields: [orgIntegrationId], references: [id])
+  orgIntegrationId String
+  url              String
+  // e.g. ["chat.turn.completed", "tool.exec.success"]
+  eventTypes       Json
+  secret           String // HMAC secret for signing
+  isActive         Boolean        @default(true)
+
+  deliveries        WebhookDeliveryLog[]
+  webhookDeliveries WebhookDelivery[]
+
+  @@index([orgIntegrationId])
+}
+
+model WebhookDeliveryLog {
+  id             String              @id @default(cuid())
+  createdAt      DateTime            @default(now())
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String
+  statusCode     Int?
+  durationMs     Int?
+  success        Boolean
+  error          String?             @db.Text
+
+  @@index([subscriptionId, createdAt])
+}
+
+model ExternalToolDefinition {
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  orgIntegration   OrgIntegration @relation(fields: [orgIntegrationId], references: [id])
+  orgIntegrationId String
+  name             String // e.g. "jira.createIssue"
+  description      String         @db.Text
+  // OpenAI-style JSON schema for arguments
+  argsSchema       Json
+  // HTTP config for calling the external service
+  httpConfig       Json // { "method": "POST", "url": "https://...", "headers": {...} }
+  isEnabled        Boolean        @default(true)
+
+  @@unique([orgIntegrationId, name])
+  @@index([orgIntegrationId])
+}
+
+model KnowledgeSpace {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId     String
+  name      String
+  slug      String
+  isDefault Boolean @default(false)
+
+  org       Organization        @relation(fields: [orgId], references: [id])
+  documents KnowledgeDocument[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+}
+
+model KnowledgeDocument {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId        String
+  spaceId      String
+  title        String
+  sourceType   String // e.g. "upload", "url", "slack"
+  sourceUrl    String? // if applicable
+  originalName String? // filename, etc.
+  mimeType     String?
+  sizeBytes    Int?
+  text         String? @db.Text // raw text content (for simple cases)
+
+  status        String // e.g. "pending", "ingested", "error"
+  statusMessage String? @db.Text
+
+  org   Organization   @relation(fields: [orgId], references: [id])
+  space KnowledgeSpace @relation(fields: [spaceId], references: [id])
+
+  chunks        KnowledgeDocumentChunk[]
+  embeddingJobs EmbeddingJob[]
+
+  @@index([orgId, spaceId])
+  @@index([status])
+}
+
+model KnowledgeDocumentChunk {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId      String
+  documentId String
+  index      Int
+  text       String                 @db.Text
+  embedding  Unsupported("vector")? // pgvector column
+
+  org      Organization      @relation(fields: [orgId], references: [id])
+  document KnowledgeDocument @relation(fields: [documentId], references: [id])
+
+  @@index([orgId, documentId])
+  @@index([documentId, index])
+}
+
+model EmbeddingJob {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId      String
+  spaceId    String
+  documentId String
+  status     String // "pending", "running", "completed", "failed"
+  error      String? @db.Text
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id])
+
+  @@index([orgId, status])
+  @@index([documentId])
+}
+
+model OrgAiPolicy {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId        String  @unique
+  name         String
+  description  String? @db.Text
+  systemPrompt String  @db.Text
+  config       Json
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
+model PromptTemplate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId       String
+  createdById String
+
+  // Human-readable name, unique per org
+  name        String
+  description String?
+
+  // Whether template is archived (hidden from UI)
+  isArchived Boolean @default(false)
+
+  org     Organization @relation(fields: [orgId], references: [id])
+  creator User         @relation(fields: [createdById], references: [id])
+
+  usages   PromptUsage[]
+  versions PromptTemplateVersion[]
+
+  @@unique([orgId, name])
+  @@index([orgId])
+  @@index([createdById])
+}
+
+model PromptUsage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  orgId          String
+  templateId     String
+  userId         String
+  conversationId String
+
+  org          Organization   @relation(fields: [orgId], references: [id])
+  template     PromptTemplate @relation(fields: [templateId], references: [id])
+  user         User           @relation(fields: [userId], references: [id])
+  conversation Conversation   @relation(fields: [conversationId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@index([templateId])
+  @@index([conversationId])
+}
+
+model ConversationPreset {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId        String
+  createdById  String
+  name         String
+  description  String? @db.Text
+  uiConfig     Json
+  systemPrompt String  @db.Text
+  config       Json
+
+  org   Organization @relation(fields: [orgId], references: [id])
+  owner User         @relation(fields: [createdById], references: [id])
+
+  @@index([orgId])
+  @@index([createdById])
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  orgId  String
+  // optional, depending on context
+  userId String?
+
+  // e.g. "conversation.message_sent", "org.ai_policy_updated"
+  type String
+
+  // High-level resource identifiers
+  conversationId String?
+  messageId      String?
+
+  // key/value metadata, safe for externalization (no raw message content)
+  metadata Json @default("{}")
+
+  org          Organization  @relation(fields: [orgId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+
+  deliveries WebhookDelivery[]
+
+  @@index([orgId, createdAt])
+  @@index([orgId, type])
+  @@index([userId])
+  @@index([conversationId])
+}
+
+model WebhookDelivery {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  webhookId String
+  eventId   String
+
+  status     String // "pending" | "success" | "failed"
+  statusCode Int?
+  // error message on failure
+  error      String? @db.Text
+
+  // For troubleshooting
+  requestBody  Json
+  responseBody Json?
+
+  webhook WebhookSubscription @relation(fields: [webhookId], references: [id])
+  event   Event               @relation(fields: [eventId], references: [id])
+
+  @@index([webhookId])
+  @@index([eventId])
+  @@index([status, createdAt])
+}
+
+model OrgInvitation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId String
+  email String
+
+  // role slug or id, depending on RBAC model
+  role String
+
+  // who invited this person
+  invitedBy String
+
+  // token for accepting invitation
+  token String @unique
+
+  // "pending" | "accepted" | "revoked" | "expired"
+  status String
+
+  expiresAt DateTime?
+
+  org     Organization @relation(fields: [orgId], references: [id])
+  inviter User         @relation(fields: [invitedBy], references: [id])
+
+  @@index([orgId])
+  @@index([email])
+  @@index([token])
+}
+
+model OrgApiKey {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId       String
+  createdById String
+
+  // Human-readable name
+  name String
+
+  // Hashed token (e.g. HMAC SHA-256 of raw key)
+  hash String @unique
+
+  // Optional description or use-case
+  description String?
+
+  // Array of scope strings, e.g. ["chat:invoke", "org:metrics:read"]
+  scopes Json
+
+  // Optional ISO date for expiry
+  expiresAt DateTime?
+
+  // Whether the key can still be used
+  isActive Boolean @default(true)
+
+  org     Organization @relation(fields: [orgId], references: [id])
+  creator User         @relation(fields: [createdById], references: [id])
+
+  @@index([orgId])
+  @@index([hash])
+}
+
+model OrgBrandingConfig {
+  id    String @id @default(cuid())
+  orgId String @unique
+
+  displayName String?
+  logoUrl     String?
+  faviconUrl  String?
+
+  // Hex color strings, e.g. "#0F766E"
+  primaryColor   String?
+  secondaryColor String?
+
+  // Background gradient CSS
+  backgroundGradient String? @db.Text
+
+  // Typography
+  fontFamily String?
+
+  // Additional theme tokens (JSON)
+  themeTokens Json?
+
+  // Whether to hide global branding
+  hideGlobalBranding Boolean @default(false)
+
+  // Footer customization
+  footerText  String? @db.Text
+  footerLinks Json?
+
+  showLogoOnChat Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+}
+
+model ConversationExport {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId          String
+  userId         String
+  conversationId String?
+
+  format       String // "json" | "markdown" | "pdf"
+  status       String // "pending" | "processing" | "completed" | "failed"
+  storageKey   String? // S3/key path to exported file
+  errorMessage String? @db.Text
+
+  org          Organization  @relation(fields: [orgId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@index([userId])
+}
+
+model ConversationShareLink {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  orgId          String
+  userId         String
+  conversationId String
+
+  token         String  @unique
+  isActive      Boolean @default(true)
+  allowComments Boolean @default(false)
+
+  org          Organization @relation(fields: [orgId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([token])
+  @@index([orgId])
+  @@index([conversationId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  userId    String
+  token     String  @unique
+  isRevoked Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([token])
+}
+
+model OrgDataRetentionConfig {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgId String @unique
+
+  // Retention policies in days
+  conversationRetentionDays Int? // null = keep forever
+  messageRetentionDays      Int?
+  fileRetentionDays         Int?
+
+  // Auto-delete settings
+  autoDeleteEnabled Boolean   @default(false)
+  lastCleanupAt     DateTime?
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
+// =========================
+// DOCS 41-50: NEW MODELS
+// =========================
+
+// 41. Safety & Moderation
+model OrgSafetyConfig {
+  id    String @id @default(cuid())
+  orgId String @unique
+
+  moderateUserMessages      Boolean @default(true)
+  moderateAssistantMessages Boolean @default(false)
+
+  // Map category -> action (block, warn, log_only, allow)
+  categoryActions Json @default("{}")
+
+  // Optional allowed domains for URLs
+  allowedDomains Json @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+}
+
+model ModerationIncident {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  orgId          String
+  conversationId String?
+  messageId      String?
+  userId         String?
+
+  source String // "user" | "assistant" | "tool"
+
+  categories     Json
+  action         String // "block" | "warn" | "log_only" | "allow"
+  reason         String?
+  contentSnippet String  @db.Text
+  isSevere       Boolean @default(false)
+
+  org          Organization  @relation(fields: [orgId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@index([orgId, isSevere])
+}
+
+model BlockedUser {
+  id     String @id @default(cuid())
+  orgId  String
+  userId String
+
+  reason String?
+  until  DateTime? // null = indefinitely
+
+  createdAt DateTime @default(now())
+
+  org  Organization @relation(fields: [orgId], references: [id])
+  user User         @relation(fields: [userId], references: [id])
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+}
+
+// 42. Prompt Studio & Chat Profiles
+model PromptTemplateVersion {
+  id         String @id @default(cuid())
+  templateId String
+
+  version Int
+
+  systemPrompt   String  @db.Text
+  userPrefix     String? @db.Text
+  assistantStyle String? @db.Text
+
+  variables Json
+  metadata  Json?
+
+  createdAt   DateTime @default(now())
+  createdById String
+
+  template PromptTemplate @relation(fields: [templateId], references: [id])
+  creator  User           @relation(fields: [createdById], references: [id])
+
+  @@unique([templateId, version])
+  @@index([templateId])
+}
+
+model ChatProfile {
+  id    String @id @default(cuid())
+  orgId String
+
+  name String
+  slug String @unique
+
+  description String?
+
+  isShared  Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  modelProvider String
+  modelName     String
+
+  temperature Float @default(0.7)
+  topP        Float @default(1.0)
+  maxTokens   Int?
+
+  systemTemplateId      String?
+  systemTemplateVersion Int?
+
+  enableTools Boolean @default(true)
+  enableRag   Boolean @default(false)
+  safetyLevel String  @default("standard")
+
+  providerConfig Json?
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org           Organization   @relation(fields: [orgId], references: [id])
+  creator       User           @relation(fields: [createdById], references: [id])
+  conversations Conversation[]
+
+  @@index([orgId, isDefault])
+  @@index([orgId, isShared])
+}
+
+// 43. Model Registry
+model ModelRegistryEntry {
+  id String @id @default(cuid())
+
+  orgId String?
+
+  provider  String
+  modelName String
+
+  displayName String
+  description String?
+
+  isEnabled Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  capabilities String[]
+
+  contextWindow   Int?
+  maxOutputTokens Int?
+
+  inputPriceMicros  Int?
+  outputPriceMicros Int?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization? @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, provider, modelName], name: "org_provider_model_unique")
+  @@index([orgId])
+  @@index([provider, modelName])
+}
+
+model OrgProviderCredential {
+  id    String @id @default(cuid())
+  orgId String
+
+  provider String
+  label    String?
+
+  apiKeyEncrypted String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, provider])
+}
+
+// 44. Playground & Experiments
+model PlaygroundSession {
+  id     String @id @default(cuid())
+  orgId  String
+  userId String
+
+  chatProfileId String?
+
+  modelProvider String
+  modelName     String
+  temperature   Float  @default(0.7)
+  topP          Float  @default(1.0)
+  maxTokens     Int?
+
+  createdAt DateTime @default(now())
+
+  org      Organization        @relation(fields: [orgId], references: [id])
+  user     User                @relation(fields: [userId], references: [id])
+  messages PlaygroundMessage[]
+
+  @@index([orgId, createdAt])
+  @@index([userId])
+}
+
+model PlaygroundMessage {
+  id        String @id @default(cuid())
+  sessionId String
+  role      String // 'user' | 'assistant'
+  content   String @db.Text
+
+  createdAt DateTime @default(now())
+
+  session PlaygroundSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId, createdAt])
+}
+
+model Experiment {
+  id          String @id @default(cuid())
+  orgId       String
+  createdById String
+
+  name        String
+  description String?
+  type        String  @default("prompt_eval")
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org     Organization @relation(fields: [orgId], references: [id])
+  creator User         @relation(fields: [createdById], references: [id])
+
+  variants ExperimentVariant[]
+  inputs   ExperimentInput[]
+  runs     ExperimentRun[]
+
+  @@index([orgId])
+}
+
+model ExperimentVariant {
+  id           String @id @default(cuid())
+  experimentId String
+
+  name        String
+  description String?
+
+  chatProfileId String?
+  systemPrompt  String? @db.Text
+  config        Json?
+
+  createdAt DateTime @default(now())
+
+  experiment  Experiment @relation(fields: [experimentId], references: [id])
+  creator     User       @relation("ExperimentVariantCreator", fields: [createdById], references: [id])
+  createdById String
+
+  runs ExperimentRun[]
+
+  @@index([experimentId])
+}
+
+model ExperimentInput {
+  id           String @id @default(cuid())
+  experimentId String
+
+  key      String
+  content  String @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  experiment  Experiment @relation(fields: [experimentId], references: [id])
+  creator     User       @relation("ExperimentInputCreator", fields: [createdById], references: [id])
+  createdById String
+
+  runs ExperimentRun[]
+
+  @@index([experimentId])
+}
+
+model ExperimentRun {
+  id           String @id @default(cuid())
+  experimentId String
+  variantId    String
+  inputId      String
+
+  modelProvider String
+  modelName     String
+  temperature   Float
+  topP          Float
+  maxTokens     Int?
+
+  output String @db.Text
+
+  latencyMs    Int?
+  inputTokens  Int?
+  outputTokens Int?
+
+  thumbsUp     Boolean?
+  feedbackNote String?  @db.Text
+
+  createdAt DateTime @default(now())
+
+  experiment Experiment        @relation(fields: [experimentId], references: [id])
+  variant    ExperimentVariant @relation(fields: [variantId], references: [id])
+  input      ExperimentInput   @relation(fields: [inputId], references: [id])
+
+  scores EvalScore[]
+
+  @@index([experimentId])
+  @@index([variantId])
+  @@index([inputId])
+}
+
+model EvalMetricDefinition {
+  id    String @id @default(cuid())
+  orgId String
+
+  key         String
+  name        String
+  description String? @db.Text
+  scale       String
+
+  createdAt DateTime @default(now())
+
+  org         Organization @relation(fields: [orgId], references: [id])
+  creator     User         @relation("EvalMetricCreator", fields: [createdById], references: [id])
+  createdById String
+
+  scores EvalScore[]
+
+  @@index([orgId, key])
+}
+
+model EvalScore {
+  id String @id @default(cuid())
+
+  runId       String
+  metricId    String
+  createdById String?
+
+  value Float
+  note  String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  run     ExperimentRun        @relation(fields: [runId], references: [id])
+  metric  EvalMetricDefinition @relation(fields: [metricId], references: [id])
+  creator User?                @relation(fields: [createdById], references: [id])
+
+  @@index([runId])
+  @@index([metricId])
+}
+
+// 45. Usage Analytics
+model OrgDailyUsage {
+  id String @id @default(cuid())
+
+  orgId String
+  date  DateTime
+
+  provider  String
+  modelName String
+  feature   String
+
+  requestCount        Int @default(0)
+  inputTokens         Int @default(0)
+  outputTokens        Int @default(0)
+  estimatedCostMicros Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, date, provider, modelName, feature], name: "org_date_provider_model_feature_unique")
+  @@index([orgId, date])
+  @@index([orgId, date, provider, modelName])
+}
+
+model OrgUserDailyUsage {
+  id String @id @default(cuid())
+
+  orgId  String
+  userId String
+  date   DateTime
+
+  provider  String
+  modelName String
+  feature   String
+
+  requestCount        Int @default(0)
+  inputTokens         Int @default(0)
+  outputTokens        Int @default(0)
+  estimatedCostMicros Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org  Organization @relation(fields: [orgId], references: [id])
+  user User         @relation(fields: [userId], references: [id])
+
+  @@unique([orgId, userId, date, provider, modelName, feature], name: "org_user_date_provider_model_feature_unique")
+  @@index([orgId, date])
+  @@index([orgId, userId, date])
+}
+
+// 46. Billing
+model BillingPlan {
+  id String @id @default(cuid())
+
+  code        String  @unique
+  name        String
+  description String?
+
+  currency          String @default("TRY")
+  monthlyPriceMinor Int    @default(0)
+  yearlyPriceMinor  Int    @default(0)
+
+  limits Json
+
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions OrgSubscription[]
+}
+
+model OrgSubscription {
+  id     String @id @default(cuid())
+  orgId  String @unique
+  planId String
+
+  status String
+
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  cancelAtPeriodEnd Boolean @default(false)
+
+  paymentProvider    String  @default("paytr")
+  providerCustomerId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org  Organization @relation(fields: [orgId], references: [id])
+  plan BillingPlan  @relation(fields: [planId], references: [id])
+
+  transactions PaymentTransaction[]
+}
+
+model PaymentTransaction {
+  id String @id @default(cuid())
+
+  orgId          String
+  subscriptionId String?
+
+  paymentProvider   String
+  providerReference String
+
+  status String
+
+  amountMinor Int
+  currency    String @default("TRY")
+
+  reason String?
+
+  requestPayload  Json?
+  responsePayload Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org          Organization     @relation(fields: [orgId], references: [id])
+  subscription OrgSubscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([orgId])
+  @@index([subscriptionId])
+}
+
+// 47. White-Label
+model OrgDomain {
+  id String @id @default(cuid())
+
+  orgId    String
+  hostname String @unique
+
+  isVerified Boolean @default(false)
+  isPrimary  Boolean @default(false)
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
+// 48. SSO
+model SsoConnection {
+  id String @id @default(cuid())
+
+  orgId String
+
+  type String // 'saml' or 'oidc'
+  name String
+
+  isEnabled             Boolean @default(false)
+  enableJitProvisioning Boolean @default(true)
+
+  config Json
+  flags  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org    Organization    @relation(fields: [orgId], references: [id])
+  audits SsoLoginAudit[]
+
+  @@index([orgId])
+}
+
+model SsoLoginAudit {
+  id String @id @default(cuid())
+
+  orgId  String
+  userId String?
+
+  type         String
+  connectionId String?
+
+  email String?
+
+  status String
+  reason String?
+
+  ip        String?
+  userAgent String?
+
+  rawPayload Json?
+
+  createdAt DateTime @default(now())
+
+  org        Organization   @relation(fields: [orgId], references: [id])
+  user       User?          @relation(fields: [userId], references: [id])
+  connection SsoConnection? @relation(fields: [connectionId], references: [id])
+
+  @@index([orgId])
+  @@index([userId])
+}
+
+// 49. SCIM
+model ScimConnection {
+  id String @id @default(cuid())
+
+  orgId String
+
+  bearerToken String @unique
+  name        String
+
+  isEnabled Boolean @default(false)
+  config    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
+model ScimResourceMap {
+  id String @id @default(cuid())
+
+  orgId String
+
+  resourceType String
+  scimId       String
+  localId      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, resourceType, scimId], name: "scim_resource_idx")
+  @@index([orgId, resourceType, localId])
+}
+
+model ScimAudit {
+  id String @id @default(cuid())
+
+  orgId String
+
+  resourceType String
+  scimId       String?
+  localId      String?
+
+  action String
+  status String
+  reason String?
+
+  rawPayload Json?
+
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}

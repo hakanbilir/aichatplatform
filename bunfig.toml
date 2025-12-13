@@ -1,0 +1,25 @@
+# Bun configuration file
+# Bun yapılandırma dosyası
+
+# Workspace configuration is handled in package.json
+# Workspace yapılandırması package.json'da yönetilir
+
+# Install configuration
+# Yükleme yapılandırması
+[install]
+# Auto-install peer dependencies
+# Peer bağımlılıkları otomatik yükle
+auto = true
+
+# Production mode by default (can be overridden)
+# Varsayılan olarak production modu (geçersiz kılınabilir)
+production = false
+
+# Registry configuration
+# Kayıt defteri yapılandırması
+# registry = "https://registry.npmjs.org/"
+
+# Lockfile configuration
+# Lockfile yapılandırması
+# Bun uses bun.lockb (binary lockfile)
+# Bun bun.lockb (ikili lockfile) kullanır

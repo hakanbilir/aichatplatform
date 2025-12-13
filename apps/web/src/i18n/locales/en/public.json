@@ -1,0 +1,12 @@
+{
+  "title": "Shared conversation",
+  "loading": "Loading...",
+  "failedToLoad": "Failed to load conversation",
+  "invalidPassphrase": "Invalid passphrase",
+  "enterPassphrase": "Enter passphrase",
+  "passphrase": "Passphrase",
+  "sharedBy": "Shared by",
+  "submit": "Submit",
+  "submitting": "Submitting…"
+}
+

@@ -1,0 +1,90 @@
+{
+  "empty": {
+    "startConversation": "Yeni bir konuşma başlatın",
+    "description": "Herhangi bir şey sorun. Yanıtlar Ollama arka ucunuzdan akış halinde gelir."
+  },
+  "messageInput": {
+    "placeholder": "Mesaj gönder…"
+  },
+  "models": {
+    "llama3.1": "llama3.1 (genel)",
+    "llama3.1:8b": "llama3.1:8b (hızlı)",
+    "qwen2.5-coder": "qwen2.5-coder (kod)"
+  },
+  "settings": {
+    "title": "Konuşma Ayarları",
+    "model": "Model",
+    "temperature": "Sıcaklık",
+    "topP": "Top P",
+    "maxTokens": "Maksimum Token",
+    "promptLibrary": "Prompt Kütüphanesi",
+    "tools": "Araçlar",
+    "newConversation": "Yeni Konuşma",
+    "modelPerConversation": "Model ve yaratıcılık konuşmaya özeldir.",
+    "creativity": {
+      "precise": "Kesin",
+      "balanced": "Dengeli",
+      "creative": "Yaratıcı"
+    },
+    "toolsPanel": "Araçlar paneli",
+    "advancedSettings": "Gelişmiş ayarlar",
+    "resetSettings": "Kaydedilmiş ayarlara sıfırla",
+    "saveSettings": "Bu konuşma için ayarları kaydet",
+    "settingsUpToDate": "Ayarlar güncel"
+  },
+  "conversation": {
+    "new": "Yeni Konuşma",
+    "saved": "Kaydedildi",
+    "export": "Dışa Aktar",
+    "share": "Paylaş",
+    "tokens": "Tokenlar",
+    "completions": "Tamamlamalar",
+    "recent": "Son konuşmalar"
+  },
+  "tools": {
+    "panel": "Araçlar paneli",
+    "description": "Mevcut bağlamda araçları inceleyin ve çalıştırın.",
+    "loading": "Araçlar yükleniyor…",
+    "noTools": "Araç bulunamadı",
+    "selectTool": "Sol taraftan bir araç seçerek açıklamasını görüntüleyin ve çalıştırın.",
+    "run": "Aracı çalıştır",
+    "running": "Çalıştırılıyor…",
+    "arguments": "Argümanlar",
+    "lastRun": "Son sonuç",
+    "noRunsYet": "Henüz araç çalıştırılmadı. Yukarıdaki argümanları yapılandırın ve \"Aracı çalıştır\"a tıklayın.",
+    "reload": "Araçları yeniden yükle"
+  },
+  "settings": {
+    "title": "Konuşma Ayarları",
+    "model": "Model",
+    "temperature": "Sıcaklık",
+    "systemPrompt": "Sistem İstemi",
+    "codeExecution": "Kod Çalıştırma",
+    "webSearch": "Web Arama",
+    "structuredTools": "Yapılandırılmış Araçlar",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "failedToLoad": "Konuşma ayarları yüklenemedi"
+  },
+  "sidebar": {
+    "title": "Konuşmalar",
+    "new": "Yeni",
+    "searchPlaceholder": "Konuşmaları ara",
+    "pinned": "Sabitlenmiş",
+    "recent": "Son",
+    "untitled": "Başlıksız",
+    "untitledChat": "Başlıksız sohbet",
+    "moreActions": "Daha fazla işlem",
+    "noConversations": "Henüz konuşma yok. Sohbet etmeye başlamak için yeni bir tane oluşturun.",
+    "loading": "Yükleniyor…",
+    "loadMore": "Daha fazla yükle",
+    "rename": "Yeniden adlandır",
+    "pin": "Sabitle",
+    "unpin": "Sabitlemeyi kaldır",
+    "archive": "Arşivle",
+    "export": "Dışa Aktar",
+    "share": "Paylaş",
+    "newConversation": "Yeni Konuşma"
+  }
+}
+

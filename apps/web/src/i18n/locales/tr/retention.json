@@ -1,0 +1,16 @@
+{
+  "title": "Veri saklama",
+  "subtitle": "Bu organizasyon için otomatik silme ve veri yönetimi politikalarını yapılandırın.",
+  "maxAgeDays": "Maksimum konuşma yaşı (gün)",
+  "maxAgeDaysHelper": "Bundan daha eski konuşmalar yumuşak silinecektir. Devre dışı bırakmak için boş bırakın.",
+  "hardDeleteDays": "Kalıcı silme (gün)",
+  "hardDeleteDaysHelper": "Yumuşak silinen konuşmalar bu kadar gün sonra kalıcı olarak silinecektir. Yumuşak silinen konuşmaları tutmak için boş bırakın.",
+  "allowUserDeletion": "Kullanıcıların kendi konuşmalarını silmesine izin ver",
+  "allowExports": "Konuşma dışa aktarmalarına izin ver",
+  "allowShareLinks": "Genel paylaşım bağlantılarına izin ver",
+  "save": "Kaydet",
+  "saving": "Kaydediliyor…",
+  "failedToLoad": "Saklama yapılandırması yüklenemedi",
+  "failedToSave": "Saklama yapılandırması kaydedilemedi"
+}
+

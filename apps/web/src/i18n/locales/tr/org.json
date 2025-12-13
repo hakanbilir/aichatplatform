@@ -1,0 +1,86 @@
+{
+  "policy": {
+    "title": "Org AI Politikası",
+    "description": "Asistanın bu organizasyondaki herkes için nasıl davranacağını tanımlayın.",
+    "name": "Politika adı",
+    "systemPrompt": "Genel sistem istemi",
+    "systemPromptHelper": "Bu, bu org'daki tüm konuşmalara bir sistem mesajı olarak eklenir.",
+    "defaultName": "Org AI Politikası",
+    "defaultTone": "Varsayılan ton",
+    "notSpecified": "Belirtilmemiş",
+    "noneDefined": "Tanımlanmamış",
+    "disallowedTopics": "Yasaklı konular (virgülle ayrılmış)",
+    "preview": "Önizleme",
+    "previewDescription": "Asistan bu organizasyonda böyle davranacak.",
+    "systemPromptLabel": "Sistem istemi",
+    "noSystemPrompt": "Henüz sistem istemi yok.",
+    "toneLabel": "Ton",
+    "disallowedTopicsLabel": "Yasaklı konular",
+    "toneFormal": "Resmi",
+    "toneNeutral": "Nötr",
+    "toneCasual": "Günlük"
+  },
+  "members": {
+    "title": "Üyeler",
+    "addMember": "Üye Ekle",
+    "removeMember": "Üyeyi Kaldır"
+  },
+  "apiKeys": {
+    "title": "API Anahtarları",
+    "createKey": "Anahtar Oluştur",
+    "revokeKey": "Anahtarı İptal Et"
+  },
+  "branding": {
+    "title": "Markalama",
+    "logo": "Logo",
+    "colors": "Renkler"
+  },
+  "analytics": {
+    "title": "Analitik",
+    "usage": "Kullanım",
+    "conversations": "Konuşmalar"
+  },
+  "members": {
+    "title": "Üyeler",
+    "description": "Bu organizasyona kimlerin erişebileceğini ve ne yapabileceklerini yönetin.",
+    "inviteMember": "Üye davet et",
+    "email": "E-posta",
+    "name": "Ad",
+    "role": "Rol",
+    "status": "Durum",
+    "actions": "İşlemler",
+    "viewer": "Görüntüleyici",
+    "member": "Üye",
+    "admin": "Yönetici",
+    "owner": "Sahip",
+    "active": "Aktif",
+    "disabled": "Devre dışı",
+    "pendingInvitations": "Bekleyen davetler",
+    "noPendingInvitations": "Bekleyen davet yok.",
+    "expires": "Süresi doluyor",
+    "inviteDialogTitle": "Üye davet et",
+    "sendInvite": "Daveti gönder",
+    "noOrgs": "Organizasyon yok"
+  },
+  "apiKeys": {
+    "title": "API anahtarları",
+    "description": "Bu organizasyona programatik erişim için anahtarlar oluşturun.",
+    "newApiKey": "Yeni API anahtarı",
+    "noApiKeys": "Henüz API anahtarı yok.",
+    "noDescription": "Açıklama yok",
+    "created": "Oluşturuldu",
+    "expires": "Süresi doluyor",
+    "deleteKey": "Anahtarı sil",
+    "newApiKeyDialogTitle": "Yeni API anahtarı",
+    "name": "Ad",
+    "description": "Açıklama",
+    "scopes": "Kapsamlar (virgülle ayrılmış)",
+    "scopesHelper": "Örnek: chat:invoke, org:metrics:read",
+    "expiresInDays": "Süresi (gün)",
+    "tokenWarning": "Bu token yalnızca bir kez gösterilecektir. Kopyalayın ve güvenli bir yerde saklayın.",
+    "copy": "Kopyala",
+    "create": "Oluştur",
+    "close": "Kapat"
+  }
+}
+

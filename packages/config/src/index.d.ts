@@ -1,0 +1,78 @@
+import { z } from 'zod';
+declare const baseSchema: z.ZodObject<{
+    NODE_ENV: z.ZodDefault<z.ZodEnum<["development", "test", "production"]>>;
+    LOG_LEVEL: z.ZodDefault<z.ZodEnum<["trace", "debug", "info", "warn", "error", "fatal"]>>;
+    API_HOST: z.ZodDefault<z.ZodString>;
+    API_PORT: z.ZodEffects<z.ZodDefault<z.ZodString>, number, string | undefined>;
+    WEB_PORT: z.ZodEffects<z.ZodDefault<z.ZodString>, number, string | undefined>;
+    NEXT_PUBLIC_API_BASE_URL: z.ZodDefault<z.ZodString>;
+    WORKER_CONCURRENCY: z.ZodEffects<z.ZodDefault<z.ZodString>, number, string | undefined>;
+    DATABASE_URL: z.ZodString;
+    REDIS_URL: z.ZodString;
+    OLLAMA_BASE_URL: z.ZodDefault<z.ZodString>;
+    DEFAULT_MODEL: z.ZodDefault<z.ZodString>;
+    JWT_SECRET: z.ZodString;
+    JWT_EXPIRES_IN: z.ZodDefault<z.ZodString>;
+    REFRESH_TOKEN_TTL_DAYS: z.ZodEffects<z.ZodDefault<z.ZodString>, number, string | undefined>;
+    BCRYPT_SALT_ROUNDS: z.ZodEffects<z.ZodDefault<z.ZodString>, number, string | undefined>;
+    RATE_LIMIT_MAX: z.ZodEffects<z.ZodDefault<z.ZodString>, number, string | undefined>;
+    RATE_LIMIT_TIME_WINDOW_MS: z.ZodEffects<z.ZodDefault<z.ZodString>, number, string | undefined>;
+    PROMETHEUS_METRICS_PORT: z.ZodEffects<z.ZodOptional<z.ZodString>, number | undefined, string | undefined>;
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.ZodOptional<z.ZodString>;
+    DEFAULT_TENANT_NAME: z.ZodDefault<z.ZodString>;
+    ALLOW_SIGNUP: z.ZodEffects<z.ZodDefault<z.ZodString>, boolean, string | undefined>;
+}, "strip", z.ZodTypeAny, {
+    NODE_ENV: "development" | "test" | "production";
+    LOG_LEVEL: "trace" | "debug" | "info" | "warn" | "error" | "fatal";
+    API_HOST: string;
+    API_PORT: number;
+    WEB_PORT: number;
+    NEXT_PUBLIC_API_BASE_URL: string;
+    WORKER_CONCURRENCY: number;
+    DATABASE_URL: string;
+    REDIS_URL: string;
+    OLLAMA_BASE_URL: string;
+    DEFAULT_MODEL: string;
+    JWT_SECRET: string;
+    JWT_EXPIRES_IN: string;
+    REFRESH_TOKEN_TTL_DAYS: number;
+    BCRYPT_SALT_ROUNDS: number;
+    RATE_LIMIT_MAX: number;
+    RATE_LIMIT_TIME_WINDOW_MS: number;
+    DEFAULT_TENANT_NAME: string;
+    ALLOW_SIGNUP: boolean;
+    PROMETHEUS_METRICS_PORT?: number | undefined;
+    OTEL_EXPORTER_OTLP_ENDPOINT?: string | undefined;
+}, {
+    DATABASE_URL: string;
+    REDIS_URL: string;
+    JWT_SECRET: string;
+    NODE_ENV?: "development" | "test" | "production" | undefined;
+    LOG_LEVEL?: "trace" | "debug" | "info" | "warn" | "error" | "fatal" | undefined;
+    API_HOST?: string | undefined;
+    API_PORT?: string | undefined;
+    WEB_PORT?: string | undefined;
+    NEXT_PUBLIC_API_BASE_URL?: string | undefined;
+    WORKER_CONCURRENCY?: string | undefined;
+    OLLAMA_BASE_URL?: string | undefined;
+    DEFAULT_MODEL?: string | undefined;
+    JWT_EXPIRES_IN?: string | undefined;
+    REFRESH_TOKEN_TTL_DAYS?: string | undefined;
+    BCRYPT_SALT_ROUNDS?: string | undefined;
+    RATE_LIMIT_MAX?: string | undefined;
+    RATE_LIMIT_TIME_WINDOW_MS?: string | undefined;
+    PROMETHEUS_METRICS_PORT?: string | undefined;
+    OTEL_EXPORTER_OTLP_ENDPOINT?: string | undefined;
+    DEFAULT_TENANT_NAME?: string | undefined;
+    ALLOW_SIGNUP?: string | undefined;
+}>;
+export type AppConfig = z.infer<typeof baseSchema> & {
+    /** Derived booleans */
+    isDev: boolean;
+    isTest: boolean;
+    isProd: boolean;
+};
+export declare function loadConfig(): AppConfig;
+export declare function getConfig(): AppConfig;
+export {};
+//# sourceMappingURL=index.d.ts.map

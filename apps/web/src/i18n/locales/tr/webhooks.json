@@ -1,0 +1,22 @@
+{
+  "title": "Webhooks",
+  "subtitle": "Bu organizasyonda olaylar olduğunda harici sistemleri bilgilendirin.",
+  "newWebhook": "Yeni webhook",
+  "loading": "Webhook'lar yükleniyor…",
+  "name": "Ad",
+  "description": "Açıklama",
+  "noDescription": "Açıklama yok",
+  "targetUrl": "Hedef URL",
+  "targetUrlHelper": "HMAC imzalarını doğrulayabilen bir HTTPS uç noktası kullanın.",
+  "url": "URL",
+  "eventTypes": "Olay türü önekleri (virgülle ayrılmış)",
+  "eventTypesHelper": "Örnek: conversation., org.ai_policy_updated",
+  "allEvents": "Tüm olaylar",
+  "create": "Oluştur",
+  "creating": "Oluşturuluyor…",
+  "delete": "Sil",
+  "enabled": "Etkin",
+  "disabled": "Devre dışı",
+  "noWebhooks": "Henüz webhook yok. Olaylarda imzalı HTTP POST çağrıları almak için bir tane oluşturun."
+}
+

@@ -1,0 +1,15 @@
+{
+  "title": "Inbox",
+  "subtitle": "Search and filter all your conversations in this organization.",
+  "searchPlaceholder": "Search conversations…",
+  "advancedFilters": "Advanced filters",
+  "sort": "Sort",
+  "recent": "Recent",
+  "relevance": "Relevance",
+  "rag": "RAG",
+  "tools": "Tools",
+  "files": "Files",
+  "noResults": "No conversations found.",
+  "loading": "Loading…"
+}
+

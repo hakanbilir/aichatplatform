@@ -1,0 +1,21 @@
+{
+  "name": "worker-jobs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun run src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "bun run dist/main.js",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-chat/config": "workspace:*",
+    "@ai-chat/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
+

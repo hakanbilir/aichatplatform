@@ -1,0 +1,95 @@
+{
+  "empty": {
+    "startConversation": "Start a new conversation",
+    "description": "Ask anything. Responses are streamed from your Ollama backend."
+  },
+  "messageInput": {
+    "placeholder": "Send a message…"
+  },
+  "models": {
+    "llama3.1": "llama3.1 (general)",
+    "llama3.1:8b": "llama3.1:8b (fast)",
+    "qwen2.5-coder": "qwen2.5-coder (code)"
+  },
+  "settings": {
+    "title": "Conversation Settings",
+    "model": "Model",
+    "temperature": "Temperature",
+    "topP": "Top P",
+    "maxTokens": "Max Tokens",
+    "promptLibrary": "Prompt Library",
+    "tools": "Tools",
+    "newConversation": "New Conversation",
+    "modelPerConversation": "Model & creativity are per‑conversation.",
+    "creativity": {
+      "precise": "Precise",
+      "balanced": "Balanced",
+      "creative": "Creative"
+    },
+    "toolsPanel": "Tools panel",
+    "advancedSettings": "Advanced settings",
+    "resetSettings": "Reset to saved settings",
+    "saveSettings": "Save settings for this conversation",
+    "settingsUpToDate": "Settings are up to date",
+    "tuneBehavior": "Tune model behavior for this chat.",
+    "loading": "Loading settings...",
+    "modelKey": "Model key",
+    "modelKeyHelper": "For example: llama3.1, qwen2.5-coder",
+    "temperatureHelper": "Lower = more deterministic. Higher = more creative.",
+    "systemPrompt": "System Prompt",
+    "systemInstructions": "System instructions",
+    "systemInstructionsHelper": "Optional high‑level instructions that guide the assistant in this conversation.",
+    "systemPromptPlaceholder": "You are an expert Node.js engineer helping with an Ollama‑backed chat system...",
+    "toolsIntegrations": "Tools & integrations",
+    "codeExecution": "Code execution / sandbox",
+    "webSearch": "Web search / external knowledge",
+    "structuredTools": "Structured tools (functions, agents)",
+    "changesTakeEffect": "Changes take effect the next time you send a message.",
+    "save": "Save",
+    "saving": "Saving…",
+    "failedToLoad": "Failed to load conversation settings"
+  },
+  "conversation": {
+    "new": "New Conversation",
+    "saved": "Saved",
+    "export": "Export",
+    "share": "Share",
+    "tokens": "Tokens",
+    "completions": "Completions",
+    "recent": "Recent conversations"
+  },
+  "tools": {
+    "panel": "Tools panel",
+    "description": "Inspect and run tools in the current context.",
+    "loading": "Loading tools…",
+    "noTools": "No tools available in this context.",
+    "selectTool": "Select a tool on the left to view its description and run it.",
+    "run": "Run tool",
+    "running": "Running…",
+    "arguments": "Arguments",
+    "lastRun": "Last result",
+    "noRunsYet": "No tool runs yet. Configure args above and click \"Run tool\".",
+    "reload": "Reload tools"
+  },
+  "sidebar": {
+    "title": "Conversations",
+    "new": "New",
+    "searchPlaceholder": "Search conversations",
+    "pinned": "Pinned",
+    "recent": "Recent",
+    "untitled": "Untitled",
+    "untitledChat": "Untitled chat",
+    "moreActions": "More actions",
+    "noConversations": "No conversations yet. Start a new one to begin chatting.",
+    "loading": "Loading…",
+    "loadMore": "Load more",
+    "rename": "Rename",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "archive": "Archive",
+    "export": "Export",
+    "share": "Share",
+    "newConversation": "New Conversation"
+  }
+}
+

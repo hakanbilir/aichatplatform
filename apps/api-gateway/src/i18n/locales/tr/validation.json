@@ -1,0 +1,9 @@
+{
+  "emailRequired": "E-posta adresi gereklidir",
+  "emailInvalid": "Geçerli bir e-posta adresi girin",
+  "passwordRequired": "Şifre gereklidir",
+  "passwordMinLength": "Şifre en az 8 karakter olmalıdır",
+  "nameRequired": "Ad gereklidir",
+  "fieldRequired": "Bu alan gereklidir"
+}
+

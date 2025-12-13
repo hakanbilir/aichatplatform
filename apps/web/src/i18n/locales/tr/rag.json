@@ -1,0 +1,9 @@
+{
+  "title": "Bilgi ile güçlendirilmiş yanıtlar",
+  "useOrgKnowledge": "Bu konuşma için organizasyon bilgi tabanını kullan",
+  "knowledgeSpace": "Bilgi alanı",
+  "allSpaces": "Tüm alanlar",
+  "maxChunks": "Tur başına maksimum parça",
+  "maxChunksHelper": "Model, seçilen alan(lar)dan en uygun eşleşen parçaları ek bağlam olarak alacaktır."
+}
+

@@ -1,0 +1,16 @@
+{
+  "title": "Data Retention",
+  "subtitle": "Configure automatic deletion and data management policies for this organization.",
+  "maxAgeDays": "Max conversation age (days)",
+  "maxAgeDaysHelper": "Conversations older than this will be soft-deleted. Leave empty to disable.",
+  "hardDeleteDays": "Hard delete after (days)",
+  "hardDeleteDaysHelper": "Soft-deleted conversations will be permanently deleted after this many days. Leave empty to keep soft-deleted conversations.",
+  "allowUserDeletion": "Allow users to delete their own conversations",
+  "allowExports": "Allow conversation exports",
+  "allowShareLinks": "Allow public share links",
+  "save": "Save",
+  "saving": "Saving…",
+  "failedToLoad": "Failed to load retention config",
+  "failedToSave": "Failed to save retention config"
+}
+

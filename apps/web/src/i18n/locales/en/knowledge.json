@@ -1,0 +1,28 @@
+{
+  "title": "Knowledge Base",
+  "subtitle": "Upload org content, search it, and power RAG‑enhanced conversations.",
+  "createSpace": "New space",
+  "ingestText": "Ingest text",
+  "spaces": "Spaces",
+  "noSpaces": "No knowledge spaces yet. Create one to start ingesting documents.",
+  "search": "Search knowledge",
+  "searchPlaceholder": "Search across your org knowledge...",
+  "noResults": "No results yet. Try running a search.",
+  "ingestDialog": {
+    "title": "Ingest text document",
+    "titleLabel": "Title",
+    "spaceLabel": "Select space",
+    "textLabel": "Text",
+    "ingest": "Ingest",
+    "ingesting": "Ingesting…",
+    "cancel": "Cancel"
+  },
+  "createSpaceDialog": {
+    "title": "Create New Space",
+    "nameLabel": "Space Name",
+    "create": "Create",
+    "creating": "Creating…",
+    "cancel": "Cancel"
+  }
+}
+

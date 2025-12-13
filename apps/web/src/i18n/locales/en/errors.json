@@ -1,0 +1,9 @@
+{
+  "generic": "An error occurred",
+  "networkError": "Network error. Please try again.",
+  "unauthorized": "Unauthorized. Please sign in again.",
+  "notFound": "Record not found",
+  "validationError": "Validation error",
+  "serverError": "Server error. Please try again later."
+}
+

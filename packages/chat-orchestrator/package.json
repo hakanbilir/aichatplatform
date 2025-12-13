@@ -1,0 +1,19 @@
+{
+  "name": "@ai-chat/chat-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/chat-orchestrator/src/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-chat/config": "workspace:*",
+    "@ai-chat/core-types": "workspace:*",
+    "@ai-chat/ollama-client": "workspace:*"
+  }
+}
+

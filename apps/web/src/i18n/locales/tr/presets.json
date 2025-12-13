@@ -1,0 +1,15 @@
+{
+  "title": "Konuşma Hazır Ayarları",
+  "subtitle": "Önceden tanımlanmış sistem istemleri, modeller, araçlar ve RAG ayarlarıyla konuşmalar başlatın.",
+  "newPreset": "Yeni Hazır Ayar",
+  "noPresets": "Henüz hazır ayar yok. Ekibinize hazır asistanlar vermek için hazır ayarlar oluşturun.",
+  "noDescription": "Açıklama yok.",
+  "model": "Model",
+  "default": "Varsayılan",
+  "quickStrip": {
+    "startWithPreset": "Bir hazır ayarla başlayın",
+    "managePresets": "Hazır ayarları yönet",
+    "noPresetsYet": "Henüz hazır ayar yok."
+  }
+}
+

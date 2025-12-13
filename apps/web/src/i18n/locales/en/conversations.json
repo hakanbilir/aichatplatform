@@ -1,0 +1,31 @@
+{
+  "share": {
+    "title": "Share conversation",
+    "expiresInDays": "Expires in (days)",
+    "expiresInDaysHelper": "Leave empty for no expiration",
+    "passphrase": "Passphrase (optional)",
+    "passphraseHelper": "If set, viewers must enter this passphrase to access the link.",
+    "anonymize": "Anonymize users in public view",
+    "createLink": "Create link",
+    "creating": "Creating…",
+    "publicUrl": "Public URL",
+    "copy": "Copy to clipboard",
+    "copied": "Copied",
+    "failed": "Failed to create share link"
+  },
+  "export": {
+    "title": "Export conversation",
+    "format": "Format",
+    "startExport": "Start export",
+    "exporting": "Exporting…",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "download": "Download",
+    "failed": "Export failed"
+  }
+}
+

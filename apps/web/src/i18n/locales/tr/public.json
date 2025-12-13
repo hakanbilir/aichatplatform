@@ -1,0 +1,12 @@
+{
+  "title": "Paylaşılan konuşma",
+  "loading": "Yükleniyor...",
+  "failedToLoad": "Konuşma yüklenemedi",
+  "invalidPassphrase": "Geçersiz parola",
+  "enterPassphrase": "Parola girin",
+  "passphrase": "Parola",
+  "sharedBy": "Paylaşan:",
+  "submit": "Gönder",
+  "submitting": "Gönderiliyor…"
+}
+

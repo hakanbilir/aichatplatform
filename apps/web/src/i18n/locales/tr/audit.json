@@ -1,0 +1,16 @@
+{
+  "title": "Denetim günlüğü",
+  "subtitle": "Bu organizasyonda kimin ne yaptığını ve ne zaman yaptığını görün.",
+  "refresh": "Yenile",
+  "eventTypeContains": "Olay türü içerir",
+  "pageSize": "Sayfa boyutu",
+  "action": "Eylem",
+  "user": "Kullanıcı",
+  "timestamp": "Zaman",
+  "conversation": "Konuşma",
+  "metadata": "Meta veri",
+  "system": "Sistem",
+  "openConversation": "Konuşmayı aç",
+  "noEvents": "Henüz denetim olayı yok."
+}
+

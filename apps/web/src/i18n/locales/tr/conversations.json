@@ -1,0 +1,31 @@
+{
+  "share": {
+    "title": "Konuşmayı paylaş",
+    "expiresInDays": "Süre (gün)",
+    "expiresInDaysHelper": "Boş bırakılırsa süre dolmaz",
+    "passphrase": "Parola (isteğe bağlı)",
+    "passphraseHelper": "Ayarlanırsa, görüntüleyenler bağlantıya erişmek için bu parolayı girmelidir.",
+    "anonymize": "Genel görünümde kullanıcıları anonimleştir",
+    "createLink": "Paylaşım bağlantısı oluştur",
+    "creating": "Oluşturuluyor…",
+    "publicUrl": "Genel URL",
+    "copy": "Panoya kopyala",
+    "copied": "Kopyalandı",
+    "failed": "Paylaşım bağlantısı oluşturulamadı"
+  },
+  "export": {
+    "title": "Konuşmayı dışa aktar",
+    "format": "Format",
+    "startExport": "Dışa aktarmayı başlat",
+    "exporting": "Dışa aktarılıyor…",
+    "status": {
+      "pending": "Beklemede",
+      "processing": "İşleniyor",
+      "completed": "Tamamlandı",
+      "failed": "Başarısız"
+    },
+    "download": "İndir",
+    "failed": "Dışa aktarma başarısız"
+  }
+}
+

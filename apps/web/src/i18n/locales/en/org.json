@@ -1,0 +1,86 @@
+{
+  "policy": {
+    "title": "Org AI Policy",
+    "description": "Define how the assistant behaves for everyone in this organization.",
+    "name": "Policy name",
+    "systemPrompt": "Global system prompt",
+    "systemPromptHelper": "This will be prepended as a system message to all conversations in this org.",
+    "defaultName": "Org AI Policy",
+    "defaultTone": "Default tone",
+    "notSpecified": "Not specified",
+    "noneDefined": "None defined",
+    "disallowedTopics": "Disallowed topics (comma separated)",
+    "preview": "Preview",
+    "previewDescription": "This is how the assistant will behave in this organization.",
+    "systemPromptLabel": "System prompt",
+    "noSystemPrompt": "No system prompt yet.",
+    "toneLabel": "Tone",
+    "disallowedTopicsLabel": "Disallowed topics",
+    "toneFormal": "Formal",
+    "toneNeutral": "Neutral",
+    "toneCasual": "Casual"
+  },
+  "members": {
+    "title": "Members",
+    "addMember": "Add Member",
+    "removeMember": "Remove Member"
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "createKey": "Create Key",
+    "revokeKey": "Revoke Key"
+  },
+  "branding": {
+    "title": "Branding",
+    "logo": "Logo",
+    "colors": "Colors"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "usage": "Usage",
+    "conversations": "Conversations"
+  },
+  "members": {
+    "title": "Members",
+    "description": "Manage who can access this organization and what they can do.",
+    "inviteMember": "Invite member",
+    "email": "Email",
+    "name": "Name",
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions",
+    "viewer": "Viewer",
+    "member": "Member",
+    "admin": "Admin",
+    "owner": "Owner",
+    "active": "Active",
+    "disabled": "Disabled",
+    "pendingInvitations": "Pending invitations",
+    "noPendingInvitations": "No pending invitations.",
+    "expires": "Expires",
+    "inviteDialogTitle": "Invite member",
+    "sendInvite": "Send invite",
+    "noOrgs": "No orgs"
+  },
+  "apiKeys": {
+    "title": "API keys",
+    "description": "Create keys for programmatic access to this organization.",
+    "newApiKey": "New API key",
+    "noApiKeys": "No API keys yet.",
+    "noDescription": "No description",
+    "created": "Created",
+    "expires": "Expires",
+    "deleteKey": "Delete key",
+    "newApiKeyDialogTitle": "New API key",
+    "name": "Name",
+    "description": "Description",
+    "scopes": "Scopes (comma separated)",
+    "scopesHelper": "Example: chat:invoke, org:metrics:read",
+    "expiresInDays": "Expires in (days)",
+    "tokenWarning": "This token will only be shown once. Copy and store it securely.",
+    "copy": "Copy",
+    "create": "Create",
+    "close": "Close"
+  }
+}
+

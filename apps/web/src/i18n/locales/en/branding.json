@@ -1,0 +1,18 @@
+{
+  "title": "Branding",
+  "subtitle": "Customize how this organization appears to its users.",
+  "displayName": "Display name",
+  "logoUrl": "Logo URL",
+  "logoUrlHelper": "Use a square PNG or SVG for best results.",
+  "primaryColor": "Primary color (hex)",
+  "primaryColorHelper": "Example: #0F766E",
+  "showLogoOnChat": "Show logo on chat pages",
+  "preview": "Preview",
+  "logoPreviewAlt": "Org logo preview",
+  "organization": "Organization",
+  "save": "Save",
+  "saving": "Saving…",
+  "failedToLoad": "Failed to load branding config",
+  "failedToSave": "Failed to save branding config"
+}
+

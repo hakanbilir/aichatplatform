@@ -1,0 +1,9 @@
+{
+  "generic": "Bir hata oluştu",
+  "networkError": "Ağ hatası. Lütfen tekrar deneyin.",
+  "unauthorized": "Yetkiniz yok. Lütfen tekrar giriş yapın.",
+  "notFound": "Kayıt bulunamadı",
+  "validationError": "Doğrulama hatası",
+  "serverError": "Sunucu hatası. Lütfen daha sonra tekrar deneyin."
+}
+

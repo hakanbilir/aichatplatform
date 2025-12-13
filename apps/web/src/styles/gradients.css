@@ -1,0 +1,190 @@
+:root {
+  --gradient-primary: radial-gradient(circle at 0% 0%, #7c4dff 0%, #00e5ff 40%, #ff4081 90%);
+  --gradient-sidebar: linear-gradient(180deg, rgba(124, 77, 255, 0.8), rgba(0, 229, 255, 0.4));
+  --gradient-header: linear-gradient(90deg, rgba(124, 77, 255, 0.9), rgba(0, 229, 255, 0.8));
+  
+  /* Metric card gradients */
+  --gradient-metric-1: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(56, 189, 248, 0.16));
+  --gradient-metric-2: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(45, 212, 191, 0.18));
+  --gradient-metric-3: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(236, 72, 153, 0.18));
+  --gradient-metric-4: linear-gradient(135deg, rgba(124, 77, 255, 0.18), rgba(0, 229, 255, 0.16));
+  --gradient-metric-5: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(251, 191, 36, 0.18));
+  --gradient-metric-6: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(248, 113, 113, 0.18));
+  
+  /* Button gradients */
+  --gradient-button-primary: linear-gradient(135deg, #7C4DFF 0%, #00E5FF 100%);
+  --gradient-button-success: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  --gradient-button-warning: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+  --gradient-button-error: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+  
+  /* Chart gradients */
+  --gradient-chart-1: linear-gradient(180deg, rgba(124, 77, 255, 0.3), rgba(124, 77, 255, 0.05));
+  --gradient-chart-2: linear-gradient(180deg, rgba(0, 229, 255, 0.3), rgba(0, 229, 255, 0.05));
+  --gradient-chart-3: linear-gradient(180deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.05));
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Roboto', sans-serif;
+  background: radial-gradient(circle at top left, #111427 0%, #050711 45%, #000000 100%);
+}
+
+.gradient-shell {
+  background: radial-gradient(circle at top left, rgba(124, 77, 255, 0.28), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(0, 229, 255, 0.18), transparent 55%),
+    #050711;
+}
+
+.gradient-sidebar {
+  background: var(--gradient-sidebar);
+}
+
+.gradient-header {
+  background: var(--gradient-header);
+}
+
+/* Metric card gradient classes */
+.gradient-metric-1 {
+  background: var(--gradient-metric-1);
+}
+
+.gradient-metric-2 {
+  background: var(--gradient-metric-2);
+}
+
+.gradient-metric-3 {
+  background: var(--gradient-metric-3);
+}
+
+.gradient-metric-4 {
+  background: var(--gradient-metric-4);
+}
+
+.gradient-metric-5 {
+  background: var(--gradient-metric-5);
+}
+
+.gradient-metric-6 {
+  background: var(--gradient-metric-6);
+}
+
+/* Button gradient classes */
+.gradient-button-primary {
+  background: var(--gradient-button-primary);
+}
+
+.gradient-button-success {
+  background: var(--gradient-button-success);
+}
+
+.gradient-button-warning {
+  background: var(--gradient-button-warning);
+}
+
+.gradient-button-error {
+  background: var(--gradient-button-error);
+}
+
+/* Chart gradient classes */
+.gradient-chart-1 {
+  background: var(--gradient-chart-1);
+}
+
+.gradient-chart-2 {
+  background: var(--gradient-chart-2);
+}
+
+.gradient-chart-3 {
+  background: var(--gradient-chart-3);
+}
+
+.micro-elevated {
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.micro-elevated:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 26px 65px rgba(0, 0, 0, 0.8);
+}
+
+.micro-fade-in {
+  animation: micro-fade-in 220ms ease-out;
+}
+
+@keyframes micro-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Data loading/updating animations */
+@keyframes data-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes data-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes metric-value-update {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes chart-line-draw {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.data-pulse {
+  animation: data-pulse 2s ease-in-out infinite;
+}
+
+.data-slide-up {
+  animation: data-slide-up 300ms ease-out;
+}
+
+.metric-value-update {
+  animation: metric-value-update 400ms ease-out;
+}
+
+.chart-line-draw {
+  animation: chart-line-draw 1s ease-out;
+}
+

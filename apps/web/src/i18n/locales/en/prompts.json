@@ -1,0 +1,43 @@
+{
+  "newTemplate": "New prompt template",
+  "editTemplate": "Edit prompt template",
+  "title": "Title",
+  "description": "Description",
+  "kind": "Kind",
+  "kindUser": "User prompt",
+  "kindSystem": "System prompt",
+  "kindMacro": "Macro",
+  "template": "Template",
+  "templateHelper": "Use {{variableName}} syntax to reference variables.",
+  "shareWithOrg": "Share with entire organization",
+  "variables": "Variables",
+  "noVariables": "No variables yet. Add variables if you want this template to behave like a form.",
+  "variableName": "Name",
+  "variableLabel": "Label",
+  "variableType": {
+    "string": "Single line",
+    "multiline": "Multiline",
+    "number": "Number",
+    "boolean": "Boolean (true/false)"
+  },
+  "addVariable": "Add variable",
+  "save": "Save",
+  "saving": "Saving…",
+  "cancel": "Cancel",
+  "library": {
+    "title": "Prompt Library",
+    "all": "All",
+    "mine": "My prompts",
+    "org": "Org prompts",
+    "description": "Reuse structured prompts for consistent outputs.",
+    "newTemplate": "New template",
+    "loading": "Loading templates…",
+    "noTemplates": "No templates yet. Create your first reusable prompt.",
+    "orgChip": "Org",
+    "fillVariables": "Fill template variables",
+    "noVariables": "This template has no variables. You can apply it directly.",
+    "booleanHelper": "Enter \"true\" or \"false\"",
+    "applyToInput": "Apply to input"
+  }
+}
+

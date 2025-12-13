@@ -1,0 +1,15 @@
+{
+  "title": "Conversation presets",
+  "subtitle": "Start conversations with predefined system prompts, models, tools and RAG settings.",
+  "newPreset": "New preset",
+  "noPresets": "No presets yet. Create presets to give your team ready‑made assistants.",
+  "noDescription": "No description provided.",
+  "model": "Model",
+  "default": "Default",
+  "quickStrip": {
+    "startWithPreset": "Start with a preset",
+    "managePresets": "Manage presets",
+    "noPresetsYet": "No presets yet."
+  }
+}
+
