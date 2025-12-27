@@ -6,7 +6,8 @@ interface MessageBubbleProps {
   content: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
+// Memoized to prevent re-renders during streaming
+export const MessageBubble = React.memo<MessageBubbleProps>(({ role, content }) => {
   const isUser = role === 'user';
   return (
     <Box
@@ -33,5 +34,5 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) =
       </Box>
     </Box>
   );
-};
+});
 
