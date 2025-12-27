@@ -1,0 +1,810 @@
+# 29. Org Analytics & Grafana‑Style Usage Dashboards (Frontend UI)
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Provide a **Material 3 + Grafana‑inspired analytics UI** where:
+>
+> - Org admins can see **usage**, **limits**, **models**, and **tools** consumption at a glance.  
+> - Data engineers / ops can cross‑check app‑level analytics with **Prometheus/Grafana** metrics (28.md).  
+> - The UI is fully interactive, responsive, and suitable for use as an internal & customer‑facing dashboard.
+>
+> This file defines the **frontend analytics pages**, relying on:
+>
+> - Existing APIs (org quota/usage from 19.md, chat data from 21–22.md, tools data from 26–27.md).  
+> - Optionally, a small new analytics HTTP endpoint to aggregate application‑level data.
+
+> **Important instructions to AI agents:**
+> - Treat this file as canonical for the **Org analytics UI**.  
+> - Code must be complete and compilable; you may add new API endpoints if described here.  
+> - Use the same design language as previous UI docs: Material 3, vivid gradients, micro‑interactions, Grafana‑style layouts.
+
+---
+
+## 29.1. Backend – Org Analytics Endpoint
+
+We add a consolidated endpoint for **app‑level analytics** per organization.
+
+### 29.1.1. Data Model & Semantics
+
+The endpoint will return, for a given org:
+
+- **Org info**: id, name.  
+- **Current quota snapshot** (from 19.md `getOrgQuotaWindowUsage`).  
+- **Usage breakdown** for a recent window (e.g. last 30 days):
+  - Total chat turns.  
+  - Chat turns per model.  
+  - Chat turns with tools vs without tools.  
+  - Top tools by call volume.  
+  - Top users by chat turns.
+
+> This is an **application‑level aggregation** using DB data, not Prometheus. Prometheus/Grafana (28.md) remains infra‑level observability.
+
+### 29.1.2. SQL / Prisma Aggregations
+
+We assume:
+
+- `Conversation` has `orgId`.  
+- `Message` has `conversationId`, `role`, `createdAt`, `authorId`, `meta`.  
+- `Org` model exists with `id` + `name`.
+
+We implement a service function that reads from Prisma and returns a DTO.
+
+**File:** `apps/api-gateway/src/services/orgAnalytics.ts`
+
+```ts
+// apps/api-gateway/src/services/orgAnalytics.ts
+
+import { prisma } from '@ai-chat/db';
+import { getOrgQuotaWindowUsage } from './orgQuotaGuard';
+
+export interface OrgAnalyticsOptions {
+  orgId: string;
+  windowDays?: number; // default 30
+}
+
+export interface OrgAnalyticsModelUsageItem {
+  model: string;
+  chatTurns: number;
+}
+
+export interface OrgAnalyticsToolUsageItem {
+  tool: string;
+  calls: number;
+}
+
+export interface OrgAnalyticsUserUsageItem {
+  userId: string;
+  chatTurns: number;
+}
+
+export interface OrgAnalyticsResult {
+  org: {
+    id: string;
+    name: string;
+  };
+  windowDays: number;
+  quota: any;
+  totals: {
+    chatTurns: number;
+    chatTurnsWithTools: number;
+    chatTurnsWithoutTools: number;
+  };
+  byModel: OrgAnalyticsModelUsageItem[];
+  byTool: OrgAnalyticsToolUsageItem[];
+  byUser: OrgAnalyticsUserUsageItem[];
+}
+
+export async function getOrgAnalytics(
+  options: OrgAnalyticsOptions
+): Promise<OrgAnalyticsResult> {
+  const windowDays = options.windowDays && options.windowDays > 0 ? options.windowDays : 30;
+  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+
+  const org = await prisma.org.findUnique({
+    where: { id: options.orgId },
+    select: { id: true, name: true }
+  });
+
+  if (!org) {
+    throw new Error('Org not found');
+  }
+
+  const quota = await getOrgQuotaWindowUsage(org.id, windowDays);
+
+  // Chat turns = assistant messages in conversations belonging to this org
+  const assistantMessages = await prisma.message.findMany({
+    where: {
+      role: 'ASSISTANT',
+      createdAt: {
+        gte: since
+      },
+      conversation: {
+        orgId: org.id
+      }
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      conversationId: true,
+      conversation: {
+        select: {
+          model: true
+        }
+      },
+      meta: true
+    }
+  });
+
+  const totals = {
+    chatTurns: 0,
+    chatTurnsWithTools: 0,
+    chatTurnsWithoutTools: 0
+  };
+
+  const byModelMap = new Map<string, number>();
+  const byUserMap = new Map<string, number>();
+  const byToolMap = new Map<string, number>();
+
+  totals.chatTurns = assistantMessages.length;
+
+  for (const msg of assistantMessages) {
+    const model = msg.conversation?.model || 'default';
+    byModelMap.set(model, (byModelMap.get(model) || 0) + 1);
+
+    // Tools: we expect meta.toolMessageId or meta.tools to indicate tool usage
+    const usedTools = Boolean((msg.meta as any)?.toolMessageId || (msg.meta as any)?.tools);
+
+    if (usedTools) {
+      totals.chatTurnsWithTools += 1;
+    } else {
+      totals.chatTurnsWithoutTools += 1;
+    }
+
+    // If meta.usage has an embedded userId (optional), or we might infer from related messages; for now, we skip.
+  }
+
+  // Top tools by calls: we look at TOOL messages in this org
+  const toolMessages = await prisma.message.findMany({
+    where: {
+      role: 'TOOL',
+      createdAt: {
+        gte: since
+      },
+      conversation: {
+        orgId: org.id
+      }
+    },
+    select: {
+      meta: true
+    }
+  });
+
+  for (const msg of toolMessages) {
+    const toolsMeta = (msg.meta as any) || {};
+    const results = toolsMeta.toolResults as { tool: string }[] | undefined;
+
+    if (Array.isArray(results)) {
+      for (const r of results) {
+        if (!r || typeof r.tool !== 'string') continue;
+        byToolMap.set(r.tool, (byToolMap.get(r.tool) || 0) + 1);
+      }
+    }
+  }
+
+  // Top users: we count USER messages in org conversations
+  const userMessages = await prisma.message.groupBy({
+    by: ['authorId'],
+    where: {
+      role: 'USER',
+      createdAt: {
+        gte: since
+      },
+      conversation: {
+        orgId: org.id
+      }
+    },
+    _count: {
+      _all: true
+    }
+  });
+
+  for (const row of userMessages) {
+    if (!row.authorId) continue;
+    byUserMap.set(row.authorId, (byUserMap.get(row.authorId) || 0) + row._count._all);
+  }
+
+  const byModel: OrgAnalyticsModelUsageItem[] = Array.from(byModelMap.entries()).map(
+    ([model, chatTurns]) => ({ model, chatTurns })
+  );
+
+  const byTool: OrgAnalyticsToolUsageItem[] = Array.from(byToolMap.entries()).map(
+    ([tool, calls]) => ({ tool, calls })
+  );
+
+  const byUser: OrgAnalyticsUserUsageItem[] = Array.from(byUserMap.entries()).map(
+    ([userId, chatTurns]) => ({ userId, chatTurns })
+  );
+
+  return {
+    org,
+    windowDays,
+    quota,
+    totals,
+    byModel,
+    byTool,
+    byUser
+  };
+}
+```
+
+### 29.1.3. Org Analytics Route
+
+**File:** `apps/api-gateway/src/routes/orgAnalytics.ts`
+
+```ts
+// apps/api-gateway/src/routes/orgAnalytics.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { z } from 'zod';
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
+import { getOrgAnalytics } from '../services/orgAnalytics';
+
+const querySchema = z.object({
+  windowDays: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : undefined))
+    .refine((val) => !val || !Number.isNaN(val), {
+      message: 'windowDays must be a number'
+    })
+});
+
+export default async function orgAnalyticsRoutes(
+  app: FastifyInstance,
+  _opts: FastifyPluginOptions
+) {
+  app.get('/orgs/:orgId/analytics', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+
+    const parsedQuery = querySchema.safeParse(request.query);
+    if (!parsedQuery.success) {
+      return reply.code(400).send({ error: 'INVALID_QUERY', details: parsedQuery.error.format() });
+    }
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:analytics:view'
+    );
+
+    const result = await getOrgAnalytics({
+      orgId,
+      windowDays: parsedQuery.data.windowDays
+    });
+
+    return reply.send(result);
+  });
+}
+```
+
+Register in `apps/api-gateway/src/main.ts`:
+
+```ts
+import orgAnalyticsRoutes from './routes/orgAnalytics';
+
+await app.register(orgAnalyticsRoutes);
+```
+
+---
+
+## 29.2. Frontend API Client
+
+We now expose a typed client on the web app to call the org analytics endpoint.
+
+### 29.2.1. Create `apps/web/src/api/orgAnalytics.ts`
+
+```ts
+// apps/web/src/api/orgAnalytics.ts
+
+import { apiRequest } from './client';
+
+export interface OrgAnalyticsModelUsageItem {
+  model: string;
+  chatTurns: number;
+}
+
+export interface OrgAnalyticsToolUsageItem {
+  tool: string;
+  calls: number;
+}
+
+export interface OrgAnalyticsUserUsageItem {
+  userId: string;
+  chatTurns: number;
+}
+
+export interface OrgAnalyticsResult {
+  org: {
+    id: string;
+    name: string;
+  };
+  windowDays: number;
+  quota: any;
+  totals: {
+    chatTurns: number;
+    chatTurnsWithTools: number;
+    chatTurnsWithoutTools: number;
+  };
+  byModel: OrgAnalyticsModelUsageItem[];
+  byTool: OrgAnalyticsToolUsageItem[];
+  byUser: OrgAnalyticsUserUsageItem[];
+}
+
+export async function fetchOrgAnalytics(
+  token: string,
+  orgId: string,
+  windowDays?: number
+): Promise<OrgAnalyticsResult> {
+  const params = new URLSearchParams();
+  if (windowDays && windowDays > 0) {
+    params.set('windowDays', String(windowDays));
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+
+  return apiRequest<OrgAnalyticsResult>(
+    `/orgs/${orgId}/analytics${suffix}`,
+    { method: 'GET' },
+    token
+  );
+}
+```
+
+---
+
+## 29.3. Org Analytics Hook
+
+We add a hook to load analytics data and manage state.
+
+### 29.3.1. Create `apps/web/src/org/useOrgAnalytics.ts`
+
+```ts
+// apps/web/src/org/useOrgAnalytics.ts
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { OrgAnalyticsResult, fetchOrgAnalytics } from '../api/orgAnalytics';
+
+export function useOrgAnalytics(orgId: string | null, initialWindowDays = 30) {
+  const { token } = useAuth();
+
+  const [windowDays, setWindowDays] = useState(initialWindowDays);
+  const [data, setData] = useState<OrgAnalyticsResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetchOrgAnalytics(token, orgId, windowDays);
+        if (cancelled) return;
+        setData(res);
+      } catch (err) {
+        if (cancelled) return;
+        setError((err as Error).message || 'Failed to load analytics');
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId, windowDays]);
+
+  return {
+    data,
+    loading,
+    error,
+    windowDays,
+    setWindowDays
+  };
+}
+```
+
+This hook is shared across any analytics page components.
+
+---
+
+## 29.4. Org Analytics Page Component
+
+We now implement a **Grafana‑inspired org analytics dashboard**.
+
+### 29.4.1. Create `apps/web/src/org/OrgAnalyticsPage.tsx`
+
+```tsx
+// apps/web/src/org/OrgAnalyticsPage.tsx
+
+import React from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography
+} from '@mui/material';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import HubIcon from '@mui/icons-material/Hub';
+import PeopleIcon from '@mui/icons-material/People';
+import { useOrgAnalytics } from './useOrgAnalytics';
+
+export interface OrgAnalyticsPageProps {
+  orgId: string;
+}
+
+export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => {
+  const { data, loading, error, windowDays, setWindowDays } = useOrgAnalytics(orgId, 30);
+
+  const handleWindowChange = (event: SelectChangeEvent<string>) => {
+    const value = parseInt(event.target.value, 10);
+    if (!Number.isNaN(value)) {
+      setWindowDays(value);
+    }
+  };
+
+  const totals = data?.totals;
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        background:
+          'radial-gradient(circle at top left, rgba(56,189,248,0.15), transparent 55%), radial-gradient(circle at bottom right, rgba(139,92,246,0.18), transparent 55%)'
+      }}
+    >
+      {/* Header */}
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <QueryStatsIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">
+              Org analytics
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Usage, models and tools activity for this organization.
+            </Typography>
+          </Box>
+        </Box>
+        <Box display="flex" alignItems="center" gap={2}>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="window-label">Window</InputLabel>
+            <Select
+              labelId="window-label"
+              label="Window"
+              value={String(windowDays)}
+              onChange={handleWindowChange}
+            >
+              <MenuItem value="7">Last 7 days</MenuItem>
+              <MenuItem value="30">Last 30 days</MenuItem>
+              <MenuItem value="90">Last 90 days</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      </Box>
+
+      {loading && (
+        <Box flex={1} display="flex" alignItems="center" justifyContent="center">
+          <CircularProgress size={32} />
+        </Box>
+      )}
+
+      {!loading && error && (
+        <Box flex={1} display="flex" alignItems="center" justifyContent="center">
+          <Typography color="error">{error}</Typography>
+        </Box>
+      )}
+
+      {!loading && data && (
+        <Box display="flex" flexDirection="column" gap={2} flex={1}>
+          {/* Top row: summary cards */}
+          <Box display="flex" flexWrap="wrap" gap={2}>
+            <Card
+              sx={{
+                flex: '1 1 220px',
+                borderRadius: 3,
+                background:
+                  'linear-gradient(135deg, rgba(59,130,246,0.18), rgba(56,189,248,0.16))'
+              }}
+            >
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">
+                  Total chat turns
+                </Typography>
+                <Typography variant="h5">{totals?.chatTurns ?? 0}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  In the last {data.windowDays} days
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                flex: '1 1 220px',
+                borderRadius: 3,
+                background:
+                  'linear-gradient(135deg, rgba(16,185,129,0.18), rgba(45,212,191,0.18))'
+              }}
+            >
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">
+                  With tools
+                </Typography>
+                <Typography variant="h5">{totals?.chatTurnsWithTools ?? 0}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  vs {totals?.chatTurnsWithoutTools ?? 0} without tools
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                flex: '1 1 220px',
+                borderRadius: 3,
+                background:
+                  'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(236,72,153,0.18))'
+              }}
+            >
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">
+                  Quota plan
+                </Typography>
+                <Typography variant="h6">{String(data.quota.plan || 'N/A')}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Used: {String(data.quota.windowUsageTokens ?? '0')} tokens
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+
+          {/* Middle row: model usage & tools usage */}
+          <Box display="flex" flexWrap="wrap" gap={2}>
+            <Card sx={{ flex: '1 1 320px', borderRadius: 3 }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <TimelineIcon fontSize="small" />
+                    <Typography variant="subtitle2">Model usage</Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Chat turns per model
+                  </Typography>
+                </Box>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Model</TableCell>
+                      <TableCell align="right">Chat turns</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.byModel.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={2}>
+                          <Typography variant="body2" color="text.secondary">
+                            No data in this window.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {data.byModel.map((row) => (
+                      <TableRow key={row.model}>
+                        <TableCell>{row.model}</TableCell>
+                        <TableCell align="right">{row.chatTurns}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ flex: '1 1 320px', borderRadius: 3 }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <HubIcon fontSize="small" />
+                    <Typography variant="subtitle2">Top tools</Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Calls per tool
+                  </Typography>
+                </Box>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Tool</TableCell>
+                      <TableCell align="right">Calls</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.byTool.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={2}>
+                          <Typography variant="body2" color="text.secondary">
+                            No tool calls in this window.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {data.byTool.map((row) => (
+                      <TableRow key={row.tool}>
+                        <TableCell>{row.tool}</TableCell>
+                        <TableCell align="right">{row.calls}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </Box>
+
+          {/* Bottom row: top users */}
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <PeopleIcon fontSize="small" />
+                  <Typography variant="subtitle2">Top users</Typography>
+                </Box>
+                <Tooltip title="Based on user messages in this org's conversations.">
+                  <Typography variant="caption" color="text.secondary" sx={{ cursor: 'default' }}>
+                    Activity ranking
+                  </Typography>
+                </Tooltip>
+              </Box>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>User ID</TableCell>
+                    <TableCell align="right">Chat turns</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {data.byUser.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2}>
+                        <Typography variant="body2" color="text.secondary">
+                          No active users in this window.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {data.byUser.map((row) => (
+                    <TableRow key={row.userId}>
+                      <TableCell>{row.userId}</TableCell>
+                      <TableCell align="right">{row.chatTurns}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
+    </Box>
+  );
+};
+```
+
+This page:
+
+- Matches the **Material 3 + Grafana** aesthetic.  
+- Responds to viewport changes (cards layout wraps, tables remain scrollable).  
+- Uses existing theme colors; gradients are additive and can be tuned.
+
+---
+
+## 29.5. Routing & Navigation
+
+We now add navigation to reach the analytics page from an org context.
+
+> Exact routing structure may differ per project; here we assume a route like `/app/orgs/:orgId/analytics`.
+
+### 29.5.1. Register Route in Web App
+
+Assuming you use React Router (or similar) in `apps/web/src/AppRoutes.tsx` or an equivalent file, add:
+
+```tsx
+import { OrgAnalyticsPage } from './org/OrgAnalyticsPage';
+
+// Inside your routes definition
+<Route path="/app/orgs/:orgId/analytics" element={<OrgAnalyticsRouteWrapper />} />
+```
+
+Where `OrgAnalyticsRouteWrapper` pulls `orgId` from route params:
+
+```tsx
+// apps/web/src/org/OrgAnalyticsRouteWrapper.tsx
+
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import { OrgAnalyticsPage } from './OrgAnalyticsPage';
+
+export const OrgAnalyticsRouteWrapper: React.FC = () => {
+  const params = useParams();
+  const orgId = params.orgId as string | undefined;
+
+  if (!orgId) {
+    return <div>Missing orgId</div>;
+  }
+
+  return <OrgAnalyticsPage orgId={orgId} />;
+};
+```
+
+Link to this page from your org navigation (e.g., a sidebar item called "Analytics").
+
+---
+
+## 29.6. Sanity Checks
+
+From the repo root:
+
+1. **Backend:**
+
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   pnpm dev --filter=api-gateway
+   ```
+
+   - Call `GET /orgs/:orgId/analytics?windowDays=30` with a valid token and `org:analytics:view` permission.  
+   - Verify response contains `totals`, `byModel`, `byTool`, `byUser` sections.
+
+2. **Frontend:**
+
+   ```bash
+   cd apps/web
+   pnpm dev
+   ```
+
+   - Navigate to `/app/orgs/<orgId>/analytics`.  
+   - Change window selector (7/30/90) and confirm data refreshes.  
+   - Top cards and tables should populate according to existing data.
+
+3. **Cross‑check with Grafana (optional):**
+
+   - Compare `totals.chatTurns` with estimated `chat_turn_duration_seconds_count` over same window in Prometheus (28.md).  
+   - Confirm that org‑level dashboard and infra‑level Grafana panels tell a consistent story.
+
+If all checks pass, your AI chat product now exposes an **industry‑grade analytics dashboard** for organizations, complementing the observability stack and giving both customers and operators clear insight into usage, limits, and behavior.
+
+---
+
+_End of 29.md – Org Analytics & Grafana‑Style Usage Dashboards (Frontend UI)_

@@ -1,0 +1,754 @@
+
+
+# 14. Conversation Title & System Prompt Editor (Advanced Settings)
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Upgrade the chat UI so each conversation has:
+>
+> - **Inline‑editable title** (ChatGPT‑style rename).  
+> - A right‑side **Advanced settings drawer** for the **system prompt**.  
+> - Full persistence via `PATCH /conversations/:id` (from `12.md`).  
+> - Zero TODOs: all UI + wiring must be fully working.
+>
+> After following this file, you can:
+>
+> - Click the conversation title to rename it.  
+> - Open an "Advanced" panel, edit the system prompt, and save/reset it per conversation.
+
+> **Important instructions to AI agents:**
+> - This file **extends** `12.md` – the new `ChatPage.tsx` **replaces** the previous one, while preserving all its behavior.  
+> - Use `updateConversation(...)` from `apps/web/src/api/conversations.ts` (already defined in `12.md`).  
+> - Do **not** remove existing model / temperature / top‑p controls.
+
+---
+
+## 14.1. UX Overview
+
+We enhance the chat UI with two advanced features:
+
+1. **Inline Title Editing**
+   - The conversation title at the top of the chat area becomes interactive.  
+   - Single click (or small edit icon) → switches to a text field.  
+   - `Enter` or blur → saves via `PATCH /conversations/:id` with `title`.  
+   - `Esc` → cancels edit.
+
+2. **System Prompt Editor Drawer**
+   - An icon (e.g. tune sliders) in the settings bar opens a **right‑side Drawer**.  
+   - Drawer includes:
+     - Short description of what the system prompt does.  
+     - Multiline `TextField` bound to `conversation.systemPrompt`.  
+     - **Reset** button → restores persisted value.  
+     - **Save** button → `PATCH /conversations/:id` with `systemPrompt`.  
+     - A small "System prompt saved" chip that appears briefly after saving.
+
+Both features are **per‑conversation**, not global.
+
+---
+
+## 14.2. Backend Recap (No Changes)
+
+From `12.md`, `/conversations/:id` already supports:
+
+- `PATCH /conversations/:id` body shape (subset is fine):
+
+```ts
+interface UpdateConversationPayload {
+  title?: string | null;
+  systemPrompt?: string | null;
+  model?: string | null;
+  temperature?: number | null;
+  topP?: number | null;
+}
+```
+
+We will simply **reuse** this endpoint from the frontend.
+
+---
+
+## 14.3. Frontend API Recap (No Changes)
+
+`apps/web/src/api/conversations.ts` already exports:
+
+```ts
+export async function updateConversation(
+  token: string,
+  id: string,
+  data: UpdateConversationPayload
+): Promise<{ conversation: ConversationDetails }> {
+  // ... (see 12.md)
+}
+```
+
+We will call this function to persist both **title** and **systemPrompt**.
+
+No changes are required in the API client.
+
+---
+
+## 14.4. ChatPage – Inline Title & System Prompt Drawer
+
+We now extend `ChatPage` to include:
+
+- Title editing UX.  
+- Advanced system prompt drawer UX.  
+- All previous functionality (model selector, sliders, save/reset) unchanged.
+
+> **Important:** The following code **replaces** `apps/web/src/chat/ChatPage.tsx` created in `12.md`.  
+> It already includes all logic from `12.md` plus the new features.
+
+### 14.4.1. Replace `apps/web/src/chat/ChatPage.tsx`
+
+```tsx
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Box,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Slider,
+  Chip,
+  IconButton,
+  Tooltip,
+  TextField,
+  Drawer
+} from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import TuneIcon from '@mui/icons-material/Tune';
+import CloseIcon from '@mui/icons-material/Close';
+import { useAuth } from '../auth/AuthContext';
+import { ConversationDetails, getConversation, updateConversation } from '../api/conversations';
+import { streamMessage, StreamEvent } from '../api/chat';
+import { ChatView } from './ChatView';
+import { MessageInput } from './MessageInput';
+
+const MODEL_OPTIONS: { value: string; label: string }[] = [
+  { value: 'llama3.1', label: 'llama3.1 (general)' },
+  { value: 'llama3.1:8b', label: 'llama3.1:8b (fast)' },
+  { value: 'qwen2.5-coder', label: 'qwen2.5-coder (code)' }
+];
+
+function clampTemperature(value: number): number {
+  if (Number.isNaN(value)) return 0.7;
+  if (value < 0) return 0;
+  if (value > 2) return 2;
+  return value;
+}
+
+function clampTopP(value: number): number {
+  if (Number.isNaN(value)) return 1;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+}
+
+export const ChatPage: React.FC = () => {
+  const { token } = useAuth();
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<ConversationDetails | null>(null);
+  const [streamingText, setStreamingText] = useState('');
+  const [streaming, setStreaming] = useState(false);
+
+  const [model, setModel] = useState<string>('llama3.1');
+  const [temperature, setTemperature] = useState<number>(0.7);
+  const [topP, setTopP] = useState<number>(1);
+  const [dirty, setDirty] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Title editing
+  const [editingTitle, setEditingTitle] = useState<boolean>(false);
+  const [titleDraft, setTitleDraft] = useState<string>('');
+
+  // Advanced system prompt
+  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
+  const [systemPrompt, setSystemPrompt] = useState<string>('');
+  const [systemPromptDirty, setSystemPromptDirty] = useState<boolean>(false);
+  const [systemPromptSaving, setSystemPromptSaving] = useState<boolean>(false);
+  const [systemPromptSavedAt, setSystemPromptSavedAt] = useState<number | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Listen for conversation selection/creation events from sidebar
+  useEffect(() => {
+    const handleSelect = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      setConversationId(id);
+    };
+
+    const handleCreated = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      setConversationId(id);
+    };
+
+    window.addEventListener('select-conversation', handleSelect);
+    window.addEventListener('conversation-created', handleCreated);
+
+    return () => {
+      window.removeEventListener('select-conversation', handleSelect);
+      window.removeEventListener('conversation-created', handleCreated);
+    };
+  }, []);
+
+  // Load conversation details when id or auth changes
+  useEffect(() => {
+    if (!token || !conversationId) {
+      setConversation(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const resp = await getConversation(token, conversationId);
+        if (!cancelled) {
+          const conv = resp.conversation;
+          setConversation(conv);
+
+          const nextModel = conv.model || 'llama3.1';
+          const nextTemp = clampTemperature(conv.temperature ?? 0.7);
+          const nextTopP = clampTopP(conv.topP ?? 1);
+          setModel(nextModel);
+          setTemperature(nextTemp);
+          setTopP(nextTopP);
+
+          setTitleDraft(conv.title ?? '');
+          setSystemPrompt(conv.systemPrompt ?? '');
+
+          setStreamingText('');
+          setDirty(false);
+          setSystemPromptDirty(false);
+        }
+      } catch {
+        if (!cancelled) setConversation(null);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, conversationId]);
+
+  // Auto-clear the "Saved" chip for model/temperature
+  useEffect(() => {
+    if (!savedAt) return;
+    const timeout = window.setTimeout(() => {
+      setSavedAt(null);
+    }, 2000);
+    return () => window.clearTimeout(timeout);
+  }, [savedAt]);
+
+  // Auto-clear the "System prompt saved" chip
+  useEffect(() => {
+    if (!systemPromptSavedAt) return;
+    const timeout = window.setTimeout(() => {
+      setSystemPromptSavedAt(null);
+    }, 2000);
+    return () => window.clearTimeout(timeout);
+  }, [systemPromptSavedAt]);
+
+  const handleSend = async (content: string) => {
+    if (!token || !conversationId) return;
+    if (!conversation) return;
+
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+
+    const localConversationId = conversationId;
+
+    // Optimistically append user message locally
+    const userMessage = {
+      id: `local-${Date.now()}`,
+      role: 'USER',
+      content
+    };
+
+    setConversation((prev) =>
+      prev
+        ? {
+            ...prev,
+            messages: [...prev.messages, { ...userMessage, createdAt: new Date().toISOString() }]
+          }
+        : prev
+    );
+
+    setStreamingText('');
+    setStreaming(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      await streamMessage(
+        token,
+        localConversationId,
+        {
+          content,
+          model,
+          temperature,
+          topP
+        },
+        (event: StreamEvent) => {
+          if (event.type === 'token') {
+            setStreamingText((prev) => prev + event.token);
+          }
+
+          if (event.type === 'end' && event.message) {
+            setStreamingText('');
+            setConversation((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    messages: [
+                      ...prev.messages,
+                      {
+                        id: `assistant-${Date.now()}`,
+                        role: 'ASSISTANT',
+                        content: event.message.content,
+                        createdAt: new Date().toISOString()
+                      }
+                    ]
+                  }
+                : prev
+            );
+          }
+        },
+        controller.signal
+      );
+    } finally {
+      setStreaming(false);
+    }
+
+    // Refresh from backend to align IDs and usage
+    if (token && localConversationId) {
+      try {
+        const resp = await getConversation(token, localConversationId);
+        setConversation(resp.conversation);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!token || !conversationId) return;
+
+    setSaving(true);
+    try {
+      const resp = await updateConversation(token, conversationId, {
+        model,
+        temperature,
+        topP
+      });
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              model: resp.conversation.model,
+              temperature: resp.conversation.temperature,
+              topP: resp.conversation.topP
+            }
+          : prev
+      );
+      setDirty(false);
+      setSavedAt(Date.now());
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetSettings = () => {
+    if (!conversation) return;
+    const baseModel = conversation.model || 'llama3.1';
+    const baseTemp = clampTemperature(conversation.temperature ?? 0.7);
+    const baseTopP = clampTopP(conversation.topP ?? 1);
+    setModel(baseModel);
+    setTemperature(baseTemp);
+    setTopP(baseTopP);
+    setDirty(false);
+  };
+
+  const handleChangeModel = (value: string) => {
+    setModel(value);
+    setDirty(true);
+  };
+
+  const handleChangeTemperature = (_: Event, value: number | number[]) => {
+    const v = Array.isArray(value) ? value[0] : value;
+    setTemperature(v);
+    setDirty(true);
+  };
+
+  const handleChangeTopP = (_: Event, value: number | number[]) => {
+    const v = Array.isArray(value) ? value[0] : value;
+    setTopP(v);
+    setDirty(true);
+  };
+
+  // Title editing handlers
+  const beginEditTitle = () => {
+    if (!conversation) return;
+    setTitleDraft(conversation.title ?? '');
+    setEditingTitle(true);
+  };
+
+  const cancelEditTitle = () => {
+    setEditingTitle(false);
+    setTitleDraft(conversation?.title ?? '');
+  };
+
+  const commitTitle = async () => {
+    if (!token || !conversationId) {
+      setEditingTitle(false);
+      return;
+    }
+
+    const newTitle = titleDraft.trim() || null;
+
+    try {
+      const resp = await updateConversation(token, conversationId, { title: newTitle });
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              title: resp.conversation.title
+            }
+          : prev
+      );
+    } finally {
+      setEditingTitle(false);
+    }
+  };
+
+  const handleTitleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      await commitTitle();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEditTitle();
+    }
+  };
+
+  // System prompt handlers
+  const handleOpenSettingsDrawer = () => {
+    if (!conversationId) return;
+    setSettingsDrawerOpen(true);
+  };
+
+  const handleCloseSettingsDrawer = () => {
+    setSettingsDrawerOpen(false);
+  };
+
+  const handleSaveSystemPrompt = async () => {
+    if (!token || !conversationId) return;
+
+    setSystemPromptSaving(true);
+    try {
+      const payload = systemPrompt.trim().length === 0 ? null : systemPrompt;
+      const resp = await updateConversation(token, conversationId, { systemPrompt: payload });
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              systemPrompt: resp.conversation.systemPrompt
+            }
+          : prev
+      );
+      setSystemPromptDirty(false);
+      setSystemPromptSavedAt(Date.now());
+    } finally {
+      setSystemPromptSaving(false);
+    }
+  };
+
+  const currentTitle = conversation?.title || 'New conversation';
+  const creativityLabel = temperature < 0.4 ? 'Precise' : temperature < 1 ? 'Balanced' : 'Creative';
+
+  return (
+    <Box display="flex" flexDirection="column" flex={1}>
+      {/* Settings bar */}
+      <Box
+        px={2}
+        py={1}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          background: 'radial-gradient(circle at top left, rgba(124,77,255,0.16), transparent 55%)'
+        }}
+      >
+        <Box flex={1} minWidth={0} sx={{ cursor: conversation ? 'text' : 'default' }} onClick={!editingTitle ? beginEditTitle : undefined}>
+          {editingTitle ? (
+            <TextField
+              variant="standard"
+              fullWidth
+              autoFocus
+              size="small"
+              value={titleDraft}
+              placeholder="Name this conversation"
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={handleTitleKeyDown}
+              inputProps={{ maxLength: 200 }}
+            />
+          ) : (
+            <>
+              <Typography variant="subtitle2" noWrap>
+                {currentTitle}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Click to rename · Model &amp; creativity are per‑conversation.
+              </Typography>
+            </>
+          )}
+        </Box>
+
+        <FormControl size="small" sx={{ minWidth: 210 }}>
+          <InputLabel id="model-select-label">Model</InputLabel>
+          <Select
+            labelId="model-select-label"
+            label="Model"
+            value={model}
+            onChange={(e) => handleChangeModel(e.target.value)}
+          >
+            {MODEL_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <Box width={160} px={1}>
+          <Typography variant="caption" color="text.secondary">
+            Temperature
+          </Typography>
+          <Slider
+            size="small"
+            value={temperature}
+            min={0}
+            max={2}
+            step={0.1}
+            onChange={handleChangeTemperature}
+          />
+        </Box>
+
+        <Box width={130} px={1}>
+          <Typography variant="caption" color="text.secondary">
+            Top‑p
+          </Typography>
+          <Slider size="small" value={topP} min={0} max={1} step={0.05} onChange={handleChangeTopP} />
+        </Box>
+
+        <Chip size="small" label={creativityLabel} sx={{ fontSize: 11, height: 24 }} variant="outlined" />
+
+        <Box display="flex" alignItems="center" gap={1}>
+          <Tooltip title="Advanced system prompt settings">
+            <span>
+              <IconButton
+                size="small"
+                onClick={handleOpenSettingsDrawer}
+                disabled={!conversationId}
+              >
+                <TuneIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Reset to saved settings">
+            <span>
+              <IconButton size="small" onClick={handleResetSettings} disabled={!conversation}>
+                <RestartAltIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title={dirty ? 'Save settings for this conversation' : 'Settings are up to date'}>
+            <span>
+              <IconButton
+                size="small"
+                color={dirty ? 'primary' : 'default'}
+                onClick={handleSaveSettings}
+                disabled={!dirty || saving || !conversationId}
+              >
+                <SaveIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          {savedAt && !dirty && (
+            <Chip
+              size="small"
+              label="Saved"
+              color="success"
+              variant="outlined"
+              sx={{ height: 22, fontSize: 11 }}
+            />
+          )}
+        </Box>
+      </Box>
+
+      {/* Chat view + input */}
+      <ChatView messages={conversation?.messages ?? []} streamingAssistantText={streamingText} />
+      <MessageInput disabled={!conversationId || streaming} onSend={handleSend} />
+
+      {/* Advanced system prompt drawer */}
+      <Drawer anchor="right" open={settingsDrawerOpen} onClose={handleCloseSettingsDrawer}>
+        <Box
+          sx={{
+            width: 420,
+            maxWidth: '100vw',
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}
+        >
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Box>
+              <Typography variant="subtitle1">Advanced system prompt</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Shape the assistant&apos;s behavior for this conversation. Leave empty for the default behavior.
+              </Typography>
+            </Box>
+            <IconButton size="small" onClick={handleCloseSettingsDrawer}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+
+          <TextField
+            label="System prompt"
+            value={systemPrompt}
+            onChange={(e) => {
+              setSystemPrompt(e.target.value);
+              setSystemPromptDirty(true);
+            }}
+            multiline
+            minRows={6}
+            maxRows={20}
+            fullWidth
+            variant="outlined"
+            placeholder="You are an AI assistant that helps with coding, analysis, and explanations..."
+          />
+
+          <Box display="flex" alignItems="center" justifyContent="space-between" mt={1}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <Tooltip title="Reset to saved system prompt">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      const base = conversation?.systemPrompt ?? '';
+                      setSystemPrompt(base);
+                      setSystemPromptDirty(false);
+                    }}
+                    disabled={!conversation}
+                  >
+                    <RestartAltIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+
+              <Tooltip
+                title={
+                  systemPromptDirty
+                    ? 'Save system prompt for this conversation'
+                    : 'System prompt is up to date'
+                }
+              >
+                <span>
+                  <IconButton
+                    size="small"
+                    color={systemPromptDirty ? 'primary' : 'default'}
+                    onClick={handleSaveSystemPrompt}
+                    disabled={!systemPromptDirty || systemPromptSaving || !conversationId}
+                  >
+                    <SaveIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+
+            {systemPromptSavedAt && !systemPromptDirty && (
+              <Chip
+                size="small"
+                label="System prompt saved"
+                color="success"
+                variant="outlined"
+                sx={{ height: 22, fontSize: 11 }}
+              />
+            )}
+          </Box>
+        </Box>
+      </Drawer>
+    </Box>
+  );
+};
+```
+
+This component now supports:
+
+- Inline title editing (click, type, Enter/Esc).  
+- Per‑conversation system prompt editing in an advanced drawer.  
+- All the model/temperature/top‑p controls from `12.md` remain intact.
+
+---
+
+## 14.5. Sanity Checks
+
+From the repo root:
+
+1. **Install dependencies (if not already):**
+
+   ```bash
+   pnpm install
+   ```
+
+2. **Run API gateway:**
+
+   ```bash
+   pnpm dev --filter=api-gateway
+   ```
+
+3. **Run web app:**
+
+   ```bash
+   cd apps/web
+   pnpm dev
+   ```
+
+4. **Verify behavior:**
+
+   - Open `http://localhost:5173` and sign in.  
+   - Go to `/app` and select/create a conversation.  
+   - Click the title → it becomes editable; change it and press `Enter` → title persists after refresh.  
+   - Click the **tune** icon → advanced drawer opens.  
+   - Edit the system prompt, click **save** → the "System prompt saved" chip appears briefly; your changes persist after refresh.
+
+If these checks pass, your chat UI now has **full per‑conversation title + system prompt control**, similar to modern ChatGPT‑style interfaces.
+
+---
+
+## 14.6. Next Steps
+
+Future markdown files can build on this by:
+
+- Adding **per‑conversation usage chips** (tokens, latency) using metrics from `11.md`.  
+- Exposing **preset system prompts** (e.g., "Code assistant", "Legal analyst", "Teacher mode") selectable from a dropdown.  
+- Allowing users to **export/import** conversation settings as JSON templates.
+
+> **AI Agent Instruction:**  
+> Before moving on, ensure `ChatPage.tsx` compiles and the new title + system prompt UX works end‑to‑end.
+
+---
+
+_End of 14.md – Conversation Title & System Prompt Editor (Advanced Settings)_

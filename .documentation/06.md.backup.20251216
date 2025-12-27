@@ -1,0 +1,737 @@
+
+
+# 6. Core Types & Ollama Client Integration
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Define the **global TypeScript contracts** and implement the **Ollama client** so that:
+>
+> - All services (API, workers, tools engine) share the same message/tool/model types.  
+> - The `@ai-chat/ollama-client` package can:
+>   - Check Ollama health.  
+>   - List available models.  
+>   - Perform non-streaming chat completions.  
+>   - Perform **streaming** chat completions via `AsyncGenerator`.
+>
+> After following this file, an AI agent can call Ollama from the backend using a clean, typed API and reuse the same contracts across the system.
+
+> **Important instructions to AI agents:**
+> - Do **not** invent additional message roles outside those defined here.  
+> - When a later document defines DB or API fields, ensure they remain consistent with these core types.  
+> - For now, focus on **basic chat**; tools/function-calling will be wired in a later doc, but types must already support them.
+
+---
+
+## 6.1. Overview of Core Types
+
+The `@ai-chat/core-types` package will hold **runtime-agnostic** contracts used across:
+
+- `@ai-chat/ollama-client` (for LLM calls).
+- `@ai-chat/chat-orchestrator` (for prompt building and streaming).  
+- `apps/api-gateway` (for API typing and DTOs).
+- `apps/worker-jobs` (for background tasks and analytics).
+
+We will define:
+
+1. **Chat roles & messages** (system/user/assistant/tool).  
+2. **Tools** metadata (function calling style).  
+3. **Model metadata** (capabilities, context window, etc.).  
+4. **Request/response types** for chat and streaming.
+
+---
+
+## 6.2. Implement `@ai-chat/core-types`
+
+### 6.2.1. Ensure Package Skeleton
+
+From 3.md, `packages/core-types` already exists with `package.json`, `tsconfig.json`, and `src/index.ts`.
+
+We now **replace** `src/index.ts` with real type definitions.
+
+> **AI Agent Note:**  
+> Do **not** change `package.json` or `tsconfig.json` of `@ai-chat/core-types` unless explicitly requested. Only replace `src/index.ts`.
+
+### 6.2.2. Replace `packages/core-types/src/index.ts`
+
+Replace the entire contents of `packages/core-types/src/index.ts` with:
+
+```ts
+// Global, runtime-agnostic types shared across the AI chat platform.
+// These types are used by API, chat orchestrator, Ollama client, tools engine, and workers.
+
+// =========================
+// Chat Roles & Messages
+// =========================
+
+/**
+ * Chat roles used in the LLM conversation.
+ * Must stay in sync with:
+ * - MessageRole enum in Prisma schema
+ * - Any OpenAI-like / Ollama mapping
+ */
+export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
+
+/**
+ * Minimal representation of a message exchanged with the LLM.
+ *
+ * id, createdAt, and meta are optional and may be filled when persisted to DB.
+ */
+export interface ChatMessage {
+  id?: string;
+  role: ChatRole;
+  content: string;
+  /**
+   * Optional display name (e.g., function/tool name for tool role).
+   */
+  name?: string;
+  /**
+   * Metadata for internal use (e.g., references, tool call info, debug info).
+   */
+  meta?: Record<string, unknown>;
+  /**
+   * Optional ISO timestamp.
+   */
+  createdAt?: string;
+}
+
+// =========================
+// Tools (Function Calling)
+// =========================
+
+/**
+ * JSON Schema-like definition for a tool's parameters.
+ * We keep this as `unknown` to avoid coupling with a specific schema library.
+ */
+export type JsonSchema = unknown;
+
+/**
+ * A callable tool (function) the LLM can request to use.
+ */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: JsonSchema;
+  /**
+   * If false, tool is disabled (per org or globally).
+   */
+  enabled: boolean;
+}
+
+/**
+ * A tool call request from the LLM.
+ * For now this is a generic structure that can be mapped to concrete tool calls later.
+ */
+export interface ToolCall {
+  toolName: string;
+  /** Raw arguments JSON as produced by the LLM. */
+  argsJson: string;
+}
+
+/**
+ * The result of executing a tool.
+ */
+export interface ToolResult {
+  toolName: string;
+  /**
+   * The raw JSON-serializable result returned by the tool.
+   */
+  data: unknown;
+  /**
+   * Optional error message if tool execution failed.
+   */
+  error?: string;
+}
+
+// =========================
+// Model Metadata
+// =========================
+
+export interface LlmModel {
+  /**
+   * The ID used when calling the model (e.g., "llama3.1").
+   */
+  id: string;
+  /**
+   * Human-friendly display name.
+   */
+  displayName: string;
+  /**
+   * Short family identifier (e.g., "llama", "qwen").
+   */
+  family?: string;
+  /**
+   * Approximate context window in tokens.
+   */
+  contextWindowTokens?: number;
+  /**
+   * Is this model suitable as a default general-purpose chat model?
+   */
+  isDefault?: boolean;
+}
+
+// =========================
+// Chat Requests & Responses
+// =========================
+
+/**
+ * Parameters for a chat completion request.
+ *
+ * Tools are optional and will be integrated by the orchestrator.
+ */
+export interface ChatCompletionParams {
+  model: string;
+  messages: ChatMessage[];
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+  /**
+   * Tools available for this request.
+   */
+  tools?: ToolDefinition[];
+}
+
+/**
+ * Token usage metadata for a request/response cycle.
+ */
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+/**
+ * Non-streaming chat completion response.
+ */
+export interface ChatCompletionResponse {
+  model: string;
+  message: ChatMessage;
+  usage?: TokenUsage;
+  /**
+   * Optional raw provider-specific metadata.
+   */
+  providerMeta?: Record<string, unknown>;
+}
+
+// =========================
+// Streaming Types
+// =========================
+
+export type ChatStreamEventType = 'start' | 'token' | 'end' | 'error';
+
+/**
+ * A single streaming event emitted during a chat completion.
+ */
+export interface ChatStreamEvent {
+  type: ChatStreamEventType;
+  /**
+   * For `token` events, this is the incremental token content.
+   */
+  token?: string;
+  /**
+   * For `end` events, the final accumulated message (if available).
+   */
+  finalMessage?: ChatMessage;
+  /**
+   * Optional error message for `error` events.
+   */
+  error?: string;
+  /**
+   * Optional usage details (usually provided at the end).
+   */
+  usage?: TokenUsage;
+  /**
+   * Provider-specific metadata, if any.
+   */
+  providerMeta?: Record<string, unknown>;
+}
+```
+
+> **Result:**  
+> - All core chat, tool, model, and streaming contracts are now centrally defined.  
+> - Other packages can import from `@ai-chat/core-types` instead of redefining these types.
+
+---
+
+## 6.3. Implement `@ai-chat/ollama-client`
+
+The `@ai-chat/ollama-client` package provides a thin, typed wrapper around the Ollama HTTP APIs.
+
+Capabilities required at this stage:
+
+1. **Health check** – verify Ollama is reachable.  
+2. **List models** – read available local models from `/api/tags`.  
+3. **Non-streaming chat** – convenience wrapper for `/api/chat` with `stream: false`.  
+4. **Streaming chat** – `AsyncGenerator<ChatStreamEvent>` wrapping `/api/chat` with `stream: true`.
+
+We use:
+
+- Node 22’s global `fetch` implementation (no extra HTTP client library).  
+- `@ai-chat/config` for `OLLAMA_BASE_URL` and `DEFAULT_MODEL`.  
+- `@ai-chat/core-types` for message and request/stream types.
+
+### 6.3.1. Update `packages/ollama-client/package.json`
+
+Replace `packages/ollama-client/package.json` with:
+
+```json
+{
+  "name": "@ai-chat/ollama-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-chat/config": "0.1.0",
+    "@ai-chat/core-types": "0.1.0"
+  }
+}
+```
+
+> **AI Agent Note:**  
+> pnpm workspaces will treat these versions as local workspace references.
+
+### 6.3.2. Ensure `packages/ollama-client/tsconfig.json`
+
+Confirm `packages/ollama-client/tsconfig.json` matches the shared template (from 3.md):
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src"]
+}
+```
+
+If it differs, **replace** it with the above.
+
+### 6.3.3. Implement `packages/ollama-client/src/index.ts`
+
+Replace the entire contents of `packages/ollama-client/src/index.ts` with:
+
+```ts
+import { getConfig } from '@ai-chat/config';
+import {
+  ChatCompletionParams,
+  ChatCompletionResponse,
+  ChatMessage,
+  ChatStreamEvent,
+  LlmModel,
+  TokenUsage
+} from '@ai-chat/core-types';
+
+const config = getConfig();
+
+const OLLAMA_BASE_URL = config.OLLAMA_BASE_URL;
+
+// =========================
+// Internal types matching Ollama HTTP API
+// =========================
+
+interface OllamaChatRequestBody {
+  model: string;
+  messages: { role: string; content: string }[];
+  stream?: boolean;
+  options?: {
+    temperature?: number;
+    num_predict?: number;
+    top_p?: number;
+  };
+}
+
+interface OllamaChatStreamChunk {
+  model: string;
+  created_at: string;
+  message?: {
+    role: string;
+    content: string;
+  };
+  done: boolean;
+  // Usage fields may be present on final chunk
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
+interface OllamaChatResponse {
+  model: string;
+  message: {
+    role: string;
+    content: string;
+  };
+  done: boolean;
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
+interface OllamaTagsResponse {
+  models: Array<{
+    name: string;
+    modified_at?: string;
+    size?: number;
+    digest?: string;
+    details?: {
+      family?: string;
+      parameter_size?: string;
+      quantization_level?: string;
+    };
+  }>;
+}
+
+// =========================
+// Utility mappers
+// =========================
+
+function mapMessagesToOllama(messages: ChatMessage[]): { role: string; content: string }[] {
+  return messages.map((m) => ({
+    role: m.role,
+    content: m.content
+  }));
+}
+
+function buildUsageFromChunk(chunk: OllamaChatResponse | OllamaChatStreamChunk): TokenUsage | undefined {
+  if (chunk.eval_count == null || chunk.prompt_eval_count == null) {
+    return undefined;
+  }
+
+  const completionTokens = chunk.eval_count;
+  const promptTokens = chunk.prompt_eval_count;
+
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens
+  };
+}
+
+// =========================
+// Public API
+// =========================
+
+/**
+ * Simple health check against Ollama.
+ * Returns true if the /api/tags endpoint responds successfully.
+ */
+export async function checkOllamaHealth(): Promise<boolean> {
+  try {
+    const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * List available Ollama models and map them to LlmModel objects.
+ */
+export async function listOllamaModels(): Promise<LlmModel[]> {
+  const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch Ollama models: ${res.status} ${res.statusText}`);
+  }
+
+  const data = (await res.json()) as OllamaTagsResponse;
+
+  return data.models.map((m): LlmModel => ({
+    id: m.name,
+    displayName: m.name,
+    family: m.details?.family,
+    // contextWindowTokens is unknown from tags API; can be enriched later
+    contextWindowTokens: undefined,
+    isDefault: m.name === config.DEFAULT_MODEL
+  }));
+}
+
+/**
+ * Perform a non-streaming chat completion via Ollama.
+ *
+ * NOTE: For most UI flows, streaming is preferred. This is a convenience wrapper.
+ */
+export async function createChatCompletion(
+  params: ChatCompletionParams
+): Promise<ChatCompletionResponse> {
+  const body: OllamaChatRequestBody = {
+    model: params.model,
+    messages: mapMessagesToOllama(params.messages),
+    stream: false,
+    options: {
+      temperature: params.temperature,
+      num_predict: params.maxTokens,
+      top_p: params.topP
+    }
+  };
+
+  const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    throw new Error(`Ollama chat error: ${res.status} ${res.statusText}`);
+  }
+
+  const json = (await res.json()) as OllamaChatResponse;
+
+  const message: ChatMessage = {
+    role: json.message.role as ChatMessage['role'],
+    content: json.message.content
+  };
+
+  const usage = buildUsageFromChunk(json);
+
+  return {
+    model: json.model,
+    message,
+    usage,
+    providerMeta: json
+  };
+}
+
+/**
+ * Streaming chat completion via Ollama.
+ *
+ * Yields ChatStreamEvent objects:
+ * - type: 'start' (once at beginning)
+ * - type: 'token' for each incremental content chunk
+ * - type: 'end' with finalMessage + usage (if available)
+ * - type: 'error' if anything goes wrong
+ */
+export async function* streamChatCompletion(
+  params: ChatCompletionParams & { signal?: AbortSignal }
+): AsyncGenerator<ChatStreamEvent, void, unknown> {
+  const body: OllamaChatRequestBody = {
+    model: params.model,
+    messages: mapMessagesToOllama(params.messages),
+    stream: true,
+    options: {
+      temperature: params.temperature,
+      num_predict: params.maxTokens,
+      top_p: params.topP
+    }
+  };
+
+  const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body),
+    signal: params.signal
+  });
+
+  if (!res.ok || !res.body) {
+    yield {
+      type: 'error',
+      error: `Ollama chat error: ${res.status} ${res.statusText}`
+    };
+    return;
+  }
+
+  // Emit a start event so callers know the stream has begun.
+  yield { type: 'start' };
+
+  const reader = (res.body as any).getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let finalContent = '';
+  let lastChunk: OllamaChatStreamChunk | null = null;
+
+  try {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        let chunk: OllamaChatStreamChunk;
+        try {
+          chunk = JSON.parse(trimmed) as OllamaChatStreamChunk;
+        } catch (err) {
+          // If parsing fails, emit an error event but continue.
+          yield {
+            type: 'error',
+            error: `Failed to parse Ollama chunk: ${(err as Error).message}`
+          };
+          continue;
+        }
+
+        lastChunk = chunk;
+
+        if (chunk.message && chunk.message.content) {
+          const token = chunk.message.content;
+          finalContent += token;
+          yield {
+            type: 'token',
+            token
+          };
+        }
+
+        if (chunk.done) {
+          const finalMessage: ChatMessage = {
+            role: 'assistant',
+            content: finalContent
+          };
+
+          const usage = buildUsageFromChunk(chunk);
+
+          yield {
+            type: 'end',
+            finalMessage,
+            usage,
+            providerMeta: chunk as unknown as Record<string, unknown>
+          };
+          return;
+        }
+      }
+    }
+
+    // If stream ended without a `done` flag, still emit an end event.
+    if (finalContent.length > 0) {
+      const finalMessage: ChatMessage = {
+        role: 'assistant',
+        content: finalContent
+      };
+
+      const usage = lastChunk ? buildUsageFromChunk(lastChunk) : undefined;
+
+      yield {
+        type: 'end',
+        finalMessage,
+        usage,
+        providerMeta: lastChunk as unknown as Record<string, unknown> | undefined
+      };
+    }
+  } catch (err) {
+    // If aborted via AbortSignal, treat it as a graceful end with no error.
+    if ((err as Error).name === 'AbortError') {
+      return;
+    }
+
+    yield {
+      type: 'error',
+      error: (err as Error).message
+    };
+  }
+}
+```
+
+> **Result:**  
+> The backend can now perform both streaming and non-streaming chat calls to Ollama using shared types from `@ai-chat/core-types`.
+
+---
+
+## 6.4. Sanity Checks for Ollama Client
+
+After implementing `@ai-chat/core-types` and `@ai-chat/ollama-client`, perform the following steps from the repo root:
+
+1. **Install dependencies:**
+
+   ```bash
+   pnpm install
+   ```
+
+2. **Build all packages/apps:**
+
+   ```bash
+   pnpm build
+   ```
+
+   - This should compile `@ai-chat/core-types`, `@ai-chat/config`, `@ai-chat/db`, `@ai-chat/ollama-client`, and all apps without TypeScript errors.
+
+3. **Check Ollama health (temporary script):**
+
+   Optionally create `apps/api-gateway/src/check-ollama.ts` for quick testing:
+
+   ```ts
+   /* eslint-disable no-console */
+
+   import { checkOllamaHealth, listOllamaModels } from '@ai-chat/ollama-client';
+
+   async function main() {
+     const healthy = await checkOllamaHealth();
+     console.log('Ollama healthy:', healthy);
+
+     if (!healthy) return;
+
+     const models = await listOllamaModels();
+     console.log('Available models:', models);
+   }
+
+   main().catch((err) => {
+     console.error(err);
+     process.exit(1);
+   });
+   ```
+
+   You can then run (if you add a script) or via ts-node directly (later docs may formalize this):
+
+   ```bash
+   pnpm --filter api-gateway ts-node src/check-ollama.ts
+   ```
+
+   Expected behavior:
+   - Prints whether Ollama is healthy.  
+   - Prints available models (as `LlmModel[]`).
+
+4. **Verify streaming behavior (later integration):**
+
+   - We will integrate `streamChatCompletion` into the chat orchestrator and API streaming route in a subsequent markdown file.  
+   - For now, confirming that the code builds is sufficient.
+
+---
+
+## 6.5. Relationship to Future Docs
+
+With this file complete:
+
+- **Contracts:** All core message/tool/model/streaming contracts are defined and reusable.  
+- **LLM Access:** `@ai-chat/ollama-client` is fully functional for basic chat.
+
+Upcoming markdown files will:
+
+- Implement the **chat orchestrator** (`@ai-chat/chat-orchestrator`) using:
+  - `ChatMessage`, `ChatCompletionParams`, `ChatStreamEvent`.  
+  - `streamChatCompletion` and `createChatCompletion` from `@ai-chat/ollama-client`.
+- Implement **API endpoints** in `api-gateway` that:
+  - Persist conversations/messages via `@ai-chat/db`.  
+  - Stream responses to the frontend using SSE or WebSockets.
+- Implement **tools engine integration**, where the orchestrator can:
+  - Decide when to call tools.  
+  - Insert tool call results into the message stream.
+
+> **AI Agent Instruction:**  
+> Before moving on, ensure:
+> - `pnpm build` succeeds.  
+> - No TypeScript errors in `@ai-chat/core-types` and `@ai-chat/ollama-client`.  
+> - Ollama is running and `checkOllamaHealth()` returns true in a manual test (if available).
+
+---
+
+_End of 6.md – Core Types & Ollama Client Integration_

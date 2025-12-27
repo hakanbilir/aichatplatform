@@ -59,7 +59,8 @@ export async function streamMessage(
   onEvent: (event: StreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+  // Use relative path in production to avoid CORS issues / CORS sorunlarını önlemek için üretimde göreli yol kullan
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
   const url = `${API_BASE_URL}/conversations/${conversationId}/stream`;
 
   const response = await fetch(url, {

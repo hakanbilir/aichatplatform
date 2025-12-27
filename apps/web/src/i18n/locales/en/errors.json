@@ -4,6 +4,10 @@
   "unauthorized": "Unauthorized. Please sign in again.",
   "notFound": "Record not found",
   "validationError": "Validation error",
-  "serverError": "Server error. Please try again later."
+  "serverError": "Server error. Please try again later.",
+  "invalidSignupData": "Invalid signup data. Please fill all fields correctly.",
+  "userExists": "User with this email already exists",
+  "invalidLoginData": "Invalid login data",
+  "invalidCredentials": "Invalid email or password"
 }
 

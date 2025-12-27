@@ -4,6 +4,10 @@
   "unauthorized": "Yetkiniz yok. Lütfen tekrar giriş yapın.",
   "notFound": "Kayıt bulunamadı",
   "validationError": "Doğrulama hatası",
-  "serverError": "Sunucu hatası. Lütfen daha sonra tekrar deneyin."
+  "serverError": "Sunucu hatası. Lütfen daha sonra tekrar deneyin.",
+  "invalidSignupData": "Geçersiz kayıt verisi. Lütfen tüm alanları doğru şekilde doldurun.",
+  "userExists": "Bu e-posta adresiyle bir kullanıcı zaten mevcut",
+  "invalidLoginData": "Geçersiz giriş verisi",
+  "invalidCredentials": "Geçersiz e-posta veya şifre"
 }
 

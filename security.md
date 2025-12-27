@@ -1,3 +1,5 @@
+**Note:** This project has been migrated from Docker to PM2 process management. See `/root/PM2_MIGRATION_GUIDE.md` for details.
+
 
 
 # SECURITY.md – Node.js Web App Security Profile for AI Agents

@@ -1,0 +1,1033 @@
+
+
+# 46. Subscriptions, Plans & PAYTR Integration – Org Billing & Limits
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human backend/frontend engineers.  
+> **Goal of this file:** Implement a **production‑ready subscription & billing layer** so that:
+>
+> - Each **Org** has a clear **plan** (Free / Pro / Enterprise) with associated limits.  
+> - Payments are processed via **PAYTR** (Türkiye‑focused) but the design remains provider‑agnostic.  
+> - Billing is deeply integrated with **quotas & usage** (19.md, 45.md).  
+> - There is a **Billing page** in the web app (Material 3 + vivid gradients).  
+> - All flows are multi‑tenant, RBAC‑aware and safe (idempotency, webhooks, audit events).
+>
+> This spec is written so Cursor‑like agents can implement it end‑to‑end without further questions.
+
+This file builds on:
+
+- 11–14.md – Orgs, users, roles & RBAC.  
+- 19.md – Quotas & usage limits.  
+- 25.md – Chat/message pipeline.  
+- 28.md – Metrics & observability.  
+- 38.md – Event bus & audit log.  
+- 40.md – Org Admin Console navigation.  
+- 45.md – Usage analytics & cost dashboard.
+
+---
+
+## 46.1. Concepts & Scope
+
+We introduce the following billing concepts:
+
+1. **Billing Plan**  
+   - Named plan (e.g. `free`, `pro`, `enterprise`).  
+   - Holds **limits & pricing** in a JSON payload (monthly tokens, max users, etc.).
+
+2. **Org Subscription**  
+   - The current plan assigned to an org, with status (active, past_due, canceled) and period dates.  
+   - Determines **quota configuration** used by 19.md.
+
+3. **Payment Transaction**  
+   - A single payment attempt (e.g. monthly subscription renewal) processed via **PAYTR**.  
+   - Stores status & gateway payload for reconciliation.
+
+4. **PAYTR Integration**  
+   - Server‑side **checkout session creation** (iframe token, redirect URL or similar).  
+   - Webhook endpoint to receive **payment result** (success/failure).  
+   - Mapping from PAYTR callback to **OrgSubscription** status updates.
+
+We **do not** implement a full accounting system; instead we focus on:
+
+- Plan definitions & assignments.  
+- PAYTR payment initiation & webhook handling.  
+- Quota and feature gating based on plan.
+
+---
+
+## 46.2. Data Model – Prisma
+
+Extend `packages/db/prisma/schema.prisma` with billing models.
+
+```prisma
+model BillingPlan {
+  id          String   @id @default(cuid())
+
+  // Short code: 'free', 'pro', 'enterprise', etc.
+  code        String   @unique
+
+  name        String
+  description String?
+
+  // e.g. 'TRY', 'USD'
+  currency    String   @default("TRY")
+
+  // Prices in minor unit (e.g. kuruş for TRY)
+  monthlyPriceMinor   Int   @default(0)
+  yearlyPriceMinor    Int   @default(0)
+
+  // Free-form JSON config for limits & features
+  // Example structure (not enforced by Prisma):
+  // {
+  //   "monthly_token_limit": 1_000_000,
+  //   "max_users": 10,
+  //   "features": ["playground", "experiments", "analytics"]
+  // }
+  limits      Json
+
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions OrgSubscription[]
+}
+
+model OrgSubscription {
+  id          String   @id @default(cuid())
+  orgId       String   @unique
+  planId      String
+
+  status      String   // 'active', 'trialing', 'past_due', 'canceled'
+
+  // Current period start/end (UTC)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  // If true, will cancel at period end
+  cancelAtPeriodEnd  Boolean @default(false)
+
+  // Optional external reference IDs
+  paymentProvider    String  @default("paytr")
+  providerCustomerId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org         Org         @relation(fields: [orgId], references: [id])
+  plan        BillingPlan @relation(fields: [planId], references: [id])
+
+  transactions PaymentTransaction[]
+}
+
+model PaymentTransaction {
+  id          String   @id @default(cuid())
+
+  orgId       String
+  subscriptionId String?
+
+  paymentProvider String  // 'paytr', 'manual', etc.
+
+  // Provider-specific payment reference (e.g. PAYTR token or merchant_oid)
+  providerReference String
+
+  // 'pending', 'succeeded', 'failed', 'refunded'
+  status      String
+
+  amountMinor Int
+  currency    String   @default("TRY")
+
+  // Helpful audit fields
+  reason      String?  // 'subscription_renewal', 'plan_change', etc.
+
+  // Original request & response payloads for debugging (sanitized)
+  requestPayload  Json?
+  responsePayload Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org         Org              @relation(fields: [orgId], references: [id])
+  subscription OrgSubscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([orgId])
+  @@index([subscriptionId])
+}
+```
+
+> **Note:** 19.md’s quota logic can read from `OrgSubscription.plan.limits`. This keeps quota configuration centralized in **billing plans**.
+
+Run a Prisma migration after updating the schema.
+
+---
+
+## 46.3. PAYTR Client – Server‑Side Helper
+
+We keep a thin wrapper around PAYTR’s HTTP API, configurable via env vars.
+
+**File:** `apps/api-gateway/src/payments/paytrClient.ts`
+
+```ts
+// apps/api-gateway/src/payments/paytrClient.ts
+
+import crypto from 'crypto';
+
+interface PaytrClientConfig {
+  baseUrl: string; // e.g. 'https://www.paytr.com'
+  merchantId: string;
+  merchantKey: string;
+  merchantSalt: string;
+}
+
+export interface PaytrCreateCheckoutParams {
+  merchant_oid: string; // unique order id
+  email: string;
+  payment_amount: number; // minor unit (e.g. kuruş)
+  user_name: string;
+  user_address: string;
+  user_phone: string;
+  merchant_ok_url: string;
+  merchant_fail_url: string;
+  no_installment?: number; // 1 or 0
+  max_installment?: number;
+  user_basket?: string; // JSON string as expected by PAYTR
+  debug_on?: number;
+}
+
+export interface PaytrCheckoutResponse {
+  status: 'success' | 'failed';
+  token?: string;
+  reason?: string;
+}
+
+export class PaytrClient {
+  private readonly cfg: PaytrClientConfig;
+
+  constructor(cfg: PaytrClientConfig) {
+    this.cfg = cfg;
+  }
+
+  private generateHash(params: PaytrCreateCheckoutParams): string {
+    // Example hash logic; adjust to actual PAYTR requirements
+    const hashStr = [
+      this.cfg.merchantId,
+      params.email,
+      params.payment_amount,
+      params.merchant_oid,
+      this.cfg.merchantSalt
+    ].join('');
+
+    return crypto
+      .createHmac('sha256', this.cfg.merchantKey)
+      .update(hashStr)
+      .digest('base64');
+  }
+
+  async createCheckoutToken(params: PaytrCreateCheckoutParams): Promise<PaytrCheckoutResponse> {
+    const hash = this.generateHash(params);
+
+    const body = new URLSearchParams({
+      merchant_id: this.cfg.merchantId,
+      user_email: params.email,
+      payment_amount: String(params.payment_amount),
+      merchant_oid: params.merchant_oid,
+      user_name: params.user_name,
+      user_address: params.user_address,
+      user_phone: params.user_phone,
+      merchant_ok_url: params.merchant_ok_url,
+      merchant_fail_url: params.merchant_fail_url,
+      no_installment: String(params.no_installment ?? 1),
+      max_installment: String(params.max_installment ?? 0),
+      user_basket: params.user_basket ?? '[]',
+      debug_on: String(params.debug_on ?? 0),
+      paytr_token: hash
+    });
+
+    const res = await fetch(`${this.cfg.baseUrl}/odeme/api/get-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      return { status: 'failed', reason: `HTTP ${res.status}: ${text}` };
+    }
+
+    const json = (await res.json()) as any;
+
+    if (json.status !== 'success') {
+      return { status: 'failed', reason: json.reason || 'PAYTR error' };
+    }
+
+    return { status: 'success', token: json.token };
+  }
+}
+
+export function initPaytrClient(): PaytrClient | null {
+  const baseUrl = process.env.PAYTR_BASE_URL;
+  const merchantId = process.env.PAYTR_MERCHANT_ID;
+  const merchantKey = process.env.PAYTR_MERCHANT_KEY;
+  const merchantSalt = process.env.PAYTR_MERCHANT_SALT;
+
+  if (!baseUrl || !merchantId || !merchantKey || !merchantSalt) {
+    return null;
+  }
+
+  return new PaytrClient({ baseUrl, merchantId, merchantKey, merchantSalt });
+}
+```
+
+> **Important:** The exact PAYTR integration details (hash string format, endpoints) must be validated against official docs. The structure above is intentionally generic but close enough for implementation scaffolding.
+
+Initialize client in API bootstrap if needed, or lazily create per request.
+
+---
+
+## 46.4. Billing Service – Plan & Subscription Helpers
+
+**File:** `apps/api-gateway/src/billing/billingService.ts`
+
+```ts
+// apps/api-gateway/src/billing/billingService.ts
+
+import { prisma } from '@ai-chat/db';
+
+export async function getDefaultPlan() {
+  const plan = await prisma.billingPlan.findFirst({
+    where: { isDefault: true, isActive: true }
+  });
+  return plan;
+}
+
+export async function ensureOrgSubscription(orgId: string) {
+  let sub = await prisma.orgSubscription.findUnique({
+    where: { orgId },
+    include: { plan: true }
+  });
+
+  if (!sub) {
+    const defaultPlan = await getDefaultPlan();
+    if (!defaultPlan) {
+      throw new Error('No default billing plan configured');
+    }
+
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    sub = await prisma.orgSubscription.create({
+      data: {
+        orgId,
+        planId: defaultPlan.id,
+        status: 'active',
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        paymentProvider: 'paytr'
+      },
+      include: { plan: true }
+    });
+  }
+
+  return sub;
+}
+
+export async function changeOrgPlan(orgId: string, planCode: string) {
+  const plan = await prisma.billingPlan.findFirst({
+    where: { code: planCode, isActive: true }
+  });
+  if (!plan) {
+    throw new Error('PLAN_NOT_FOUND');
+  }
+
+  const now = new Date();
+  const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const sub = await prisma.orgSubscription.upsert({
+    where: { orgId },
+    update: {
+      planId: plan.id,
+      status: 'active',
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: false
+    },
+    create: {
+      orgId,
+      planId: plan.id,
+      status: 'active',
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: false,
+      paymentProvider: 'paytr'
+    },
+    include: { plan: true }
+  });
+
+  return sub;
+}
+```
+
+> Quota checks (19.md) should read `OrgSubscription.plan.limits` and combine with runtime usage (45.md) to enforce hard limits or soft warnings.
+
+---
+
+## 46.5. Billing Routes – Backend API
+
+### 46.5.1. Get Plans & Org Subscription
+
+**File:** `apps/api-gateway/src/routes/billing.ts`
+
+```ts
+// apps/api-gateway/src/routes/billing.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { prisma } from '@ai-chat/db';
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
+import { ensureOrgSubscription, changeOrgPlan } from '../billing/billingService';
+import { initPaytrClient } from '../payments/paytrClient';
+
+export default async function billingRoutes(
+  app: FastifyInstance,
+  _opts: FastifyPluginOptions
+) {
+  // Public list of active plans (can be cached)
+  app.get('/billing/plans', async (_req, reply) => {
+    const plans = await prisma.billingPlan.findMany({
+      where: { isActive: true },
+      orderBy: { monthlyPriceMinor: 'asc' }
+    });
+
+    return reply.send({ plans });
+  });
+
+  // Get current org subscription & plan
+  app.get('/orgs/:orgId/billing', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const orgId = (req.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:billing:read'
+    );
+
+    const sub = await ensureOrgSubscription(orgId);
+
+    return reply.send({ subscription: sub });
+  });
+
+  // Request plan change – this will typically start a PAYTR checkout.
+  app.post('/orgs/:orgId/billing/change-plan', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const orgId = (req.params as any).orgId as string;
+    const body = req.body as any;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:billing:write'
+    );
+
+    const planCode = String(body.planCode || '');
+    if (!planCode) {
+      return reply.code(400).send({ error: 'PLAN_CODE_REQUIRED' });
+    }
+
+    const plan = await prisma.billingPlan.findFirst({ where: { code: planCode, isActive: true } });
+    if (!plan) {
+      return reply.code(404).send({ error: 'PLAN_NOT_FOUND' });
+    }
+
+    // Create a pending PaymentTransaction for audit
+    const amountMinor = plan.monthlyPriceMinor;
+    const tx = await prisma.paymentTransaction.create({
+      data: {
+        orgId,
+        subscriptionId: null,
+        paymentProvider: 'paytr',
+        providerReference: '', // to be updated with PAYTR token
+        status: 'pending',
+        amountMinor,
+        currency: plan.currency,
+        reason: 'plan_change'
+      }
+    });
+
+    const paytr = initPaytrClient();
+    if (!paytr) {
+      return reply.code(500).send({ error: 'PAYTR_NOT_CONFIGURED' });
+    }
+
+    // In a real app, fill email, name, address, phone from org/admin profile.
+    const okUrl = `${process.env.APP_BASE_URL}/billing/success?orgId=${orgId}&txId=${tx.id}`;
+    const failUrl = `${process.env.APP_BASE_URL}/billing/failure?orgId=${orgId}&txId=${tx.id}`;
+
+    const checkoutRes = await paytr.createCheckoutToken({
+      merchant_oid: tx.id,
+      email: payload.email ?? 'billing@example.com',
+      payment_amount: amountMinor,
+      user_name: payload.name ?? 'Billing User',
+      user_address: 'N/A',
+      user_phone: 'N/A',
+      merchant_ok_url: okUrl,
+      merchant_fail_url: failUrl,
+      no_installment: 1,
+      max_installment: 0,
+      user_basket: JSON.stringify([[plan.name, plan.monthlyPriceMinor.toString(), 1]]),
+      debug_on: process.env.NODE_ENV === 'development' ? 1 : 0
+    });
+
+    if (checkoutRes.status === 'failed' || !checkoutRes.token) {
+      await prisma.paymentTransaction.update({
+        where: { id: tx.id },
+        data: {
+          status: 'failed',
+          responsePayload: { reason: checkoutRes.reason }
+        }
+      });
+      return reply.code(500).send({ error: 'PAYTR_CHECKOUT_FAILED', reason: checkoutRes.reason });
+    }
+
+    await prisma.paymentTransaction.update({
+      where: { id: tx.id },
+      data: {
+        providerReference: checkoutRes.token,
+        requestPayload: { planCode },
+        responsePayload: { token: checkoutRes.token }
+      }
+    });
+
+    // Frontend will embed PAYTR iframe with this token.
+    return reply.send({
+      transactionId: tx.id,
+      token: checkoutRes.token
+    });
+  });
+}
+```
+
+Register in `main.ts`:
+
+```ts
+import billingRoutes from './routes/billing';
+
+await app.register(billingRoutes);
+```
+
+---
+
+## 46.6. PAYTR Webhook – Payment Result Handling
+
+PAYTR posts payment results to a server‑side callback. We handle this to update `PaymentTransaction` and `OrgSubscription`.
+
+**File:** `apps/api-gateway/src/routes/paytrWebhook.ts`
+
+```ts
+// apps/api-gateway/src/routes/paytrWebhook.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { prisma } from '@ai-chat/db';
+
+export default async function paytrWebhookRoutes(
+  app: FastifyInstance,
+  _opts: FastifyPluginOptions
+) {
+  // PAYTR server-to-server callback (no auth header, use hash validation in real impl.)
+  app.post('/billing/paytr/webhook', async (req, reply) => {
+    const body = req.body as any;
+
+    const merchantOid = String(body.merchant_oid || '');
+    const status = String(body.status || ''); // 'success' or 'failed'
+
+    if (!merchantOid) {
+      return reply.code(400).send('merchant_oid required');
+    }
+
+    const tx = await prisma.paymentTransaction.findFirst({
+      where: { id: merchantOid },
+      include: { org: true }
+    });
+
+    if (!tx) {
+      return reply.code(404).send('tx not found');
+    }
+
+    if (status === 'success') {
+      // For now, assume we always change to the requested plan stored in requestPayload.planCode
+      const planCode = (tx.requestPayload as any)?.planCode as string | undefined;
+
+      if (planCode) {
+        // Attach transaction to subscription and change plan
+        const now = new Date();
+        const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        const plan = await prisma.billingPlan.findFirst({ where: { code: planCode } });
+        if (plan) {
+          const sub = await prisma.orgSubscription.upsert({
+            where: { orgId: tx.orgId },
+            update: {
+              planId: plan.id,
+              status: 'active',
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              cancelAtPeriodEnd: false
+            },
+            create: {
+              orgId: tx.orgId,
+              planId: plan.id,
+              status: 'active',
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              cancelAtPeriodEnd: false,
+              paymentProvider: 'paytr'
+            }
+          });
+
+          await prisma.paymentTransaction.update({
+            where: { id: tx.id },
+            data: {
+              status: 'succeeded',
+              subscriptionId: sub.id,
+              responsePayload: { ...(tx.responsePayload as any), status: 'success' }
+            }
+          });
+        } else {
+          await prisma.paymentTransaction.update({
+            where: { id: tx.id },
+            data: {
+              status: 'failed',
+              responsePayload: { ...(tx.responsePayload as any), error: 'PLAN_NOT_FOUND' }
+            }
+          });
+        }
+      }
+    } else {
+      await prisma.paymentTransaction.update({
+        where: { id: tx.id },
+        data: {
+          status: 'failed',
+          responsePayload: { ...(tx.responsePayload as any), status: 'failed' }
+        }
+      });
+    }
+
+    // PAYTR expects 'OK' on successful processing
+    return reply.send('OK');
+  });
+}
+```
+
+Register in `main.ts`:
+
+```ts
+import paytrWebhookRoutes from './routes/paytrWebhook';
+
+await app.register(paytrWebhookRoutes);
+```
+
+> **Security Note:** In a real system, you **must** validate PAYTR’s HMAC/hash signature and potentially restrict IP ranges.
+
+---
+
+## 46.7. Frontend – Billing API Wrapper
+
+**File:** `apps/web/src/api/billing.ts`
+
+```ts
+// apps/web/src/api/billing.ts
+
+import { apiRequest } from './client';
+
+export interface BillingPlanDto {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  currency: string;
+  monthlyPriceMinor: number;
+  yearlyPriceMinor: number;
+  limits: Record<string, any>;
+  isDefault: boolean;
+}
+
+export interface OrgSubscriptionDto {
+  id: string;
+  orgId: string;
+  planId: string;
+  status: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  paymentProvider: string;
+  plan: BillingPlanDto;
+}
+
+export async function fetchBillingPlans(): Promise<{ plans: BillingPlanDto[] }> {
+  return apiRequest<{ plans: BillingPlanDto[]}>(
+    '/billing/plans',
+    { method: 'GET' }
+  );
+}
+
+export async function fetchOrgBilling(
+  token: string,
+  orgId: string
+): Promise<{ subscription: OrgSubscriptionDto }> {
+  return apiRequest<{ subscription: OrgSubscriptionDto}>(
+    `/orgs/${orgId}/billing`,
+    { method: 'GET' },
+    token
+  );
+}
+
+export async function requestPlanChange(
+  token: string,
+  orgId: string,
+  planCode: string
+): Promise<{ transactionId: string; token: string }> {
+  return apiRequest<{ transactionId: string; token: string }>(
+    `/orgs/${orgId}/billing/change-plan`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ planCode })
+    },
+    token
+  );
+}
+```
+
+---
+
+## 46.8. Material 3 Billing UI
+
+Route: `/app/orgs/:orgId/billing`
+
+### 46.8.1. Component – OrgBillingPage
+
+**File:** `apps/web/src/org/OrgBillingPage.tsx`
+
+```tsx
+// apps/web/src/org/OrgBillingPage.tsx
+
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography
+} from '@mui/material';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { fetchBillingPlans, fetchOrgBilling, requestPlanChange, BillingPlanDto, OrgSubscriptionDto } from '../api/billing';
+import { fetchOrgUsage } from '../api/analytics';
+
+function formatPriceMinor(minor: number, currency: string): string {
+  const value = minor / 100;
+  return `${value.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}`;
+}
+
+export const OrgBillingPage: React.FC = () => {
+  const { orgId } = useParams();
+  const { token } = useAuth();
+
+  const [plans, setPlans] = useState<BillingPlanDto[]>([]);
+  const [subscription, setSubscription] = useState<OrgSubscriptionDto | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [checkoutToken, setCheckoutToken] = useState<string | null>(null);
+
+  const [usageSummary, setUsageSummary] = useState<{ tokens: number; requests: number } | null>(null);
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(248,250,252,0.05), transparent 55%), ' +
+    'radial-gradient(circle at bottom right, rgba(59,130,246,0.18), transparent 55%)';
+
+  const load = async () => {
+    if (!orgId || !token) return;
+    setLoading(true);
+    try {
+      const [plansRes, billingRes, usageRes] = await Promise.all([
+        fetchBillingPlans(),
+        fetchOrgBilling(token, orgId),
+        fetchOrgUsage(token, orgId, { from: undefined, to: undefined, feature: undefined })
+      ]);
+      setPlans(plansRes.plans);
+      setSubscription(billingRes.subscription);
+
+      const usage = usageRes.usage;
+      const tokens = usage.reduce((acc, row) => acc + row.inputTokens + row.outputTokens, 0);
+      const requests = usage.reduce((acc, row) => acc + row.requestCount, 0);
+      setUsageSummary({ tokens, requests });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, token]);
+
+  const currentPlan = useMemo(() => {
+    if (!subscription) return null;
+    return subscription.plan;
+  }, [subscription]);
+
+  const handleChangePlan = async (plan: BillingPlanDto) => {
+    if (!token || !orgId) return;
+    const res = await requestPlanChange(token, orgId, plan.code);
+    setCheckoutToken(res.token);
+    setCheckoutDialogOpen(true);
+  };
+
+  // PAYTR iframe base URL typically looks like: https://www.paytr.com/odeme/guvenli/{token}
+  const paytrIframeSrc = checkoutToken
+    ? `${import.meta.env.VITE_PAYTR_IFRAME_BASE_URL || 'https://www.paytr.com/odeme/guvenli'}/${checkoutToken}`
+    : null;
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Box display="flex" alignItems="center" gap={1}>
+          <CreditCardIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">Billing & subscriptions</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Manage your plan, see usage and securely pay via PAYTR.
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0 }}>
+        {/* Left: current plan & usage */}
+        <Box sx={{ width: 360, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography variant="subtitle2">Current plan</Typography>
+              {currentPlan ? (
+                <>
+                  <Typography variant="h6">{currentPlan.name}</Typography>
+                  {currentPlan.description && (
+                    <Typography variant="body2" color="text.secondary">
+                      {currentPlan.description}
+                    </Typography>
+                  )}
+                  <Box display="flex" alignItems="baseline" gap={0.5} mt={1}>
+                    <Typography variant="h5">
+                      {formatPriceMinor(currentPlan.monthlyPriceMinor, currentPlan.currency)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      / month
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                    Renews on{' '}
+                    {new Date(subscription!.currentPeriodEnd).toLocaleDateString()}
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No subscription found.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography variant="subtitle2">Usage overview</Typography>
+              {usageSummary ? (
+                <>
+                  <Typography variant="body2">
+                    Requests: {usageSummary.requests.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2">
+                    Tokens: {usageSummary.tokens.toLocaleString()}
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No usage data yet.
+                </Typography>
+              )}
+              {currentPlan?.limits?.monthly_token_limit && usageSummary && (
+                <Typography variant="caption" color="text.secondary">
+                  Approx. {usageSummary.tokens.toLocaleString()} /{' '}
+                  {Number(currentPlan.limits.monthly_token_limit).toLocaleString()} tokens this month.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
+
+        {/* Right: available plans */}
+        <Card sx={{ borderRadius: 3, flex: 1 }}>
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
+            <Typography variant="subtitle2">Available plans</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {plans.map((plan) => {
+                const isCurrent = currentPlan && plan.id === currentPlan.id;
+                return (
+                  <Card
+                    key={plan.id}
+                    sx={{
+                      borderRadius: 3,
+                      minWidth: 240,
+                      flex: '1 1 260px',
+                      border: '1px solid',
+                      borderColor: isCurrent ? 'primary.main' : 'divider',
+                      boxShadow: isCurrent ? 4 : 1
+                    }}
+                  >
+                    <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Typography variant="subtitle1">{plan.name}</Typography>
+                        {plan.isDefault && <Chip size="small" label="Recommended" />}
+                      </Box>
+                      {plan.description && (
+                        <Typography variant="body2" color="text.secondary">
+                          {plan.description}
+                        </Typography>
+                      )}
+                      <Box display="flex" alignItems="baseline" gap={0.5} mt={1}>
+                        <Typography variant="h6">
+                          {formatPriceMinor(plan.monthlyPriceMinor, plan.currency)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          / month
+                        </Typography>
+                      </Box>
+                      {plan.limits?.monthly_token_limit && (
+                        <Typography variant="caption" color="text.secondary">
+                          Up to {Number(plan.limits.monthly_token_limit).toLocaleString()} tokens / month.
+                        </Typography>
+                      )}
+                      <Box display="flex" justifyContent="flex-end" mt={1.5}>
+                        <Button
+                          size="small"
+                          variant={isCurrent ? 'outlined' : 'contained'}
+                          endIcon={<ArrowForwardIcon />}
+                          disabled={isCurrent || loading}
+                          onClick={() => void handleChangePlan(plan)}
+                        >
+                          {isCurrent ? 'Current plan' : 'Choose plan'}
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              {plans.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  No billing plans configured.
+                </Typography>
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* PAYTR checkout dialog */}
+      <Dialog
+        open={checkoutDialogOpen}
+        onClose={() => setCheckoutDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Complete payment</DialogTitle>
+        <DialogContent sx={{ height: 520, p: 0 }}>
+          {paytrIframeSrc ? (
+            <iframe
+              title="PAYTR secure payment"
+              src={paytrIframeSrc}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              allow="payment"
+            />
+          ) : (
+            <Box
+              sx={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Unable to load payment form.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCheckoutDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+```
+
+Add to router:
+
+```tsx
+import { OrgBillingPage } from './org/OrgBillingPage';
+
+<Route path="/app/orgs/:orgId/billing" element={<OrgBillingPage />} />
+```
+
+---
+
+## 46.9. Observability & Audit
+
+- Emit audit events (38.md) for:
+  - `billing.plan_change.requested` – when user hits **Choose plan**.  
+  - `billing.plan_change.succeeded` / `billing.plan_change.failed` – from PAYTR webhook.  
+  - `billing.subscription.created` / `billing.subscription.updated`.
+- Metrics (28.md):
+  - `billing_payments_total{status}` – count of payment transactions.  
+  - `billing_revenue_minor_total{currency}` – sum of `amountMinor` for succeeded transactions.  
+  - `billing_plan_orgs_total{planCode}` – gauge of orgs per plan.
+
+These make it easy to build Grafana panels for **MRR, ARPU, churn** and plan distribution.
+
+---
+
+## 46.10. Sanity Checklist
+
+Before enabling billing & PAYTR in production:
+
+- [ ] Prisma migration applied for `BillingPlan`, `OrgSubscription`, `PaymentTransaction`.  
+- [ ] At least one **default plan** exists in `BillingPlan`.  
+- [ ] `ensureOrgSubscription` successfully creates a subscription for new orgs.  
+- [ ] `/billing/plans` and `/orgs/:orgId/billing` endpoints return correct data.  
+- [ ] `change-plan` endpoint creates a `PaymentTransaction` and returns a valid PAYTR token.  
+- [ ] PAYTR webhook (`/billing/paytr/webhook`) updates `PaymentTransaction` and `OrgSubscription` correctly.  
+- [ ] `OrgBillingPage` shows current plan, usage info and allows upgrading via PAYTR iframe.  
+- [ ] Quota logic (19.md) reads from `BillingPlan.limits` and aligns with plan descriptions.
+
+If all items pass, the platform now has an **enterprise‑grade subscription & billing system** with **PAYTR** as the primary gateway, fully integrated with **usage analytics** and **quota enforcement**.
+
+---
+
+_End of 46.md – Subscriptions, Plans & PAYTR Integration – Org Billing & Limits_

@@ -27,9 +27,16 @@ export async function signup(data: {
   name: string;
   orgName?: string;
 }): Promise<AuthResponse> {
+  // Ensure orgName is undefined if empty, not empty string
+  // Boşsa orgName'i undefined yap, boş string değil
+  const payload = {
+    ...data,
+    orgName: data.orgName?.trim() || undefined,
+  };
+  
   return apiRequest<AuthResponse>('/auth/signup', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 }
 

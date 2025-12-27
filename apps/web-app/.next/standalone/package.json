@@ -1,0 +1,38 @@
+{
+  "name": "ai-chat-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "bun@1.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:api": "turbo run dev --filter=api-gateway",
+    "dev:web": "turbo run dev --filter=web-app",
+    "dev:worker": "turbo run dev --filter=worker-jobs",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "turbo run format",
+    "clean": "turbo run clean",
+    "db:migrate:dev": "bun run --filter=@ai-chat/db prisma:migrate:dev",
+    "db:migrate:deploy": "bun run --filter=@ai-chat/db prisma:migrate:deploy",
+    "db:generate": "bun run --filter=@ai-chat/db prisma:generate",
+    "db:studio": "bun run --filter=@ai-chat/db prisma:studio",
+    "db:seed": "bun run --filter=@ai-chat/db src/seed.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "turbo": "^2.6.3",
+    "eslint": "^9.39.2",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "prettier": "^3.7.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^7.2.1"
+  }
+}

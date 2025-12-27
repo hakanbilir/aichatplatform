@@ -1,0 +1,567 @@
+# 28. Observability, Logging & Grafana Dashboards
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Add **production‑grade observability** to the AI chat system so that operators can:
+>
+> - See **request/latency/error** metrics per endpoint, per model, per org.  
+> - Inspect **structured logs** (JSON) for chat turns, tool calls and provider calls.  
+> - Export **Prometheus metrics** and visualize them in **Grafana** dashboards.  
+> - Quickly debug slow or failing Ollama/model/tool interactions.
+>
+> This file defines a complete observability layer around the API gateway and chat engine.
+
+> **Important instructions to AI agents:**
+> - Treat this file as canonical for observability & metrics.  
+> - You may safely add the described dependencies (`pino`, `pino-pretty`, `prom-client`) to the project.  
+> - All code described here must be complete and compilable; do not leave stubs.
+
+---
+
+## 28.1. Logging Strategy (Structured JSON)
+
+We standardize on **structured JSON logging** using `pino` in the API gateway.
+
+### 28.1.1. Dependencies
+
+In `apps/api-gateway/package.json` ensure:
+
+```jsonc
+{
+  "dependencies": {
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0"
+  }
+}
+```
+
+> Versions are indicative; you can align them with your existing monorepo versions.
+
+### 28.1.2. Logger Utility
+
+**File:** `apps/api-gateway/src/observability/logger.ts`
+
+```ts
+// apps/api-gateway/src/observability/logger.ts
+
+import pino from 'pino';
+
+const level = process.env.LOG_LEVEL || 'info';
+
+export const logger = pino({
+  level,
+  base: undefined,
+  timestamp: pino.stdTimeFunctions.isoTime,
+  formatters: {
+    level(label) {
+      return { level: label };
+    }
+  }
+});
+```
+
+This gives a minimal but solid JSON logger with ISO timestamps.
+
+### 28.1.3. Fastify Integration
+
+Fastify has its own logger; we will pass our `pino` instance on boot.
+
+**File:** `apps/api-gateway/src/main.ts` (excerpt)
+
+```ts
+// import { logger } from './observability/logger';
+
+import { logger } from './observability/logger';
+
+async function buildApp() {
+  const app = fastify({
+    logger
+  });
+
+  // ...rest of your plugin registration
+
+  return app;
+}
+```
+
+Now all Fastify logs, including request logs, go through `pino`.
+
+### 28.1.4. Domain‑Specific Logs
+
+We add **structured log events** in critical places:
+
+- Chat engine (`runConversationTurn`)  
+- Tools engine (tool execution)
+
+#### Chat Engine Logging
+
+**File:** `apps/api-gateway/src/services/chatEngine.ts` (add imports at the top)
+
+```ts
+import { logger } from '../observability/logger';
+```
+
+Inside `runConversationTurn`, before returning results, add logs:
+
+```ts
+// After assistant message creation, before return
+
+logger.info({
+  event: 'chat.turn.completed',
+  conversationId: conversation.id,
+  orgId: conversation.orgId,
+  model: modelConfig.id,
+  temperature,
+  toolsEnabled,
+  structuredToolsEnabled,
+  assistantMessageId: assistantMessage.id
+}, 'Chat turn completed');
+```
+
+In the structured tools path (when tools are used), log tool execution:
+
+```ts
+logger.info({
+  event: 'chat.tools.executed',
+  conversationId: conversation.id,
+  orgId: conversation.orgId,
+  model: modelConfig.id,
+  toolResultsCount: toolResults.length,
+  toolNames: toolResults.map((r) => r.tool)
+}, 'Tools executed for chat turn');
+```
+
+#### Tool Engine Logging
+
+**File:** `apps/api-gateway/src/services/toolEngine.ts` (add import)
+
+```ts
+import { logger } from '../observability/logger';
+```
+
+In `executeToolCall`, log before and after execution:
+
+```ts
+export async function executeToolCall(
+  call: ToolCall,
+  ctx: ToolContext
+): Promise<ToolExecutionResult> {
+  const tool = getToolByName(call.tool);
+
+  if (!tool) {
+    logger.warn({
+      event: 'tool.unknown',
+      tool: call.tool,
+      userId: ctx.userId,
+      orgId: ctx.orgId,
+      conversationId: ctx.conversationId
+    }, 'Unknown tool requested');
+
+    return {
+      tool: call.tool,
+      ok: false,
+      error: `Unknown tool: ${call.tool}`
+    };
+  }
+
+  const startedAt = Date.now();
+
+  try {
+    const validatedArgs = validateArgs(tool.argsSchema, call.args);
+
+    logger.info({
+      event: 'tool.exec.start',
+      tool: tool.name,
+      userId: ctx.userId,
+      orgId: ctx.orgId,
+      conversationId: ctx.conversationId,
+      args: validatedArgs
+    }, 'Tool execution start');
+
+    const result = await tool.execute(validatedArgs, ctx);
+
+    const durationMs = Date.now() - startedAt;
+
+    logger.info({
+      event: 'tool.exec.success',
+      tool: tool.name,
+      userId: ctx.userId,
+      orgId: ctx.orgId,
+      conversationId: ctx.conversationId,
+      durationMs
+    }, 'Tool execution success');
+
+    return {
+      tool: tool.name,
+      ok: true,
+      result
+    };
+  } catch (err) {
+    const durationMs = Date.now() - startedAt;
+
+    logger.error({
+      event: 'tool.exec.error',
+      tool: tool.name,
+      userId: ctx.userId,
+      orgId: ctx.orgId,
+      conversationId: ctx.conversationId,
+      durationMs,
+      error: (err as Error).message
+    }, 'Tool execution failed');
+
+    return {
+      tool: tool.name,
+      ok: false,
+      error: (err as Error).message || 'Tool execution failed'
+    };
+  }
+}
+```
+
+This gives you a rich, queryable log stream.
+
+---
+
+## 28.2. Metrics – Prometheus Exporter
+
+We expose **Prometheus metrics** from the API gateway, suitable for scraping by Prometheus and visualizing in Grafana.
+
+### 28.2.1. Dependencies
+
+In `apps/api-gateway/package.json` ensure:
+
+```jsonc
+{
+  "dependencies": {
+    "prom-client": "^15.0.0"
+  }
+}
+```
+
+### 28.2.2. Metrics Registry
+
+**File:** `apps/api-gateway/src/observability/metrics.ts`
+
+```ts
+// apps/api-gateway/src/observability/metrics.ts
+
+import client from 'prom-client';
+
+// Use a single registry for the process
+export const registry = new client.Registry();
+
+client.collectDefaultMetrics({ register: registry });
+
+export const httpRequestDurationSeconds = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'HTTP request duration in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+});
+
+export const chatTurnDurationSeconds = new client.Histogram({
+  name: 'chat_turn_duration_seconds',
+  help: 'Chat turn duration in seconds (end-to-end)',
+  labelNames: ['model', 'org_id', 'tools_used']
+});
+
+export const toolExecutionDurationSeconds = new client.Histogram({
+  name: 'tool_execution_duration_seconds',
+  help: 'Tool execution duration in seconds',
+  labelNames: ['tool', 'org_id', 'ok']
+});
+
+registry.registerMetric(httpRequestDurationSeconds);
+registry.registerMetric(chatTurnDurationSeconds);
+registry.registerMetric(toolExecutionDurationSeconds);
+```
+
+### 28.2.3. Fastify Hook for HTTP Metrics
+
+**File:** `apps/api-gateway/src/main.ts` (excerpt)
+
+```ts
+import { registry, httpRequestDurationSeconds } from './observability/metrics';
+```
+
+Register a hook after creating `app`:
+
+```ts
+app.addHook('onRequest', async (request, reply) => {
+  (request as any)._metricsStart = process.hrtime.bigint();
+});
+
+app.addHook('onResponse', async (request, reply) => {
+  const start = (request as any)._metricsStart as bigint | undefined;
+  if (!start) return;
+
+  const diffNs = Number(process.hrtime.bigint() - start);
+  const durationSec = diffNs / 1e9;
+
+  const route = request.routerPath || request.url || 'unknown';
+
+  httpRequestDurationSeconds
+    .labels(request.method, route, String(reply.statusCode))
+    .observe(durationSec);
+});
+```
+
+### 28.2.4. `/metrics` Endpoint
+
+Still in `main.ts`, expose Prometheus metrics:
+
+```ts
+app.get('/metrics', async (_request, reply) => {
+  const body = await registry.metrics();
+  reply
+    .header('Content-Type', registry.contentType)
+    .send(body);
+});
+```
+
+Now Prometheus can scrape `http://api-gateway-host:PORT/metrics`.
+
+---
+
+## 28.3. Instrument Chat Engine & Tools with Metrics
+
+We extend the chat engine and tools engine to record **latency** metrics.
+
+### 28.3.1. Chat Turn Duration
+
+**File:** `apps/api-gateway/src/services/chatEngine.ts` (add import)
+
+```ts
+import { chatTurnDurationSeconds } from '../observability/metrics';
+```
+
+At the start of `runConversationTurn`:
+
+```ts
+const startedAt = process.hrtime.bigint();
+```
+
+In both the structured tools branch and the single‑pass branch, before returning, compute and record duration:
+
+```ts
+const diffNs = Number(process.hrtime.bigint() - startedAt);
+const durationSec = diffNs / 1e9;
+
+chatTurnDurationSeconds
+  .labels(modelConfig.id, conversation.orgId || 'none', String(structuredToolsEnabled))
+  .observe(durationSec);
+```
+
+You can place this right before each `return { assistantMessageId, ... }`.
+
+### 28.3.2. Tool Execution Duration
+
+**File:** `apps/api-gateway/src/services/toolEngine.ts` (add import)
+
+```ts
+import { toolExecutionDurationSeconds } from '../observability/metrics';
+```
+
+Within `executeToolCall`, after `const startedAt = Date.now();`, on success and error branches, record metrics:
+
+```ts
+const durationSec = (Date.now() - startedAt) / 1000;
+
+toolExecutionDurationSeconds
+  .labels(tool.name, ctx.orgId || 'none', 'true')
+  .observe(durationSec);
+```
+
+and in the error branch:
+
+```ts
+const durationSec = (Date.now() - startedAt) / 1000;
+
+toolExecutionDurationSeconds
+  .labels(tool.name, ctx.orgId || 'none', 'false')
+  .observe(durationSec);
+```
+
+This gives you per‑tool performance data.
+
+---
+
+## 28.4. Grafana Dashboards (Conceptual Setup)
+
+While actual Grafana JSON exports are environment‑specific, we define the **key panels** and **PromQL** queries you should use. These can be turned into dashboards either manually or via IaC.
+
+### 28.4.1. Dashboard: API Overview
+
+**Panels:**
+
+1. **HTTP Request Rate**
+
+   - Query:
+
+   ```promql
+   sum by (route) (rate(http_request_duration_seconds_count[5m]))
+   ```
+
+   - Type: Stacked area or bar.  
+   - Purpose: See which routes receive the most traffic.
+
+2. **HTTP Latency (P95)**
+
+   - Query:
+
+   ```promql
+   histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))
+   ```
+
+   - Type: Time‑series line.  
+   - Purpose: Monitor p95 latency per route.
+
+3. **Error Rate**
+
+   - Query (non‑2xx rate):
+
+   ```promql
+   sum by (route) (rate(http_request_duration_seconds_count{status_code!~"2.."}[5m]))
+   ```
+
+   - Type: Bar or line.  
+   - Purpose: Track failing endpoints.
+
+### 28.4.2. Dashboard: Chat Engine
+
+**Panels:**
+
+1. **Chat Turn Latency (P95) by Model**
+
+   ```promql
+   histogram_quantile(
+     0.95,
+     sum by (le, model) (rate(chat_turn_duration_seconds_bucket[5m]))
+   )
+   ```
+
+2. **Chat Turn Rate by Org**
+
+   ```promql
+   sum by (org_id) (rate(chat_turn_duration_seconds_count[5m]))
+   ```
+
+3. **Structured Tools Usage Share**
+
+   ```promql
+   sum(rate(chat_turn_duration_seconds_count{tools_used="true"}[5m]))
+   /
+   sum(rate(chat_turn_duration_seconds_count[5m]))
+   ```
+
+   - Type: Single‑stat or gauge.  
+   - Purpose: What fraction of turns use tools.
+
+### 28.4.3. Dashboard: Tools Performance
+
+**Panels:**
+
+1. **Tool Latency (P95) by Tool**
+
+   ```promql
+   histogram_quantile(
+     0.95,
+     sum by (le, tool) (rate(tool_execution_duration_seconds_bucket[5m]))
+   )
+   ```
+
+2. **Tool Error Rate**
+
+   ```promql
+   sum by (tool) (
+     rate(tool_execution_duration_seconds_count{ok="false"}[5m])
+   )
+   ```
+
+3. **Top N Tools by Call Volume**
+
+   ```promql
+   topk(5, sum by (tool) (rate(tool_execution_duration_seconds_count[5m])))
+   ```
+
+   - Type: Bar chart.
+
+These panels give a **Grafana‑style operational cockpit** for the chat system.
+
+---
+
+## 28.5. Local Developer Experience
+
+For local development, you may want pretty‑printed logs:
+
+### 28.5.1. Pino Pretty in Dev
+
+In `apps/api-gateway` dev script, you can pipe through `pino-pretty`, or you can conditionally wrap the logger in dev.
+
+**File:** `apps/api-gateway/src/observability/logger.ts` (optional dev pretty‑print)
+
+```ts
+import pino from 'pino';
+
+const level = process.env.LOG_LEVEL || 'info';
+const pretty = process.env.NODE_ENV !== 'production';
+
+export const logger = pino({
+  level,
+  base: undefined,
+  timestamp: pino.stdTimeFunctions.isoTime,
+  formatters: {
+    level(label) {
+      return { level: label };
+    }
+  }
+}, pretty ? pino.transport({
+  target: 'pino-pretty',
+  options: {
+    colorize: true,
+    translateTime: 'SYS:standard'
+  }
+}) : undefined);
+```
+
+This keeps production logs JSON‑friendly, while dev logs are human‑readable.
+
+---
+
+## 28.6. Sanity Checks
+
+From the repo root:
+
+1. **Install dependencies (if not already present):**
+
+   ```bash
+   pnpm install --filter api-gateway pino pino-pretty prom-client
+   ```
+
+2. **Lint & typecheck:**
+
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   ```
+
+3. **Run API gateway:**
+
+   ```bash
+   pnpm dev --filter=api-gateway
+   ```
+
+4. **Verify metrics endpoint:**
+
+   - Open `http://localhost:<PORT>/metrics`.  
+   - Confirm metrics like `http_request_duration_seconds`, `chat_turn_duration_seconds`, `tool_execution_duration_seconds` are present.
+
+5. **Check logs:**
+
+   - Trigger a few chat requests and tool calls.  
+   - Confirm logs contain `chat.turn.completed`, `chat.tools.executed`, `tool.exec.start`, `tool.exec.success`, `tool.exec.error` events with correct structured fields.
+
+If all checks pass, your AI chat backend now exposes **rich logs** and **Prometheus metrics**, ready to be wired into **Grafana dashboards** for an industry‑grade observability stack.
+
+---
+
+_End of 28.md – Observability, Logging & Grafana Dashboards_

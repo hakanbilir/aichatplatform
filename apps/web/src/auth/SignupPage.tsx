@@ -10,6 +10,8 @@ export const SignupPage: React.FC = () => {
   const { setAuthFromResponse } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('auth');
+  const { t: tValidation } = useTranslation('validation');
+  const { t: tErrors } = useTranslation('errors');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,13 +24,78 @@ export const SignupPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    
+    // Client-side validation / İstemci tarafı doğrulama
+    if (!name.trim()) {
+      setError(tValidation('nameRequired') || tValidation('required') || 'Name is required');
+      setLoading(false);
+      return;
+    }
+    if (!email.trim()) {
+      setError(tValidation('emailRequired') || tValidation('required') || 'Email is required');
+      setLoading(false);
+      return;
+    }
+    if (password.length < 8) {
+      setError(tValidation('passwordMinLength') || 'Password must be at least 8 characters');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const resp = await signup({ email, password, name, orgName: orgName || undefined });
+      // Convert empty orgName to undefined to match backend schema
+      // Boş orgName'i undefined'a çevirerek backend şemasına uygun hale getir
+      const resp = await signup({ 
+        email: email.trim(), 
+        password, 
+        name: name.trim(), 
+        orgName: orgName.trim() || undefined 
+      });
       setAuthFromResponse(resp);
       navigate('/app');
-    } catch (err) {
-      const message = (err as any)?.message || t('signup.signupFailed');
-      setError(message);
+    } catch (err: any) {
+      // Extract error message from ApiError structure
+      // ApiError yapısından hata mesajını çıkar
+      let errorMessage = t('signup.signupFailed');
+      
+      if (err?.message) {
+        const message = err.message;
+        // Check if message is a translation key (e.g., "errors.invalidSignupData")
+        // Mesajın bir çeviri anahtarı olup olmadığını kontrol et (örn: "errors.invalidSignupData")
+        if (message.startsWith('errors.')) {
+          const key = message.replace('errors.', '');
+          errorMessage = tErrors(key) || message;
+        } else {
+          errorMessage = message;
+        }
+      } else if (err?.error) {
+        const error = err.error;
+        if (error.startsWith('errors.')) {
+          const key = error.replace('errors.', '');
+          errorMessage = tErrors(key) || error;
+        } else {
+          errorMessage = error;
+        }
+      }
+      
+      // If there are validation details, format them nicely
+      // Doğrulama detayları varsa, güzel bir şekilde formatla
+      if (err?.details) {
+        const details = err.details as Record<string, any>;
+        const fieldErrors: string[] = [];
+        
+        Object.keys(details).forEach((field) => {
+          if (details[field]?._errors) {
+            fieldErrors.push(`${field}: ${details[field]._errors.join(', ')}`);
+          }
+        });
+        
+        if (fieldErrors.length > 0) {
+          errorMessage = `${errorMessage}\n${fieldErrors.join('\n')}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -93,7 +160,12 @@ export const SignupPage: React.FC = () => {
             onChange={(e) => setOrgName(e.target.value)}
           />
           {error && (
-            <Typography color="error" variant="body2" mt={1}>
+            <Typography 
+              color="error" 
+              variant="body2" 
+              mt={1}
+              sx={{ whiteSpace: 'pre-line' }}
+            >
               {error}
             </Typography>
           )}

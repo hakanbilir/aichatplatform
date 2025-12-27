@@ -1,0 +1,485 @@
+# 31. Security, Multi‑Tenant Isolation & Compliance
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human security/ops engineers.  
+> **Goal of this file:** Define a **production‑grade security model** for the multi‑tenant AI chat platform.
+>
+> - Enforce strict **org‑scoped access control** for every request.  
+> - Harden authentication, session handling and JWT usage.  
+> - Implement **RBAC** guards and add security checks in critical services.  
+> - Provide patterns for **data isolation**, **audit logging**, and **secrets management**.  
+> - Ensure Cursor‑style agents can extend the platform without weakening security.
+
+This file complements and extends:
+
+- 13.md – Role & RBAC model (conceptual/DB).  
+- 19.md – Org quota / usage guard.  
+- 25–26.md – Chat engine, tools, and model routing.  
+- 28–30.md – Observability, deployment, and scaling.
+
+---
+
+## 31.1. Security Principles
+
+The platform follows these core principles:
+
+1. **Least privilege** – Users and services get the minimal rights needed.  
+2. **Explicit org scoping** – Every business operation is tied to a single `orgId` and checked.  
+3. **Single source of truth** – Org membership and role assignments live in the DB; all services query via the same RBAC helpers.  
+4. **Secure by default** – No public endpoints without explicit justification; all new endpoints must specify authentication/authorization behavior.  
+5. **Defense in depth** – Input validation (zod), rate limits/quota (19.md), logging (28.md), and analytics (29.md) reinforce each other.
+
+---
+
+## 31.2. Authentication & JWT Hardening
+
+### 31.2.1. JWT Structure
+
+JWT payload (`JwtPayload`) should contain:
+
+- `userId: string` – primary user identifier.  
+- `orgId: string | null` – current org context (for quick lookups).  
+- `isSuperadmin: boolean` – platform‑wide admin flag.  
+- `iat` / `exp` – issued at and expiration time.
+
+**File:** `apps/api-gateway/src/auth/types.ts`
+
+```ts
+// apps/api-gateway/src/auth/types.ts
+
+export interface JwtPayload {
+  userId: string;
+  orgId: string | null;
+  isSuperadmin: boolean;
+  iat?: number;
+  exp?: number;
+}
+```
+
+### 31.2.2. Token Lifetime & Refresh Strategy
+
+- **Access token lifetime:** 15–60 minutes.  
+- **Refresh token:** Stored server‑side (DB) with rotation on each use or stored as HTTP‑only secure cookie.
+
+**Config:** Add to `env.ts` (30.1.2) if you want explicit tuning:
+
+```ts
+accessTokenTtlSec: number; // e.g. 3600
+refreshTokenTtlDays: number; // e.g. 30
+```
+
+**Rule:** Never store access tokens in localStorage. Use:
+
+- HTTP‑only `Secure` cookie, or  
+- In‑memory state in the SPA + secure storage on native clients.
+
+### 31.2.3. Fastify Auth Plugin
+
+**File:** `apps/api-gateway/src/auth/plugin.ts`
+
+```ts
+// apps/api-gateway/src/auth/plugin.ts
+
+import fp from 'fastify-plugin';
+import { FastifyInstance } from 'fastify';
+import jwt from '@fastify/jwt';
+import { JwtPayload } from './types';
+import { loadApiConfig } from '../config/env';
+
+export default fp(async function authPlugin(app: FastifyInstance) {
+  const cfg = loadApiConfig();
+
+  await app.register(jwt, {
+    secret: cfg.jwtSecret,
+    sign: {
+      algorithm: 'HS256'
+    }
+  });
+
+  app.decorate('authenticate', async function (request: any, reply: any) {
+    try {
+      await request.jwtVerify<JwtPayload>();
+    } catch (err) {
+      reply.code(401).send({ error: 'UNAUTHORIZED' });
+    }
+  });
+});
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    authenticate: (request: any, reply: any) => Promise<void>;
+  }
+
+  interface FastifyRequest {
+    user: JwtPayload;
+  }
+}
+```
+
+In `main.ts`, ensure:
+
+```ts
+import authPlugin from './auth/plugin';
+
+await app.register(authPlugin);
+```
+
+All sensitive routes (chat, tools, org analytics, etc.) already reference `app.authenticate` (24–29.md).
+
+---
+
+## 31.3. Org‑Scoped RBAC Guards
+
+RBAC is implemented as **code + DB**, with a small guard helper used in all org‑scoped routes.
+
+### 31.3.1. Permission Model
+
+We assume 13.md defined permissions like:
+
+- `org:chat:read`, `org:chat:write`  
+- `org:settings:manage`  
+- `org:analytics:view`  
+- `org:tools:manage`
+
+Roles map to permission sets, e.g.:
+
+- `OWNER` – full permissions.  
+- `ADMIN` – most org‑level permissions.  
+- `MEMBER` – basic usage.  
+- `VIEWER` – read‑only analytics/history.
+
+### 31.3.2. RBAC Guard Helper
+
+**File:** `apps/api-gateway/src/rbac/guards.ts`
+
+```ts
+// apps/api-gateway/src/rbac/guards.ts
+
+import { prisma } from '@ai-chat/db';
+
+export type OrgPermission =
+  | 'org:chat:read'
+  | 'org:chat:write'
+  | 'org:settings:manage'
+  | 'org:analytics:view'
+  | 'org:tools:manage';
+
+export interface Principal {
+  id: string;
+  isSuperadmin: boolean;
+}
+
+const ROLE_PERMISSIONS: Record<string, OrgPermission[]> = {
+  OWNER: ['org:chat:read', 'org:chat:write', 'org:settings:manage', 'org:analytics:view', 'org:tools:manage'],
+  ADMIN: ['org:chat:read', 'org:chat:write', 'org:settings:manage', 'org:analytics:view', 'org:tools:manage'],
+  MEMBER: ['org:chat:read', 'org:chat:write'],
+  VIEWER: ['org:chat:read', 'org:analytics:view']
+};
+
+export async function assertOrgPermission(
+  principal: Principal,
+  orgId: string,
+  required: OrgPermission
+): Promise<void> {
+  if (principal.isSuperadmin) {
+    return;
+  }
+
+  const membership = await prisma.orgMembership.findFirst({
+    where: {
+      orgId,
+      userId: principal.id
+    },
+    select: {
+      role: true
+    }
+  });
+
+  if (!membership) {
+    throw Object.assign(new Error('Forbidden'), { code: 'FORBIDDEN' });
+  }
+
+  const role = membership.role;
+  const perms = ROLE_PERMISSIONS[role] || [];
+
+  if (!perms.includes(required)) {
+    throw Object.assign(new Error('Forbidden'), { code: 'FORBIDDEN' });
+  }
+}
+```
+
+### 31.3.3. Using RBAC in Routes
+
+Example: `orgAnalyticsRoutes` (29.md) already uses `assertOrgPermission`:
+
+```ts
+await assertOrgPermission(
+  { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+  orgId,
+  'org:analytics:view'
+);
+```
+
+**Rule:** All org‑scoped routes must call `assertOrgPermission` (or a wrapper) before accessing data.
+
+---
+
+## 31.4. Multi‑Tenant Data Isolation
+
+### 31.4.1. Org‑Scoped Queries
+
+All queries on tenant‑owned data **must filter by `orgId`**. Patterns:
+
+- `Conversation` → `where: { id, orgId }` or `where: { orgId, ... }`.  
+- `Message` → nested `conversation.orgId`.  
+- `Tools` results → `conversation.orgId` via related conversation.
+
+Example hardening (chat route, 25.md/26.md):
+
+```ts
+const conversation = await app.prisma.conversation.findFirst({
+  where: {
+    id: conversationId,
+    orgId: payload.orgId
+  },
+  select: {
+    id: true,
+    orgId: true
+  }
+});
+```
+
+Do **not** use `findUnique({ where: { id } })` alone for user‑supplied IDs; always enforce `orgId` matching.
+
+### 31.4.2. Cross‑Org Leakage Checks
+
+Add integration tests that:
+
+1. Create Org A and Org B.  
+2. Create conversations and messages in both.  
+3. Call APIs with a user from Org A and ensure:
+   - Org B conversations are never visible.  
+   - `404` or `403` is returned when attempting to access other org’s IDs.
+
+Similarly, ensure tools that rely on `conversationId` (`conversation.searchMessages`) always use `ctx.conversationId` and DB filters that check belonging org.
+
+---
+
+## 31.5. Input Validation & Payload Limits
+
+We rely on **zod** schemas for all JSON bodies.
+
+### 31.5.1. Message Size Limits
+
+To prevent abuse:
+
+- Configure Fastify `bodyLimit` (in `main.ts`, e.g. 1–2 MB).  
+- Clamp max length of `content` fields at the API and DB levels (e.g. 16–32 KB per message).
+
+Example (chat route schema, 25.md/26.md):
+
+```ts
+const chatBodySchema = z.object({
+  conversationId: z.string().min(1),
+  content: z.string().min(1).max(16000)
+});
+```
+
+### 31.5.2. Tools Arguments Validation
+
+26.md introduced `argsSchema` and a simple `validateArgs` helper. For security‑critical tools:
+
+- Enforce stricter validation with **zod** or **Ajv**.  
+- Reject any unexpected fields / types.
+
+Example updated `validateArgs` using zod:
+
+```ts
+// apps/api-gateway/src/services/toolEngine.ts (optional enhancement)
+
+import { z } from 'zod';
+
+function validateArgs(schema: any, args: unknown): any {
+  if (schema instanceof z.ZodType) {
+    return schema.parse(args ?? {});
+  }
+  return args ?? {};
+}
+```
+
+Then each tool can export a zod schema instead of a plain object.
+
+---
+
+## 31.6. Secrets Management & Config Security
+
+### 31.6.1. DO NOT Hard‑Code Secrets
+
+- `JWT_SECRET`, `DATABASE_URL`, and any external API keys must come from environment variables.  
+- In production, use:
+  - Kubernetes Secrets.  
+  - Secret managers (AWS Secrets Manager, GCP Secret Manager, Vault, etc.).
+
+### 31.6.2. Config Auditing
+
+Extend log initialization (28.md) to log **which features are enabled**, without printing secrets.
+
+Example:
+
+```ts
+import { logger } from '../observability/logger';
+import { loadApiConfig } from '../config/env';
+
+const cfg = loadApiConfig();
+
+logger.info({
+  event: 'config.loaded',
+  nodeEnv: cfg.nodeEnv,
+  corsOrigins: cfg.corsOrigins,
+  prometheusEnabled: cfg.prometheusEnabled
+}, 'API configuration loaded');
+```
+
+---
+
+## 31.7. Audit Logging & Sensitive Events
+
+Beyond standard request logs (28.md), add **audit events** for security‑sensitive operations.
+
+### 31.7.1. Auditable Events
+
+- Login success / failure (if implemented in this service).  
+- Org membership changes (invite, remove, role change).  
+- Org settings changes (model defaults, tools toggling, hard limits).  
+- API key creation / revocation (if you add programmatic access).
+
+### 31.7.2. Audit Log Schema
+
+If persisted in DB (recommended for compliance), define a minimal table:
+
+```prisma
+model AuditLog {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  orgId       String?
+  userId      String?
+  action      String
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json
+}
+```
+
+Then a simple helper:
+
+```ts
+// apps/api-gateway/src/services/audit.ts
+
+import { prisma } from '@ai-chat/db';
+import { JwtPayload } from '../auth/types';
+
+export async function writeAuditLog(params: {
+  orgId?: string | null;
+  user?: JwtPayload | null;
+  action: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  metadata?: any;
+}) {
+  await prisma.auditLog.create({
+    data: {
+      orgId: params.orgId ?? null,
+      userId: params.user?.userId ?? null,
+      action: params.action,
+      ipAddress: params.ipAddress ?? null,
+      userAgent: params.userAgent ?? null,
+      metadata: params.metadata ?? {}
+    }
+  });
+}
+```
+
+Use in routes, e.g. when toggling org tools (24.md/26.md):
+
+```ts
+await writeAuditLog({
+  orgId,
+  user: payload,
+  action: 'org.tools.settings.updated',
+  ipAddress: request.ip,
+  userAgent: request.headers['user-agent'],
+  metadata: { toolsEnabled: body.toolsEnabled }
+});
+```
+
+Audit logs can be exposed in a dedicated admin UI and/or shipped to SIEM.
+
+---
+
+## 31.8. Rate Limiting & Abuse Protection
+
+19.md introduced org‑level quota (`getOrgQuotaWindowUsage`). Add **per‑IP / per‑user rate limiting** for:
+
+- Login endpoints.  
+- Chat/message generation endpoints.  
+- Tools execution endpoints.
+
+### 31.8.1. Fastify Rate Limit Plugin
+
+Use `@fastify/rate-limit` (or a similar plugin) with a Redis or in‑memory store.
+
+Example (not full code):
+
+```ts
+import fastifyRateLimit from '@fastify/rate-limit';
+
+await app.register(fastifyRateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+  allowList: [],
+  hook: 'onRequest'
+});
+```
+
+You can override per‑route options for more sensitive endpoints.
+
+### 31.8.2. Combined Protection
+
+- **Per‑org quotas** → long‑term usage control.  
+- **Per‑IP rate limit** → burst protection / DDoS mitigation.  
+- **Input size limits** → payload amplification protection.  
+- **RBAC** → horizontal privilege escalation prevention.
+
+---
+
+## 31.9. Frontend Security Considerations
+
+- Always pass `orgId` through **route parameters** and/or **JWT**, never rely solely on client‑side state.  
+- Do not embed secrets or long‑lived tokens in client bundles.  
+- Use HTTPS in all environments (including staging) where possible.  
+- Use `Content-Security-Policy` headers to restrict script origins, especially when you later embed custom tools or plugins.
+
+Important UI behaviors:
+
+- Avoid leaking detailed error messages (stack traces) to end users; show generic messages and log details server‑side.  
+- When a user loses org membership (removed from org), ensure the frontend reacts to `403/401` and redirects them out of org‑scoped pages.
+
+---
+
+## 31.10. Sanity Checklist (Security Readiness)
+
+Before enabling external tenants on this platform:
+
+- [ ] All org‑scoped routes enforce `assertOrgPermission` with a well‑defined `OrgPermission`.  
+- [ ] All queries on multi‑tenant data filter by `orgId`.  
+- [ ] JWTs are signed with a strong secret from a secure store and have reasonable expirations.  
+- [ ] No secrets (DB URLs, keys) are hard‑coded in the codebase.  
+- [ ] Input sizes and message lengths are limited at API and DB levels.  
+- [ ] Rate limits are configured for public endpoints (login, chat, tools).  
+- [ ] Audit logs are written for high‑risk actions and retained for an appropriate period.  
+- [ ] Observability (28.md) and Org Analytics (29.md) are in place to detect anomalous usage.
+
+If all checks pass, the AI chat platform is **multi‑tenant safe** and ready for onboarding external organizations with strong isolation and security guarantees.
+
+---
+
+_End of 31.md – Security, Multi‑Tenant Isolation & Compliance_

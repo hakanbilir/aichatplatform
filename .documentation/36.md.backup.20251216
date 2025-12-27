@@ -1,0 +1,1584 @@
+# 36. Prompt Library & Preset UI – Material 3, Gradients & Micro‑Interactions
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human frontend engineers.  
+> **Goal of this file:** Define a **complete, production‑grade UI** for the features introduced in 35.md:
+>
+> - Prompt Library (user + org templates).  
+> - Org AI Policy editor.  
+> - Conversation Preset gallery & quick‑launch.  
+> 
+> The UI must be:
+> - Consistent with the rest of the app (**Material 3**, vivid gradients, soft shadows).  
+> - Keyboard accessible, mobile friendly, and pleasant to use (micro‑interactions).  
+> - Easy for AI agents to implement in React/TypeScript using MUI.
+
+This spec assumes:
+
+- Backend APIs from 35.md exist.  
+- The app already has:
+  - Global auth context (`useAuth`).  
+  - `apiRequest` helper.  
+  - Org routing pattern: `/app/orgs/:orgId/...`.  
+  - A chat layout with a conversation sidebar/settings panel.
+
+---
+
+## 36.1. Frontend API Layer
+
+We define a thin API client wrapper around the endpoints described in 35.md.
+
+### 36.1.1. Prompt Templates API
+
+**File:** `apps/web/src/api/prompts.ts`
+
+```ts
+// apps/web/src/api/prompts.ts
+
+import { apiRequest } from './client';
+
+export type PromptTemplateKind = 'system' | 'user' | 'macro';
+
+export interface PromptVariable {
+  name: string;
+  label: string;
+  type: 'string' | 'number' | 'boolean' | 'multiline';
+  required: boolean;
+  defaultValue?: string | number | boolean;
+}
+
+export interface PromptTemplate {
+  id: string;
+  orgId: string;
+  createdById: string;
+  isOrgShared: boolean;
+  title: string;
+  description?: string | null;
+  kind: PromptTemplateKind;
+  template: string;
+  variables: PromptVariable[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchPromptTemplates(
+  token: string,
+  orgId: string
+): Promise<PromptTemplate[]> {
+  const res = await apiRequest<{ templates: PromptTemplate[]}>(
+    `/orgs/${orgId}/prompts`,
+    { method: 'GET' },
+    token
+  );
+  return res.templates;
+}
+
+export interface CreatePromptTemplateInput {
+  title: string;
+  description?: string;
+  kind: PromptTemplateKind;
+  template: string;
+  variables: PromptVariable[];
+  isOrgShared?: boolean;
+}
+
+export async function createPromptTemplateApi(
+  token: string,
+  orgId: string,
+  input: CreatePromptTemplateInput
+): Promise<PromptTemplate> {
+  const res = await apiRequest<{ template: PromptTemplate }>(
+    `/orgs/${orgId}/prompts`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input)
+    },
+    token
+  );
+  return res.template;
+}
+
+export async function updatePromptTemplateApi(
+  token: string,
+  orgId: string,
+  templateId: string,
+  data: Partial<CreatePromptTemplateInput>
+): Promise<void> {
+  await apiRequest<{
+    ok: boolean;
+  }>(
+    `/orgs/${orgId}/prompts/${templateId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    },
+    token
+  );
+}
+
+export async function deletePromptTemplateApi(
+  token: string,
+  orgId: string,
+  templateId: string
+): Promise<void> {
+  await apiRequest<{ ok: boolean }>(
+    `/orgs/${orgId}/prompts/${templateId}`,
+    { method: 'DELETE' },
+    token
+  );
+}
+```
+
+---
+
+### 36.1.2. Org AI Policy API
+
+**File:** `apps/web/src/api/orgAiPolicy.ts`
+
+```ts
+// apps/web/src/api/orgAiPolicy.ts
+
+import { apiRequest } from './client';
+
+export type OrgAiPolicyTone = 'formal' | 'casual' | 'neutral';
+
+export interface OrgAiPolicyConfig {
+  tone?: OrgAiPolicyTone;
+  disallowTopics?: string[];
+  extra?: Record<string, any>;
+}
+
+export interface OrgAiPolicy {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string | null;
+  systemPrompt: string;
+  config: OrgAiPolicyConfig;
+}
+
+export async function fetchOrgAiPolicy(
+  token: string,
+  orgId: string
+): Promise<OrgAiPolicy | null> {
+  const res = await apiRequest<{ policy: OrgAiPolicy | null }>(
+    `/orgs/${orgId}/ai-policy`,
+    { method: 'GET' },
+    token
+  );
+  return res.policy;
+}
+
+export async function saveOrgAiPolicy(
+  token: string,
+  orgId: string,
+  payload: {
+    name: string;
+    description?: string;
+    systemPrompt: string;
+    config?: OrgAiPolicyConfig;
+  }
+): Promise<OrgAiPolicy> {
+  const res = await apiRequest<{ policy: OrgAiPolicy }>(
+    `/orgs/${orgId}/ai-policy`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    },
+    token
+  );
+  return res.policy;
+}
+```
+
+---
+
+### 36.1.3. Conversation Presets API
+
+**File:** `apps/web/src/api/presets.ts`
+
+```ts
+// apps/web/src/api/presets.ts
+
+import { apiRequest } from './client';
+
+export interface ConversationPresetConfig {
+  modelId: string;
+  tools: string[];
+  rag?: {
+    enabled: boolean;
+    spaceId: string | null;
+    maxChunks: number;
+  };
+  temperature?: number;
+  maxOutputTokens?: number;
+}
+
+export interface ConversationPreset {
+  id: string;
+  orgId: string;
+  createdById: string;
+  name: string;
+  description?: string | null;
+  uiConfig: Record<string, any>;
+  systemPrompt: string;
+  config: ConversationPresetConfig;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchConversationPresets(
+  token: string,
+  orgId: string
+): Promise<ConversationPreset[]> {
+  const res = await apiRequest<{ presets: ConversationPreset[]}>(
+    `/orgs/${orgId}/presets`,
+    { method: 'GET' },
+    token
+  );
+  return res.presets;
+}
+
+export interface CreateConversationPresetInput {
+  name: string;
+  description?: string;
+  uiConfig?: Record<string, any>;
+  systemPrompt: string;
+  config: ConversationPresetConfig;
+}
+
+export async function createConversationPresetApi(
+  token: string,
+  orgId: string,
+  input: CreateConversationPresetInput
+): Promise<ConversationPreset> {
+  const res = await apiRequest<{ preset: ConversationPreset }>(
+    `/orgs/${orgId}/presets`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input)
+    },
+    token
+  );
+  return res.preset;
+}
+
+export async function updateConversationPresetApi(
+  token: string,
+  orgId: string,
+  presetId: string,
+  data: Partial<CreateConversationPresetInput>
+): Promise<void> {
+  await apiRequest<{ ok: boolean }>(
+    `/orgs/${orgId}/presets/${presetId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    },
+    token
+  );
+}
+
+export async function deleteConversationPresetApi(
+  token: string,
+  orgId: string,
+  presetId: string
+): Promise<void> {
+  await apiRequest<{ ok: boolean }>(
+    `/orgs/${orgId}/presets/${presetId}`,
+    { method: 'DELETE' },
+    token
+  );
+}
+```
+
+---
+
+## 36.2. React Hooks
+
+We add hooks for templates, AI policy and presets.
+
+### 36.2.1. usePromptTemplates
+
+**File:** `apps/web/src/prompts/usePromptTemplates.ts`
+
+```ts
+// apps/web/src/prompts/usePromptTemplates.ts
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import {
+  PromptTemplate,
+  CreatePromptTemplateInput,
+  createPromptTemplateApi,
+  deletePromptTemplateApi,
+  fetchPromptTemplates,
+  updatePromptTemplateApi
+} from '../api/prompts';
+
+export function usePromptTemplates(orgId: string | null) {
+  const { token } = useAuth();
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchPromptTemplates(token, orgId);
+        if (!cancelled) {
+          setTemplates(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError((err as Error).message || 'Failed to load prompts');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId]);
+
+  async function createTemplate(input: CreatePromptTemplateInput) {
+    if (!token || !orgId) return;
+    const created = await createPromptTemplateApi(token, orgId, input);
+    setTemplates((prev) => [...prev, created]);
+  }
+
+  async function updateTemplate(templateId: string, data: Partial<CreatePromptTemplateInput>) {
+    if (!token || !orgId) return;
+    await updatePromptTemplateApi(token, orgId, templateId, data);
+    const next = await fetchPromptTemplates(token, orgId);
+    setTemplates(next);
+  }
+
+  async function deleteTemplate(templateId: string) {
+    if (!token || !orgId) return;
+    await deletePromptTemplateApi(token, orgId, templateId);
+    setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+  }
+
+  return {
+    templates,
+    loading,
+    error,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate
+  };
+}
+```
+
+---
+
+### 36.2.2. useOrgAiPolicy
+
+**File:** `apps/web/src/org/useOrgAiPolicy.ts`
+
+```ts
+// apps/web/src/org/useOrgAiPolicy.ts
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { OrgAiPolicy, OrgAiPolicyConfig, fetchOrgAiPolicy, saveOrgAiPolicy } from '../api/orgAiPolicy';
+
+export function useOrgAiPolicy(orgId: string | null) {
+  const { token } = useAuth();
+  const [policy, setPolicy] = useState<OrgAiPolicy | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchOrgAiPolicy(token, orgId);
+        if (!cancelled) {
+          setPolicy(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError((err as Error).message || 'Failed to load AI policy');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId]);
+
+  async function save(input: {
+    name: string;
+    description?: string;
+    systemPrompt: string;
+    config?: OrgAiPolicyConfig;
+  }) {
+    if (!token || !orgId) return;
+    const updated = await saveOrgAiPolicy(token, orgId, input);
+    setPolicy(updated);
+  }
+
+  return {
+    policy,
+    loading,
+    error,
+    save
+  };
+}
+```
+
+---
+
+### 36.2.3. useConversationPresets
+
+**File:** `apps/web/src/presets/useConversationPresets.ts`
+
+```ts
+// apps/web/src/presets/useConversationPresets.ts
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import {
+  ConversationPreset,
+  CreateConversationPresetInput,
+  createConversationPresetApi,
+  deleteConversationPresetApi,
+  fetchConversationPresets,
+  updateConversationPresetApi
+} from '../api/presets';
+
+export function useConversationPresets(orgId: string | null) {
+  const { token } = useAuth();
+  const [presets, setPresets] = useState<ConversationPreset[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchConversationPresets(token, orgId);
+        if (!cancelled) {
+          setPresets(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError((err as Error).message || 'Failed to load presets');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId]);
+
+  async function createPreset(input: CreateConversationPresetInput) {
+    if (!token || !orgId) return;
+    const created = await createConversationPresetApi(token, orgId, input);
+    setPresets((prev) => [...prev, created]);
+  }
+
+  async function updatePreset(presetId: string, data: Partial<CreateConversationPresetInput>) {
+    if (!token || !orgId) return;
+    await updateConversationPresetApi(token, orgId, presetId, data);
+    const next = await fetchConversationPresets(token, orgId);
+    setPresets(next);
+  }
+
+  async function deletePreset(presetId: string) {
+    if (!token || !orgId) return;
+    await deleteConversationPresetApi(token, orgId, presetId);
+    setPresets((prev) => prev.filter((p) => p.id !== presetId));
+  }
+
+  return {
+    presets,
+    loading,
+    error,
+    createPreset,
+    updatePreset,
+    deletePreset
+  };
+}
+```
+
+---
+
+## 36.3. Prompt Library Drawer (Chat UI)
+
+The Prompt Library appears as a **side drawer** next to the chat input.
+
+- Route context: within the existing conversation view (`/app/orgs/:orgId/conversations/:conversationId`).  
+- Trigger: A small icon/button near the input, e.g. “Prompt Library”.
+
+### 36.3.1. Drawer Component
+
+**File:** `apps/web/src/prompts/PromptLibraryDrawer.tsx`
+
+```tsx
+// apps/web/src/prompts/PromptLibraryDrawer.tsx
+
+import React, { useMemo, useState } from 'react';
+import {
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Tab,
+  Tabs,
+  TextField,
+  Typography
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import AddIcon from '@mui/icons-material/Add';
+import { PromptTemplate, PromptVariable } from '../api/prompts';
+import { usePromptTemplates } from './usePromptTemplates';
+
+export interface PromptLibraryDrawerProps {
+  orgId: string;
+  open: boolean;
+  onClose: () => void;
+  currentUserId: string;
+  onApplyPrompt: (content: string) => void; // inserts into chat input
+}
+
+interface FilledVariables {
+  [name: string]: string | number | boolean;
+}
+
+const gradientBg =
+  'radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 55%), ' +
+  'radial-gradient(circle at bottom right, rgba(236,72,153,0.18), transparent 55%)';
+
+function fillTemplate(template: string, variables: FilledVariables): string {
+  return template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, name) => {
+    const value = variables[name];
+    if (value === undefined || value === null) {
+      return '';
+    }
+    return String(value);
+  });
+}
+
+function isOrgTemplate(t: PromptTemplate, currentUserId: string): boolean {
+  return t.isOrgShared && t.createdById !== currentUserId;
+}
+
+export const PromptLibraryDrawer: React.FC<PromptLibraryDrawerProps> = ({
+  orgId,
+  open,
+  onClose,
+  currentUserId,
+  onApplyPrompt
+}) => {
+  const { templates, loading } = usePromptTemplates(orgId);
+  const [tab, setTab] = useState<'all' | 'mine' | 'org'>('all');
+
+  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
+  const [variables, setVariables] = useState<FilledVariables>({});
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false);
+
+  const filteredTemplates = useMemo(() => {
+    if (tab === 'mine') {
+      return templates.filter((t) => t.createdById === currentUserId);
+    }
+    if (tab === 'org') {
+      return templates.filter((t) => isOrgTemplate(t, currentUserId));
+    }
+    return templates;
+  }, [tab, templates, currentUserId]);
+
+  const handleSelectTemplate = (template: PromptTemplate) => {
+    setSelectedTemplate(template);
+    const initialVars: FilledVariables = {};
+    template.variables.forEach((v: PromptVariable) => {
+      if (v.defaultValue !== undefined) {
+        initialVars[v.name] = v.defaultValue;
+      } else {
+        if (v.type === 'boolean') {
+          initialVars[v.name] = false;
+        } else {
+          initialVars[v.name] = '';
+        }
+      }
+    });
+    setVariables(initialVars);
+    setApplyDialogOpen(true);
+  };
+
+  const handleVariableChange = (v: PromptVariable, raw: string) => {
+    let parsed: string | number | boolean = raw;
+    if (v.type === 'number') {
+      const num = Number(raw);
+      parsed = Number.isNaN(num) ? 0 : num;
+    }
+    if (v.type === 'boolean') {
+      parsed = raw === 'true';
+    }
+    setVariables((prev) => ({ ...prev, [v.name]: parsed }));
+  };
+
+  const handleApply = () => {
+    if (!selectedTemplate) return;
+    const content = fillTemplate(selectedTemplate.template, variables);
+    onApplyPrompt(content);
+    setApplyDialogOpen(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          overflow: 'hidden',
+          backgroundImage: gradientBg,
+          backgroundColor: 'background.default'
+        }
+      }}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box display="flex" alignItems="center" gap={1}>
+          <AutoAwesomeIcon fontSize="small" />
+          <Typography variant="subtitle1">Prompt Library</Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
+        <Tabs
+          value={tab}
+          onChange={(_e, value) => setTab(value)}
+          variant="fullWidth"
+          sx={{ mb: 1 }}
+        >
+          <Tab value="all" label="All" />
+          <Tab value="mine" label="My prompts" />
+          <Tab value="org" label="Org prompts" />
+        </Tabs>
+
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+          <Typography variant="body2" color="text.secondary">
+            Reuse structured prompts for consistent outputs.
+          </Typography>
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            variant="outlined"
+          >
+            New template
+          </Button>
+        </Box>
+
+        <Divider />
+
+        <Box sx={{ maxHeight: 360, overflowY: 'auto', mt: 1 }}>
+          {loading && (
+            <Typography variant="body2" color="text.secondary">
+              Loading templates…
+            </Typography>
+          )}
+          {!loading && filteredTemplates.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No templates yet. Create your first reusable prompt.
+            </Typography>
+          )}
+          {!loading && filteredTemplates.length > 0 && (
+            <List dense>
+              {filteredTemplates.map((tpl) => (
+                <ListItem key={tpl.id} disablePadding>
+                  <ListItemButton
+                    onClick={() => handleSelectTemplate(tpl)}
+                    sx={{
+                      borderRadius: 2,
+                      mb: 0.5,
+                      '&:hover': {
+                        backgroundColor: 'action.hover'
+                      },
+                      transition: 'background-color 120ms ease-out'
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography variant="body2">{tpl.title}</Typography>
+                          {tpl.isOrgShared && (
+                            <Chip size="small" label="Org" variant="outlined" />
+                          )}
+                        </Box>
+                      }
+                      secondary={
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          noWrap
+                        >
+                          {tpl.description || tpl.template.slice(0, 80)}
+                        </Typography>
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Box>
+      </DialogContent>
+
+      {/* Apply template dialog */}
+      <Dialog
+        open={applyDialogOpen}
+        onClose={() => setApplyDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Fill template variables</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          {selectedTemplate && selectedTemplate.variables.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              This template has no variables. You can apply it directly.
+            </Typography>
+          )}
+          {selectedTemplate &&
+            selectedTemplate.variables.map((v) => (
+              <TextField
+                key={v.name}
+                label={v.label}
+                fullWidth
+                multiline={v.type === 'multiline'}
+                minRows={v.type === 'multiline' ? 3 : undefined}
+                value={String(variables[v.name] ?? '')}
+                onChange={(e) => handleVariableChange(v, e.target.value)}
+              />
+            ))}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApplyDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleApply}>
+            Apply to input
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Dialog>
+  );
+};
+```
+
+> **Note:** The “New template” button is wired visually but creation UI is defined in section 36.4.
+
+---
+
+## 36.4. Prompt Template Editor Dialog
+
+A reusable dialog for creating/editing templates. You can open it from the Prompt Library drawer or from a dedicated “Prompt Library” settings page.
+
+**File:** `apps/web/src/prompts/PromptTemplateEditorDialog.tsx`
+
+```tsx
+// apps/web/src/prompts/PromptTemplateEditorDialog.tsx
+
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  MenuItem,
+  Select,
+  Switch,
+  TextField,
+  Typography
+} from '@mui/material';
+import { CreatePromptTemplateInput, PromptTemplate, PromptVariable } from '../api/prompts';
+
+interface PromptTemplateEditorDialogProps {
+  open: boolean;
+  onClose: () => void;
+  initialTemplate?: PromptTemplate | null;
+  onSave: (input: CreatePromptTemplateInput, existingId?: string) => Promise<void>;
+}
+
+export const PromptTemplateEditorDialog: React.FC<PromptTemplateEditorDialogProps> = ({
+  open,
+  onClose,
+  initialTemplate,
+  onSave
+}) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [kind, setKind] = useState<'system' | 'user' | 'macro'>('user');
+  const [template, setTemplate] = useState('');
+  const [isOrgShared, setIsOrgShared] = useState(false);
+  const [variables, setVariables] = useState<PromptVariable[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!initialTemplate) {
+      setTitle('');
+      setDescription('');
+      setKind('user');
+      setTemplate('');
+      setIsOrgShared(false);
+      setVariables([]);
+      return;
+    }
+
+    setTitle(initialTemplate.title);
+    setDescription(initialTemplate.description || '');
+    setKind(initialTemplate.kind as 'system' | 'user' | 'macro');
+    setTemplate(initialTemplate.template);
+    setIsOrgShared(initialTemplate.isOrgShared);
+    setVariables(initialTemplate.variables as PromptVariable[]);
+  }, [initialTemplate]);
+
+  const handleAddVariable = () => {
+    const baseName = 'var';
+    let index = variables.length + 1;
+    let name = `${baseName}${index}`;
+
+    while (variables.some((v) => v.name === name)) {
+      index += 1;
+      name = `${baseName}${index}`;
+    }
+
+    setVariables((prev) => [
+      ...prev,
+      {
+        name,
+        label: `Variable ${index}`,
+        type: 'string',
+        required: false
+      }
+    ]);
+  };
+
+  const handleUpdateVariable = (index: number, patch: Partial<PromptVariable>) => {
+    setVariables((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
+  };
+
+  const handleRemoveVariable = (index: number) => {
+    setVariables((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !template.trim()) return;
+
+    const input: CreatePromptTemplateInput = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      kind,
+      template,
+      variables,
+      isOrgShared
+    };
+
+    setSaving(true);
+    try {
+      await onSave(input, initialTemplate?.id);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth>
+      <DialogTitle>{initialTemplate ? 'Edit prompt template' : 'New prompt template'}</DialogTitle>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <Box display="flex" gap={2} flexDirection={{ xs: 'column', sm: 'row' }}>
+          <TextField
+            label="Title"
+            fullWidth
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <Select
+            label="Kind"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as any)}
+            size="small"
+            sx={{ minWidth: 160, mt: { xs: 1, sm: 0 } }}
+          >
+            <MenuItem value="user">User prompt</MenuItem>
+            <MenuItem value="system">System prompt</MenuItem>
+            <MenuItem value="macro">Macro</MenuItem>
+          </Select>
+        </Box>
+
+        <TextField
+          label="Description"
+          fullWidth
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <TextField
+          label="Template"
+          fullWidth
+          multiline
+          minRows={6}
+          value={template}
+          onChange={(e) => setTemplate(e.target.value)}
+          helperText="Use {{variableName}} syntax to reference variables."
+        />
+
+        <FormControlLabel
+          control={
+            <Switch
+              checked={isOrgShared}
+              onChange={(e) => setIsOrgShared(e.target.checked)}
+            />
+          }
+          label="Share with entire organization"
+        />
+
+        <Box>
+          <Typography variant="subtitle2" gutterBottom>
+            Variables
+          </Typography>
+          {variables.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No variables yet. Add variables if you want this template to behave like a form.
+            </Typography>
+          )}
+          {variables.map((v, index) => (
+            <Box
+              key={v.name}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '1.2fr 1.2fr 1fr auto',
+                gap: 1,
+                alignItems: 'center',
+                mt: 1
+              }}
+            >
+              <TextField
+                label="Name"
+                value={v.name}
+                onChange={(e) => handleUpdateVariable(index, { name: e.target.value })}
+              />
+              <TextField
+                label="Label"
+                value={v.label}
+                onChange={(e) => handleUpdateVariable(index, { label: e.target.value })}
+              />
+              <Select
+                size="small"
+                value={v.type}
+                onChange={(e) => handleUpdateVariable(index, { type: e.target.value as any })}
+              >
+                <MenuItem value="string">Single line</MenuItem>
+                <MenuItem value="multiline">Multiline</MenuItem>
+                <MenuItem value="number">Number</MenuItem>
+                <MenuItem value="boolean">Boolean (true/false)</MenuItem>
+              </Select>
+              <Button
+                variant="text"
+                color="error"
+                onClick={() => handleRemoveVariable(index)}
+              >
+                Remove
+              </Button>
+            </Box>
+          ))}
+          <Box mt={1}>
+            <Button variant="outlined" size="small" onClick={handleAddVariable}>
+              Add variable
+            </Button>
+          </Box>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          disabled={saving || !title.trim() || !template.trim()}
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+```
+
+You can wire `PromptTemplateEditorDialog` into the `PromptLibraryDrawer` by handling the “New template” button and optional edit actions.
+
+---
+
+## 36.5. Org AI Policy Settings Page
+
+Route: `/app/orgs/:orgId/settings/ai-policy`
+
+This page lets admins configure org‑wide AI behavior.
+
+**File:** `apps/web/src/org/OrgAiPolicyPage.tsx`
+
+```tsx
+// apps/web/src/org/OrgAiPolicyPage.tsx
+
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  MenuItem,
+  Select,
+  TextField,
+  Typography
+} from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { useParams } from 'react-router-dom';
+import { useOrgAiPolicy } from './useOrgAiPolicy';
+import { OrgAiPolicyConfig } from '../api/orgAiPolicy';
+
+export const OrgAiPolicyPage: React.FC = () => {
+  const { orgId } = useParams();
+  const { policy, loading, error, save } = useOrgAiPolicy(orgId || null);
+
+  const [name, setName] = useState('Org AI Policy');
+  const [description, setDescription] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [tone, setTone] = useState<'formal' | 'casual' | 'neutral' | ''>('');
+  const [disallowTopics, setDisallowTopics] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!policy) return;
+    setName(policy.name);
+    setDescription(policy.description || '');
+    setSystemPrompt(policy.systemPrompt);
+    setTone(policy.config.tone || '');
+    setDisallowTopics((policy.config.disallowTopics || []).join(', '));
+  }, [policy]);
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(147,197,253,0.18), transparent 55%), ' +
+    'radial-gradient(circle at bottom right, rgba(244,114,182,0.18), transparent 55%)';
+
+  const handleSave = async () => {
+    if (!orgId) return;
+    const config: OrgAiPolicyConfig = {
+      tone: tone || undefined,
+      disallowTopics: disallowTopics
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+      extra: {}
+    };
+
+    setSaving(true);
+    try {
+      await save({
+        name: name.trim() || 'Org AI Policy',
+        description: description.trim() || undefined,
+        systemPrompt,
+        config
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" gap={1}>
+          <AutoAwesomeIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">Org AI Policy</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Define how the assistant behaves for everyone in this organization.
+            </Typography>
+          </Box>
+        </Box>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Saving…' : 'Save changes'}
+        </Button>
+      </Box>
+
+      <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={2} flex={1}>
+        <Box flex={{ xs: 1, md: 0.55 }}>
+          <Card sx={{ borderRadius: 3, height: '100%' }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {loading && (
+                <Box display="flex" justifyContent="center" py={4}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+
+              {!loading && error && (
+                <Typography color="error" variant="body2">
+                  {error}
+                </Typography>
+              )}
+
+              {!loading && !error && (
+                <>
+                  <TextField
+                    label="Policy name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    fullWidth
+                  />
+                  <TextField
+                    label="Description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    fullWidth
+                  />
+                  <TextField
+                    label="Global system prompt"
+                    value={systemPrompt}
+                    onChange={(e) => setSystemPrompt(e.target.value)}
+                    fullWidth
+                    multiline
+                    minRows={8}
+                    helperText="This will be prepended as a system message to all conversations in this org."
+                  />
+
+                  <Box display="flex" gap={2} flexDirection={{ xs: 'column', sm: 'row' }}>
+                    <Box flex={1}>
+                      <Typography variant="caption" color="text.secondary">
+                        Default tone
+                      </Typography>
+                      <Select
+                        size="small"
+                        fullWidth
+                        value={tone}
+                        onChange={(e) => setTone(e.target.value as any)}
+                        displayEmpty
+                      >
+                        <MenuItem value="">
+                          <em>Not specified</em>
+                        </MenuItem>
+                        <MenuItem value="formal">Formal</MenuItem>
+                        <MenuItem value="neutral">Neutral</MenuItem>
+                        <MenuItem value="casual">Casual</MenuItem>
+                      </Select>
+                    </Box>
+                    <Box flex={2}>
+                      <TextField
+                        label="Disallowed topics (comma separated)"
+                        value={disallowTopics}
+                        onChange={(e) => setDisallowTopics(e.target.value)}
+                        fullWidth
+                      />
+                    </Box>
+                  </Box>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Box flex={{ xs: 1, md: 0.45 }}>
+          <Card sx={{ borderRadius: 3, height: '100%' }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="subtitle2">Preview</Typography>
+              <Typography variant="body2" color="text.secondary">
+                This is how the assistant will behave in this organization.
+              </Typography>
+              <Box
+                sx={{
+                  mt: 1,
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  System prompt
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}
+                >
+                  {systemPrompt || 'No system prompt yet.'}
+                </Typography>
+              </Box>
+
+              <Box mt={2}>
+                <Typography variant="caption" color="text.secondary">
+                  Tone
+                </Typography>
+                <Typography variant="body2">
+                  {tone || 'Not specified'}
+                </Typography>
+              </Box>
+
+              <Box mt={1}>
+                <Typography variant="caption" color="text.secondary">
+                  Disallowed topics
+                </Typography>
+                <Typography variant="body2">
+                  {disallowTopics || 'None defined'}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+```
+
+Add a route in your main routing file, e.g.:
+
+```tsx
+import { OrgAiPolicyPage } from './org/OrgAiPolicyPage';
+
+// inside <Routes>
+<Route path="/app/orgs/:orgId/settings/ai-policy" element={<OrgAiPolicyPage />} />
+```
+
+---
+
+## 36.6. Conversation Preset Gallery & Quick‑Launch
+
+We provide a presets gallery page and a compact quick‑launch strip in the chat home.
+
+### 36.6.1. Presets Gallery Page
+
+Route: `/app/orgs/:orgId/presets`
+
+**File:** `apps/web/src/presets/PresetsGalleryPage.tsx`
+
+```tsx
+// apps/web/src/presets/PresetsGalleryPage.tsx
+
+import React from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  Typography
+} from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useConversationPresets } from './useConversationPresets';
+
+export const PresetsGalleryPage: React.FC = () => {
+  const { orgId } = useParams();
+  const { presets, loading, error } = useConversationPresets(orgId || null);
+  const navigate = useNavigate();
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(52,211,153,0.18), transparent 55%), ' +
+    'radial-gradient(circle at bottom right, rgba(96,165,250,0.2), transparent 55%)';
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" gap={1}>
+          <AutoAwesomeIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">Conversation presets</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Start conversations with predefined system prompts, models, tools and RAG settings.
+            </Typography>
+          </Box>
+        </Box>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => {
+            // You can later wire this to a preset editor dialog
+          }}
+        >
+          New preset
+        </Button>
+      </Box>
+
+      {loading && (
+        <Typography variant="body2" color="text.secondary">
+          Loading presets…
+        </Typography>
+      )}
+      {error && (
+        <Typography variant="body2" color="error">
+          {error}
+        </Typography>
+      )}
+
+      {!loading && !error && presets.length === 0 && (
+        <Typography variant="body2" color="text.secondary">
+          No presets yet. Create presets to give your team ready‑made assistants.
+        </Typography>
+      )}
+
+      {!loading && !error && presets.length > 0 && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, minmax(0, 1fr))',
+              md: 'repeat(3, minmax(0, 1fr))'
+            },
+            gap: 2,
+            mt: 1
+          }}
+        >
+          {presets.map((preset) => {
+            const color = preset.uiConfig?.color || '#6366f1';
+            const emoji = preset.uiConfig?.emoji || '✨';
+
+            return (
+              <Card key={preset.id} sx={{ borderRadius: 3 }}>
+                <CardActionArea
+                  onClick={() => {
+                    if (!orgId) return;
+                    navigate(`/app/orgs/${orgId}/conversations/new?presetId=${preset.id}`);
+                  }}
+                  sx={{
+                    borderRadius: 3,
+                    height: '100%'
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '999px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: `radial-gradient(circle at 30% 30%, ${color}, transparent 60%)`
+                        }}
+                      >
+                        <span style={{ fontSize: 18 }}>{emoji}</span>
+                      </Box>
+                      <Typography variant="subtitle2">{preset.name}</Typography>
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ minHeight: 40 }}
+                    >
+                      {preset.description || 'No description provided.'}
+                    </Typography>
+                    <Box mt={1.5}>
+                      <Typography variant="caption" color="text.secondary">
+                        Model
+                      </Typography>
+                      <Typography variant="body2">
+                        {preset.config.modelId}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            );
+          })}
+        </Box>
+      )}
+    </Box>
+  );
+};
+```
+
+Add route:
+
+```tsx
+import { PresetsGalleryPage } from './presets/PresetsGalleryPage';
+
+<Route path="/app/orgs/:orgId/presets" element={<PresetsGalleryPage />} />
+```
+
+---
+
+### 36.6.2. Quick‑Launch Strip in Chat Home
+
+On the main conversation list or “New chat” view, show a horizontal strip of presets.
+
+**File:** `apps/web/src/presets/PresetsQuickStrip.tsx`
+
+```tsx
+// apps/web/src/presets/PresetsQuickStrip.tsx
+
+import React from 'react';
+import { Box, Chip, Skeleton, Typography } from '@mui/material';
+import { useConversationPresets } from './useConversationPresets';
+import { useNavigate, useParams } from 'react-router-dom';
+
+export const PresetsQuickStrip: React.FC = () => {
+  const { orgId } = useParams();
+  const { presets, loading } = useConversationPresets(orgId || null);
+  const navigate = useNavigate();
+
+  if (!orgId) return null;
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+        <Typography variant="caption" color="text.secondary">
+          Start with a preset
+        </Typography>
+        <Typography
+          variant="caption"
+          color="primary"
+          sx={{ cursor: 'pointer' }}
+          onClick={() => navigate(`/app/orgs/${orgId}/presets`)}
+        >
+          Manage presets
+        </Typography>
+      </Box>
+      <Box display="flex" gap={1} overflow="auto" pb={0.5}>
+        {loading && (
+          <>
+            <Skeleton variant="rounded" width={96} height={32} />
+            <Skeleton variant="rounded" width={96} height={32} />
+          </>
+        )}
+        {!loading && presets.length === 0 && (
+          <Typography variant="caption" color="text.secondary">
+            No presets yet.
+          </Typography>
+        )}
+        {!loading && presets.length > 0 &&
+          presets.map((preset) => (
+            <Chip
+              key={preset.id}
+              label={preset.name}
+              onClick={() => navigate(`/app/orgs/${orgId}/conversations/new?presetId=${preset.id}`)}
+              sx={{ borderRadius: 999 }}
+            />
+          ))}
+      </Box>
+    </Box>
+  );
+};
+```
+
+Include this component in your chat home component (e.g. `ConversationListPage`) near the “New chat” controls.
+
+---
+
+## 36.7. UX & Micro‑Interactions
+
+Across these surfaces:
+
+- **Gradients:** All main pages (Org AI Policy, Presets Gallery) use subtle radial gradients consistent with the rest of the app.  
+- **Hover & focus:** Cards and list items gain slight elevation or border color changes on hover; chips in the quick strip show focus outlines for keyboard navigation.  
+- **Responsive layout:** Org AI Policy and Presets Gallery use stacked columns on mobile and side‑by‑side columns on desktop.  
+- **Dialogs:** Prompt Library & Template Editor dialogs trap focus and use clear primary/secondary actions.
+
+Accessibility:
+
+- Each button and icon should have a visible label (or `aria-label` where only an icon is present).  
+- All controls (tabs, sliders, chips) must be keyboard accessible.  
+- Color usage should not be the only way to convey meaning (labels and icons accompany gradients).
+
+---
+
+## 36.8. Sanity Checklist
+
+Before enabling these UIs for users:
+
+- [ ] Prompt Library drawer opens from the chat UI and can apply templates into the input box.  
+- [ ] Prompt Template Editor dialog can create/edit/delete templates, and changes are reflected in the drawer.  
+- [ ] Org AI Policy page loads/saves data correctly and errors are surfaced.  
+- [ ] Presets Gallery shows presets and `Start conversation` correctly passes `presetId` to the conversation creation route.  
+- [ ] Presets Quick Strip appears on the chat home and works on both mobile and desktop.  
+- [ ] Keyboard navigation works across drawers, dialogs and pages.
+
+If all checks pass, the platform now has a **fully featured, Material 3‑styled Prompt & Preset UX**, tightly integrated with the backend capabilities from 35.md and consistent with the rest of the AI chat application.
+
+---
+
+_End of 36.md – Prompt Library & Preset UI – Material 3, Gradients & Micro‑Interactions_

@@ -195,3 +195,5 @@ export function loadConfig(): AppConfig {
 export function getConfig(): AppConfig {
   return loadConfig();
 }
+
+export { StorageService } from './storage.js';

@@ -46,6 +46,9 @@ import ssoRoutes from './routes/sso';
 import orgSsoConnectionsRoutes from './routes/orgSsoConnections';
 import scimUsersRoutes from './routes/scimUsers';
 import orgScimConnectionsRoutes from './routes/orgScimConnections';
+import datasetsRoutes from './routes/datasets';
+import trainingRunsRoutes from './routes/training-runs';
+import baseModelsRoutes from './routes/base-models';
 import { initLlmProviders } from './llm/router';
 import { setModerationProvider } from './safety/provider';
 import { HeuristicModerationProvider } from './safety/heuristicProvider';
@@ -169,6 +172,9 @@ async function buildServer() {
   await app.register(orgSsoConnectionsRoutes);
   await app.register(scimUsersRoutes);
   await app.register(orgScimConnectionsRoutes);
+  await app.register(datasetsRoutes);
+  await app.register(trainingRunsRoutes);
+  await app.register(baseModelsRoutes);
 
   // Initialize LLM providers
   initLlmProviders();

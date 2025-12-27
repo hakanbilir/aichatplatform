@@ -1,0 +1,914 @@
+# 47. White‑Label, Theming & Org Branding – Multi‑Tenant Look & Feel
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human frontend/backend engineers.  
+> **Goal of this file:** Implement a **full white‑label & branding layer** so that:
+>
+> - Each **Org** can have its own colors, logo, name & domain.  
+> - The web app’s **Material 3 theme** is dynamically generated from org branding.  
+> - The product can be sold as a **white‑label AI chat SaaS** (per‑tenant logo, gradients, favicon, emails).  
+> - Hostname‑based routing (`customer1.example.com`, `ai.customer.com`) is supported.  
+> - All of this works seamlessly with the existing **RBAC, billing, usage, playground, experiments** stack.
+>
+> This spec is written so Cursor‑like agents can implement it end‑to‑end without further questions.
+
+This file builds on:
+
+- 11–14.md – Orgs, users, roles & RBAC.  
+- 25.md – Web app shell & auth layout.  
+- 28.md – Observability.  
+- 40.md – Org Admin Console.  
+- 45.md – Analytics.  
+- 46.md – Billing & subscriptions.
+
+---
+
+## 47.1. Concepts & Scope
+
+We introduce:
+
+1. **Org Branding Profile**  
+   - Visual identity: name override, logo, favicon, primary/secondary colors, gradients, typography accents.  
+   - Feature toggles for UI (e.g. hide “Powered by …” badge).
+
+2. **Custom Domains & Subdomains**  
+   - Each org can attach **one or more hostnames**, e.g.:
+     - `mycompany.ai-chat.app` (subdomain on our base domain).  
+     - `chat.mycompany.com` (full custom domain via CNAME).
+
+3. **Dynamic Material 3 Theme**  
+   - Backend exposes an org’s branding config.  
+   - Web client builds a **MUI theme** at runtime and wraps app in `ThemeProvider` per org.
+
+4. **White‑Label Surfaces**  
+   - Web UI (logo, title, gradients, accent colors, favicon).  
+   - Emails (from-name, logo header).  
+   - SEO / meta tags per hostname.
+
+Non‑goals:
+
+- DNS automation or certificate issuance (we assume ops sets DNS + TLS).  
+- Full CMS for marketing pages (can be built later on top of `OrgBranding` + custom pages).
+
+---
+
+## 47.2. Data Model – Prisma
+
+Extend `packages/db/prisma/schema.prisma`.
+
+```prisma
+model OrgBranding {
+  id      String @id @default(cuid())
+  orgId   String @unique
+
+  // Optional public display name override, if different from internal Org name
+  displayName   String?
+
+  // Logo & favicon paths (stored in media service / object storage)
+  logoUrl       String?  // large logo for app header
+  faviconUrl    String?  // 32x32 or 64x64 icon
+
+  // Primary color palette (hex strings). Will be converted into M3 palette.
+  primaryColor        String? // e.g. '#2563eb'
+  secondaryColor      String? // e.g. '#22c55e'
+  backgroundGradient  String? // e.g. 'radial-gradient(circle at top left, ... )'
+
+  // Optional typography & layout hints
+  fontFamily          String? // e.g. 'Inter, system-ui, sans-serif'
+
+  //  JSON for additional theme tokens (shadows, border radius etc.)
+  themeTokens         Json?
+
+  // Whether to hide or customize global brand
+  hideGlobalBranding  Boolean @default(false)
+
+  // Custom footer text / links
+  footerText          String?
+  footerLinks         Json? // [{ label, href }]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org      Org      @relation(fields: [orgId], references: [id])
+}
+
+model OrgDomain {
+  id      String @id @default(cuid())
+
+  orgId   String
+
+  // e.g. 'customer1.ai-chat.app' or 'chat.customer.com'
+  hostname String  @unique
+
+  // Whether this domain is verified & active
+  isVerified Boolean @default(false)
+  isPrimary  Boolean @default(false)
+
+  // Optional info for humans / support
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org       Org      @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+```
+
+Run a Prisma migration after updating.
+
+---
+
+## 47.3. Backend – Hostname → Org Resolution
+
+Server must map incoming **hostname** (e.g. `chat.acme.com`) to an **Org** and its branding.
+
+### 47.3.1. Tenant Resolution Helper
+
+**File:** `apps/api-gateway/src/tenancy/hostnameResolver.ts`
+
+```ts
+// apps/api-gateway/src/tenancy/hostnameResolver.ts
+
+import { prisma } from '@ai-chat/db';
+
+export interface HostnameTenantContext {
+  orgId: string | null;
+  orgSlug?: string | null;
+  orgBranding?: {
+    displayName?: string | null;
+    logoUrl?: string | null;
+    faviconUrl?: string | null;
+    primaryColor?: string | null;
+    secondaryColor?: string | null;
+    backgroundGradient?: string | null;
+    fontFamily?: string | null;
+    themeTokens?: any | null;
+  };
+}
+
+export async function resolveTenantByHostname(hostname: string): Promise<HostnameTenantContext> {
+  // Normalize hostname to lower case, strip port
+  const host = hostname.split(':')[0].toLowerCase();
+
+  // 1) Direct OrgDomain mapping
+  const orgDomain = await prisma.orgDomain.findFirst({
+    where: { hostname: host, isVerified: true },
+    include: { org: true }
+  });
+
+  if (orgDomain) {
+    const branding = await prisma.orgBranding.findUnique({ where: { orgId: orgDomain.orgId } });
+    return {
+      orgId: orgDomain.orgId,
+      orgSlug: orgDomain.org.slug,
+      orgBranding: branding
+        ? {
+            displayName: branding.displayName,
+            logoUrl: branding.logoUrl,
+            faviconUrl: branding.faviconUrl,
+            primaryColor: branding.primaryColor,
+            secondaryColor: branding.secondaryColor,
+            backgroundGradient: branding.backgroundGradient,
+            fontFamily: branding.fontFamily,
+            themeTokens: branding.themeTokens
+          }
+        : undefined
+    };
+  }
+
+  // 2) Subdomain routing on base domain (e.g. {slug}.ai-chat.app)
+  const baseDomain = process.env.APP_BASE_DOMAIN?.toLowerCase();
+  if (baseDomain && host.endsWith(`.${baseDomain}`)) {
+    const sub = host.slice(0, host.length - (baseDomain.length + 1));
+
+    const org = await prisma.org.findFirst({ where: { slug: sub } });
+    if (org) {
+      const branding = await prisma.orgBranding.findUnique({ where: { orgId: org.id } });
+      return {
+        orgId: org.id,
+        orgSlug: org.slug,
+        orgBranding: branding
+          ? {
+              displayName: branding.displayName,
+              logoUrl: branding.logoUrl,
+              faviconUrl: branding.faviconUrl,
+              primaryColor: branding.primaryColor,
+              secondaryColor: branding.secondaryColor,
+              backgroundGradient: branding.backgroundGradient,
+              fontFamily: branding.fontFamily,
+              themeTokens: branding.themeTokens
+            }
+          : undefined
+      };
+    }
+  }
+
+  // 3) Fallback: shared multi-tenant domain (no org context resolved yet)
+  return { orgId: null };
+}
+```
+
+### 47.3.2. Fastify Decoration
+
+In `apps/api-gateway/src/main.ts`, decorate Fastify with tenant context per request:
+
+```ts
+// In main.ts or a dedicated plugin
+import fp from 'fastify-plugin';
+import { resolveTenantByHostname } from './tenancy/hostnameResolver';
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    tenant?: {
+      orgId: string | null;
+      orgSlug?: string | null;
+    };
+  }
+}
+
+export const tenancyPlugin = fp(async (app) => {
+  app.addHook('onRequest', async (req, _reply) => {
+    const host = req.headers.host || '';
+    const ctx = await resolveTenantByHostname(host);
+
+    req.tenant = {
+      orgId: ctx.orgId,
+      orgSlug: ctx.orgSlug
+    };
+
+    // You could also attach branding to a header for the frontend BFF if needed.
+  });
+});
+
+// In bootstrap
+await app.register(tenancyPlugin);
+```
+
+Downstream routes can read `req.tenant?.orgId` when inferring default org for auth flows.
+
+---
+
+## 47.4. Branding API – Read/Write
+
+We expose endpoints for:
+
+- Reading current org’s branding (for web client).  
+- Updating branding (Org Admin only).  
+- Managing custom domains.
+
+### 47.4.1. Types & Routes
+
+**File:** `apps/api-gateway/src/routes/orgBranding.ts`
+
+```ts
+// apps/api-gateway/src/routes/orgBranding.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { z } from 'zod';
+import { prisma } from '@ai-chat/db';
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
+
+const brandingSchema = z.object({
+  displayName: z.string().max(128).optional(),
+  logoUrl: z.string().url().nullable().optional(),
+  faviconUrl: z.string().url().nullable().optional(),
+  primaryColor: z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/).nullable().optional(),
+  secondaryColor: z.string().regex(/^#([0-9a-fA-F]{3}){3}?$/).optional().or(z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/).nullable()).optional(),
+  backgroundGradient: z.string().max(1024).nullable().optional(),
+  fontFamily: z.string().max(256).nullable().optional(),
+  themeTokens: z.record(z.any()).nullable().optional(),
+  hideGlobalBranding: z.boolean().optional(),
+  footerText: z.string().max(512).nullable().optional(),
+  footerLinks: z.array(z.object({ label: z.string(), href: z.string().url() })).nullable().optional()
+});
+
+const domainSchema = z.object({
+  hostname: z.string().min(3).max(255),
+  notes: z.string().optional()
+});
+
+export default async function orgBrandingRoutes(
+  app: FastifyInstance,
+  _opts: FastifyPluginOptions
+) {
+  // Get current branding for an org
+  app.get('/orgs/:orgId/branding', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const orgId = (req.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:settings:read'
+    );
+
+    const branding = await prisma.orgBranding.findUnique({ where: { orgId } });
+    const domains = await prisma.orgDomain.findMany({ where: { orgId }, orderBy: { createdAt: 'asc' } });
+
+    return reply.send({ branding, domains });
+  });
+
+  // Update branding
+  app.put('/orgs/:orgId/branding', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const orgId = (req.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:settings:write'
+    );
+
+    const parsed = brandingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsed.error.format() });
+    }
+
+    const data = parsed.data;
+
+    const branding = await prisma.orgBranding.upsert({
+      where: { orgId },
+      update: {
+        displayName: data.displayName ?? null,
+        logoUrl: data.logoUrl ?? null,
+        faviconUrl: data.faviconUrl ?? null,
+        primaryColor: data.primaryColor ?? null,
+        secondaryColor: data.secondaryColor ?? null,
+        backgroundGradient: data.backgroundGradient ?? null,
+        fontFamily: data.fontFamily ?? null,
+        themeTokens: data.themeTokens ?? undefined,
+        hideGlobalBranding: data.hideGlobalBranding ?? false,
+        footerText: data.footerText ?? null,
+        footerLinks: data.footerLinks ?? undefined
+      },
+      create: {
+        orgId,
+        displayName: data.displayName ?? null,
+        logoUrl: data.logoUrl ?? null,
+        faviconUrl: data.faviconUrl ?? null,
+        primaryColor: data.primaryColor ?? null,
+        secondaryColor: data.secondaryColor ?? null,
+        backgroundGradient: data.backgroundGradient ?? null,
+        fontFamily: data.fontFamily ?? null,
+        themeTokens: data.themeTokens ?? {},
+        hideGlobalBranding: data.hideGlobalBranding ?? false,
+        footerText: data.footerText ?? null,
+        footerLinks: data.footerLinks ?? []
+      }
+    });
+
+    return reply.send({ branding });
+  });
+
+  // Add a custom domain
+  app.post('/orgs/:orgId/branding/domains', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const orgId = (req.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:settings:write'
+    );
+
+    const parsed = domainSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsed.error.format() });
+    }
+
+    const domain = await prisma.orgDomain.create({
+      data: {
+        orgId,
+        hostname: parsed.data.hostname.toLowerCase(),
+        notes: parsed.data.notes ?? null,
+        isVerified: false,
+        isPrimary: false
+      }
+    });
+
+    // In a real system, emit event to ops to verify domain & configure TLS
+
+    return reply.code(201).send({ domain });
+  });
+
+  // Mark a domain as verified / primary (admin or internal tool)
+  app.post('/orgs/:orgId/branding/domains/:domainId/verify', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const { orgId, domainId } = req.params as any;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:settings:write'
+    );
+
+    const domain = await prisma.orgDomain.update({
+      where: { id: domainId },
+      data: { isVerified: true }
+    });
+
+    return reply.send({ domain });
+  });
+}
+```
+
+Register in `main.ts`:
+
+```ts
+import orgBrandingRoutes from './routes/orgBranding';
+
+await app.register(orgBrandingRoutes);
+```
+
+---
+
+## 47.5. Web – Dynamic Material 3 Theme per Org
+
+We generate a **per‑org MUI theme** based on `OrgBranding`.
+
+### 47.5.1. Branding Fetch Hook
+
+**File:** `apps/web/src/api/branding.ts`
+
+```ts
+// apps/web/src/api/branding.ts
+
+import { apiRequest } from './client';
+
+export interface OrgBrandingDto {
+  id: string;
+  orgId: string;
+  displayName?: string | null;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  backgroundGradient?: string | null;
+  fontFamily?: string | null;
+  themeTokens?: Record<string, any> | null;
+  hideGlobalBranding?: boolean;
+  footerText?: string | null;
+  footerLinks?: { label: string; href: string }[] | null;
+}
+
+export interface OrgDomainDto {
+  id: string;
+  hostname: string;
+  isVerified: boolean;
+  isPrimary: boolean;
+  notes?: string | null;
+}
+
+export async function fetchOrgBranding(
+  token: string,
+  orgId: string
+): Promise<{ branding: OrgBrandingDto | null; domains: OrgDomainDto[] }> {
+  return apiRequest<{ branding: OrgBrandingDto | null; domains: OrgDomainDto[]}>(
+    `/orgs/${orgId}/branding`,
+    { method: 'GET' },
+    token
+  );
+}
+```
+
+**Hook:**
+
+```ts
+// apps/web/src/hooks/useOrgBranding.ts
+
+import { useEffect, useState } from 'react';
+import { fetchOrgBranding, OrgBrandingDto } from '../api/branding';
+import { useAuth } from '../auth/AuthContext';
+import { useParams } from 'react-router-dom';
+
+export function useOrgBranding() {
+  const { orgId } = useParams();
+  const { token } = useAuth();
+
+  const [branding, setBranding] = useState<OrgBrandingDto | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+    setLoading(true);
+    fetchOrgBranding(token, orgId)
+      .then((res) => setBranding(res.branding))
+      .finally(() => setLoading(false));
+  }, [token, orgId]);
+
+  return { branding, loading };
+}
+```
+
+### 47.5.2. Theme Factory
+
+**File:** `apps/web/src/theme/orgTheme.ts`
+
+```ts
+// apps/web/src/theme/orgTheme.ts
+
+import { createTheme, ThemeOptions } from '@mui/material/styles';
+import { OrgBrandingDto } from '../api/branding';
+
+export function createOrgTheme(branding: OrgBrandingDto | null) {
+  const primary = branding?.primaryColor || '#2563eb';
+  const secondary = branding?.secondaryColor || '#22c55e';
+  const fontFamily = branding?.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif';
+
+  const tokens = (branding?.themeTokens || {}) as any;
+
+  const themeOptions: ThemeOptions = {
+    palette: {
+      mode: 'dark',
+      primary: { main: primary },
+      secondary: { main: secondary },
+      background: {
+        default: '#020617',
+        paper: '#020617'
+      }
+    },
+    typography: {
+      fontFamily
+    },
+    shape: {
+      borderRadius: tokens.borderRadius ?? 12
+    },
+    components: {
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            borderRadius: tokens.cardRadius ?? 18,
+            border: tokens.cardBorder ?? '1px solid rgba(148,163,184,0.2)',
+            backdropFilter: tokens.cardBackdropFilter ?? 'blur(14px)'
+          }
+        }
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: tokens.buttonRadius ?? 999,
+            textTransform: 'none',
+            fontWeight: 500
+          }
+        }
+      }
+    }
+  };
+
+  return createTheme(themeOptions);
+}
+```
+
+### 47.5.3. App Shell Integration
+
+In the root layout (25.md, usually `App.tsx` or `RootLayout.tsx`):
+
+```tsx
+// apps/web/src/AppShell.tsx
+
+import React from 'react';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { createOrgTheme } from './theme/orgTheme';
+import { useOrgBranding } from './hooks/useOrgBranding';
+
+export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { branding } = useOrgBranding();
+  const theme = React.useMemo(() => createOrgTheme(branding), [branding]);
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {children}
+    </ThemeProvider>
+  );
+};
+```
+
+All existing pages (Playground, Experiments, Billing, Analytics, etc.) automatically use the **org‑specific theme**.
+
+---
+
+## 47.6. Branding in Layout – Logo, Title, Footer
+
+Update the main app layout header to use `OrgBranding` when rendering logos.
+
+**File:** `apps/web/src/layout/AppHeader.tsx`
+
+```tsx
+import React from 'react';
+import { AppBar, Box, Toolbar, Typography } from '@mui/material';
+import { useOrgBranding } from '../hooks/useOrgBranding';
+
+export const AppHeader: React.FC = () => {
+  const { branding } = useOrgBranding();
+
+  const title = branding?.displayName || 'AI Chat Platform';
+
+  return (
+    <AppBar position="static" color="transparent" elevation={0}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box display="flex" alignItems="center" gap={1.5}>
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt={title}
+              style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain' }}
+            />
+          ) : (
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 2,
+                bgcolor: 'primary.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 16,
+                fontWeight: 700
+              }}
+            >
+              {title[0]}
+            </Box>
+          )}
+          <Typography variant="subtitle1" noWrap>
+            {title}
+          </Typography>
+        </Box>
+
+        {/* Right side controls (user menu, theme toggles, etc.) remain unchanged */}
+        <Box />
+      </Toolbar>
+    </AppBar>
+  );
+};
+```
+
+Footer component can use `branding.footerText` and `footerLinks`.
+
+---
+
+## 47.7. Org Branding Settings Page (Material 3)
+
+Route: `/app/orgs/:orgId/settings/branding`
+
+**File:** `apps/web/src/org/OrgBrandingSettingsPage.tsx`
+
+```tsx
+// apps/web/src/org/OrgBrandingSettingsPage.tsx
+
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  Typography
+} from '@mui/material';
+import PaletteIcon from '@mui/icons-material/Palette';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { fetchOrgBranding } from '../api/branding';
+import { apiRequest } from '../api/client';
+
+export const OrgBrandingSettingsPage: React.FC = () => {
+  const { orgId } = useParams();
+  const { token } = useAuth();
+
+  const [displayName, setDisplayName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#2563eb');
+  const [secondaryColor, setSecondaryColor] = useState('#22c55e');
+  const [backgroundGradient, setBackgroundGradient] = useState('');
+  const [footerText, setFooterText] = useState('');
+
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    if (!token || !orgId) return;
+    const res = await fetchOrgBranding(token, orgId);
+    if (res.branding) {
+      setDisplayName(res.branding.displayName || '');
+      setLogoUrl(res.branding.logoUrl || '');
+      setFaviconUrl(res.branding.faviconUrl || '');
+      setPrimaryColor(res.branding.primaryColor || '#2563eb');
+      setSecondaryColor(res.branding.secondaryColor || '#22c55e');
+      setBackgroundGradient(res.branding.backgroundGradient || '');
+      setFooterText(res.branding.footerText || '');
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, token]);
+
+  const handleSave = async () => {
+    if (!token || !orgId) return;
+    setSaving(true);
+    try {
+      await apiRequest(
+        `/orgs/${orgId}/branding`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            displayName,
+            logoUrl: logoUrl || null,
+            faviconUrl: faviconUrl || null,
+            primaryColor,
+            secondaryColor,
+            backgroundGradient: backgroundGradient || null,
+            footerText: footerText || null
+          })
+        },
+        token
+      );
+      await load();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(129,140,248,0.18), transparent 55%), ' +
+    'radial-gradient(circle at bottom right, rgba(45,212,191,0.18), transparent 55%)';
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" alignItems="center" gap={1}>
+        <PaletteIcon fontSize="small" />
+        <Box>
+          <Typography variant="h6">Branding & theme</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Customize colors, logo and footer for your organization.
+          </Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0 }}>
+        <Card sx={{ borderRadius: 3, flex: 1 }}>
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Typography variant="subtitle2">Basics</Typography>
+            <TextField
+              label="Display name"
+              fullWidth
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+            <TextField
+              label="Logo URL"
+              fullWidth
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+            />
+            <TextField
+              label="Favicon URL"
+              fullWidth
+              value={faviconUrl}
+              onChange={(e) => setFaviconUrl(e.target.value)}
+            />
+            <TextField
+              label="Footer text"
+              fullWidth
+              multiline
+              minRows={2}
+              value={footerText}
+              onChange={(e) => setFooterText(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card sx={{ borderRadius: 3, flex: 1 }}>
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Typography variant="subtitle2">Colors & background</Typography>
+            <TextField
+              label="Primary color (hex)"
+              fullWidth
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+            />
+            <TextField
+              label="Secondary color (hex)"
+              fullWidth
+              value={secondaryColor}
+              onChange={(e) => setSecondaryColor(e.target.value)}
+            />
+            <TextField
+              label="Background gradient CSS"
+              fullWidth
+              multiline
+              minRows={3}
+              placeholder={
+                'radial-gradient(circle at top left, rgba(129,140,248,0.18), transparent 55%), ...'
+              }
+              value={backgroundGradient}
+              onChange={(e) => setBackgroundGradient(e.target.value)}
+            />
+            <Box display="flex" justifyContent="flex-end" mt={1.5}>
+              <Button
+                variant="contained"
+                onClick={() => void handleSave()}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Save changes'}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+    </Box>
+  );
+};
+```
+
+Add route entry:
+
+```tsx
+import { OrgBrandingSettingsPage } from './org/OrgBrandingSettingsPage';
+
+<Route path="/app/orgs/:orgId/settings/branding" element={<OrgBrandingSettingsPage />} />
+```
+
+---
+
+## 47.8. Favicons & Meta Tags
+
+For full white‑label experience:
+
+- Web entry HTML (`apps/web/index.html` or Vite template) should allow **runtime favicon override**:  
+  - Small script that reads branding from a global JSON (or API call) and sets `<link rel="icon" href="..." />`.  
+- SPA router can set `<title>` per org (`branding.displayName`).  
+- Meta tags like `og:title`, `og:image` can use logo and display name.
+
+Implementation sketch for favicon in React:
+
+```ts
+// apps/web/src/hooks/useFavicon.ts
+
+import { useEffect } from 'react';
+import { useOrgBranding } from './useOrgBranding';
+
+export function useFavicon() {
+  const { branding } = useOrgBranding();
+
+  useEffect(() => {
+    if (!branding?.faviconUrl) return;
+    let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = branding.faviconUrl;
+  }, [branding?.faviconUrl]);
+}
+```
+
+Call `useFavicon()` from `AppShell`.
+
+---
+
+## 47.9. Emails & White‑Label Sender
+
+Email module (not fully defined here) should:
+
+- Use `OrgBranding.displayName` as **from‑name** when sending org‑scoped emails.  
+- Include `branding.logoUrl` in email header when available.  
+- Optionally show `footerText` and `footerLinks` in the email footer (e.g., “Privacy Policy”, “Support”).
+
+This ensures users see the customer brand, not just the platform brand.
+
+---
+
+## 47.10. Sanity Checklist
+
+Before marketing as fully white‑label:
+
+- [ ] Prisma migration applied for `OrgBranding` and `OrgDomain`.  
+- [ ] `hostnameResolver` correctly maps hostnames to orgs in staging/prod.  
+- [ ] `OrgBrandingSettingsPage` allows updating logo, colors, gradient and footer.  
+- [ ] `AppShell` theme changes when org branding changes.  
+- [ ] Header & favicon update to org logo/icon.  
+- [ ] Custom subdomain routing (`{slug}.APP_BASE_DOMAIN`) works.  
+- [ ] Custom domain entries exist and are marked verified once DNS/TLS is configured.  
+- [ ] Emails use org name/logo where applicable.
+
+If all checks pass, the platform is ready for **multi‑tenant, white‑label AI chat deployments** with per‑customer look & feel, while keeping all core functionality (chat, playground, experiments, billing) shared.
+
+---
+
+_End of 47.md – White‑Label, Theming & Org Branding – Multi‑Tenant Look & Feel_

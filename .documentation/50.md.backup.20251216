@@ -1,0 +1,418 @@
+# 50. Security, Data Protection & Compliance Foundations
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human platform / infra / security engineers.  
+> **Goal of this file:** Define a **practical, production‑ready security baseline** for the AI chat platform so that:
+>
+> - All **data flows** (auth, chat content, model logs, billing, analytics) are protected in transit and at rest.  
+> - **Secrets & keys** are managed safely (no secrets in code, rotation support).  
+> - **Access control** (RBAC, tenancy) is consistently enforced across services.  
+> - **Logging & monitoring** support security investigations without leaking sensitive content.  
+> - Basic requirements for common standards (SOC 2‑like, ISO 27001‑like) are addressed at the architecture level.
+>
+> This spec is written so Cursor‑like agents can implement it mechanically without follow‑ups.
+
+This file builds on:
+
+- 11–14.md – Orgs, users, roles & RBAC.  
+- 18.md – Authentication & JWT.  
+- 19.md – Quotas & limits.  
+- 25.md – Chat/message pipeline.  
+- 28.md – Observability & metrics.  
+- 38.md – Event bus & audit log.  
+- 45–49.md – Billing, SSO, SCIM, white‑label, etc.
+
+---
+
+## 50.1. Threat Model (High‑Level)
+
+We build for a multi‑tenant, internet‑facing AI chat SaaS. Main risks:
+
+1. **Data exposure across tenants**  
+   - A bug in tenancy or RBAC could leak prompts / messages / files between orgs.
+
+2. **Account hijacking**  
+   - Stolen credentials, weak sessions, or missing SSO/SCIM hygiene.
+
+3. **Secrets leakage**  
+   - API keys (ollama, OpenAI, PAYTR, SMTP, SAML certs) exposed in code, logs or frontends.
+
+4. **Inference & log leakage**  
+   - Chat content or model responses stored in plaintext logs or metrics.
+
+5. **Abuse & resource exhaustion**  
+   - Malicious or buggy clients spamming the API, exhausting tokens or CPU.
+
+Our baseline mitigations:
+
+- Strong **tenancy isolation** keyed by `orgId` everywhere.  
+- Enforced **RBAC** around all admin operations.  
+- **Transport encryption** (HTTPS/TLS) and **at‑rest encryption** for DB / object storage.  
+- Central **secrets management** and consistent env usage.  
+- Security‑aware **logging & redaction**.  
+- Rate limiting, quotas and usage monitoring.
+
+---
+
+## 50.2. Environment Layout & Network Boundaries
+
+We assume four main environments:
+
+- `local` – developer workstation, docker‑compose.  
+- `staging` – pre‑production, mirrors prod settings but smaller.  
+- `prod-eu` – primary production in EU region.  
+- (Optional) `prod-us` – if regional residency required.
+
+### 50.2.1. Network Segmentation
+
+- **Public edge:**
+  - HTTPS load balancer / ingress (e.g. nginx, Traefik, cloud LB).  
+  - Terminates TLS, routes to `api-gateway` (Fastify) and `web` SPA.
+
+- **App network:**
+  - `api-gateway` → NodeJS app.  
+  - Worker services (job runners, experiment runner, SCIM, etc.).  
+  - Only exposed to public via LB.
+
+- **Data network:**
+  - PostgreSQL (main DB), Redis, object storage (S3‑compatible).  
+  - Accessible only from app network security group / VPC.
+
+### 50.2.2. TLS Requirements
+
+- All external traffic **must** be HTTPS (port 443).  
+- HTTP → 301 redirect to HTTPS at edge.  
+- Certificates managed via ACME/LetsEncrypt or cloud cert manager.  
+- Min TLS version 1.2, prefer 1.3.
+
+---
+
+## 50.3. Secrets Management
+
+### 50.3.1. Secret Inventory
+
+Secrets include (non‑exhaustive):
+
+- **Auth / crypto**: JWT signing keys, refresh token encryption keys, password hashing config.  
+- **Model providers**: external LLM keys (if any), Ollama access tokens if protected.  
+- **Billing & payments**: PAYTR merchantId/key/salt, webhook secrets.  
+- **Email & notifications**: SMTP credentials, SendGrid/Mailgun API keys.  
+- **SSO & SCIM**: SAML certs, OIDC client secrets, SCIM bearer tokens.  
+- **Infra**: DB passwords, Redis secrets, object storage keys.
+
+### 50.3.2. Storage & Access
+
+- Secrets **never** committed to git.  
+- Use one of:
+  - Cloud secret manager (AWS Secrets Manager, GCP Secret Manager, Vault, etc.) OR  
+  - Encrypted `.env` keyed by deployment system.
+
+- `api-gateway` only sees decrypted values at runtime via environment variables.
+
+### 50.3.3. Implementation Notes
+
+- Create a central helper in `apps/api-gateway/src/config/secrets.ts`:
+
+```ts
+// apps/api-gateway/src/config/secrets.ts
+
+export const secrets = {
+  jwtPrivateKey: process.env.JWT_PRIVATE_KEY ?? '',
+  jwtPublicKey: process.env.JWT_PUBLIC_KEY ?? '',
+  dbUrl: process.env.DATABASE_URL ?? '',
+  redisUrl: process.env.REDIS_URL ?? '',
+  paytrMerchantId: process.env.PAYTR_MERCHANT_ID ?? '',
+  paytrMerchantKey: process.env.PAYTR_MERCHANT_KEY ?? '',
+  paytrMerchantSalt: process.env.PAYTR_MERCHANT_SALT ?? '',
+  smtpHost: process.env.SMTP_HOST ?? '',
+  smtpUser: process.env.SMTP_USER ?? '',
+  smtpPass: process.env.SMTP_PASS ?? ''
+  // extend as needed
+};
+```
+
+- All access to secrets goes through this module → easier to audit.
+
+- Support rotation by:
+  - Using short‑lived DB users for CI tasks.  
+  - Requesting new JWT signing keys and setting overlap period where old tokens still accepted (config: `JWT_ACTIVE_KEY_ID`, `JWT_TRUSTED_KEY_IDS`).
+
+---
+
+## 50.4. Authentication & Session Security
+
+### 50.4.1. JWT Signing
+
+Build on 18.md:
+
+- Use **asymmetric** keys (RS256/ES256) for JWT, with `kid` in header.  
+- Key storage: secret manager, not filesystem.  
+- JWT payload includes:
+  - `sub` (user id),  
+  - `orgId` (current org context),  
+  - `roles` (org roles),  
+  - `iat`, `exp`, `jti`.
+
+- Access token lifetime: 15–60 minutes.  
+- Refresh tokens: stored hashed (PBKDF2/bcrypt/argon2) in DB, bound to device.
+
+### 50.4.2. Cookie vs Header
+
+- **Browser SPA**: store access token in memory or `sessionStorage`; never in `localStorage` if avoidable.  
+- Refresh token: **HttpOnly, Secure, SameSite=Lax** cookie scoped to domain.
+
+### 50.4.3. SSO & SCIM Security
+
+- SSO (48.md):  
+  - Validate SAML/OIDC signatures and issuer/audience.  
+  - Reject SSO if `sso_allowed` is false in plan limits.  
+  - Audit all SSO attempts in `SsoLoginAudit`.
+
+- SCIM (49.md):  
+  - Per‑org bearer tokens; treat them like long‑lived API keys.  
+  - Rotate tokens via admin UI + `rotate-token` endpoint.  
+  - Log all errors & successes in `ScimAudit`.
+
+---
+
+## 50.5. Tenancy & RBAC Enforcement
+
+### 50.5.1. Tenancy Rules
+
+- Every row that belongs to an org must have `orgId`.  
+- **No query** may be written without a where clause on `orgId` for org‑scoped data models (unless global).  
+- `Org` and `User` tables are global, but membership tables are org‑scoped.
+
+Recommended helper in `packages/db`:
+
+```ts
+// pseudo-code: tenant-aware query helper
+
+export async function withOrg<T>(orgId: string, query: (orgId: string) => Promise<T>): Promise<T> {
+  if (!orgId) throw new Error('ORG_CONTEXT_REQUIRED');
+  return query(orgId);
+}
+```
+
+Use it in repositories to force explicit `orgId` handling.
+
+### 50.5.2. RBAC Guards
+
+As defined in 11–14.md, `assertOrgPermission` should be the **only entry** into sensitive routes:
+
+- Only allow `org:settings:*`, `org:billing:*`, `org:analytics:*` etc. to admins.  
+- Deny by default; explicit allow only.
+
+All Fastify routes in:
+
+- `routes/orgBranding.ts`  
+- `routes/orgSsoConnections.ts`  
+- `routes/orgScimConnections.ts`  
+- `routes/billing.ts`  
+- `routes/analytics.ts`
+
+must call `assertOrgPermission` with the correct permission string.
+
+---
+
+## 50.6. Data at Rest
+
+### 50.6.1. Database
+
+- Use **managed PostgreSQL** with:
+  - Disk‑level encryption enabled (cloud default).  
+  - Encrypted connections (require `sslmode=require`).
+
+- Sensitive fields (options):
+  - API keys / per‑user secrets stored encrypted using app‑level crypto.  
+  - For example `user_api_keys` table with `encryptedKey` (AES‑GCM + key from secret manager).
+
+### 50.6.2. Object Storage
+
+- Store uploaded files, logs exports etc. in S3‑compatible storage with:
+  - Bucket encryption at rest.  
+  - Private ACL by default; pre‑signed URLs for access.
+
+- Background jobs periodically clean old temporary uploads.
+
+### 50.6.3. Logs & Analytics
+
+- Log aggregation (CloudWatch, Loki, ELK, etc.).  
+- **Never** log full chat content or full tokens by default; log **hashes or short excerpts** if needed.  
+- Error logs: include request id, user id, org id, but redact payloads.
+
+Implementation example:
+
+```ts
+// apps/api-gateway/src/logging/logger.ts
+
+import pino from 'pino';
+
+export const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  redact: {
+    paths: ['req.headers.authorization', 'req.body', 'res.body'],
+    remove: true
+  }
+});
+```
+
+Use per‑route logging middleware that only logs high‑level metadata.
+
+---
+
+## 50.7. Data Retention & Deletion
+
+### 50.7.1. Configurable Retention
+
+Expose per‑org settings in `OrgSettings` (or reuse an existing table):
+
+```jsonc
+{
+  "chat_retention_days": 365,
+  "audit_retention_days": 730,
+  "analytics_retention_days": 365
+}
+```
+
+- Defaults can be defined per plan (Free vs Enterprise).  
+- Retention values drive **scheduled cleanup jobs** (cron workers).
+
+### 50.7.2. Cleanup Jobs
+
+A worker service (e.g. `apps/workers/cleanup.ts`) runs daily:
+
+- Delete or hard‑anonymize chat messages older than `chat_retention_days`.  
+- Delete old `AuditEvent`, `SsoLoginAudit`, `ScimAudit` older than `audit_retention_days`.  
+- Aggregate analytics into coarser granularity if needed (e.g. keep 1‑day buckets, drop raw).
+
+Implementation sketch:
+
+```ts
+// apps/workers/src/cleanup.ts
+
+import { prisma } from '@ai-chat/db';
+
+async function cleanupChats() {
+  const settings = await prisma.orgSettings.findMany();
+  const now = new Date();
+
+  for (const s of settings) {
+    const days = (s.data as any).chat_retention_days ?? 365;
+    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+    await prisma.chatMessage.deleteMany({
+      where: {
+        orgId: s.orgId,
+        createdAt: { lt: cutoff }
+      }
+    });
+  }
+}
+
+export async function runCleanupJobs() {
+  await cleanupChats();
+  // other cleanup tasks
+}
+```
+
+Schedule this worker via cron or job scheduler.
+
+### 50.7.3. Right‑to‑Delete
+
+When a user wants to delete their account:
+
+- Soft‑delete `User` row (e.g. `isDeleted = true`).  
+- Remove org memberships or mark them disabled.  
+- Optionally anonymize chat content by replacing user‑attributable identifiers while keeping analytics.
+
+---
+
+## 50.8. Abuse Prevention & Rate Limiting
+
+### 50.8.1. Per‑Org & Per‑User Limits
+
+Use a shared rate limiter with Redis backend, configured in `api-gateway`.
+
+Example (Fastify plugin):
+
+```ts
+// apps/api-gateway/src/plugins/rateLimit.ts
+
+import fp from 'fastify-plugin';
+import fastifyRateLimit from '@fastify/rate-limit';
+
+export default fp(async (app) => {
+  await app.register(fastifyRateLimit, {
+    max: 120, // requests
+    timeWindow: '1 minute',
+    keyGenerator: (req) => {
+      const userId = (req.user as any)?.userId;
+      return userId || req.ip;
+    }
+  });
+});
+```
+
+- Fine‑tune per route: stricter limits for expensive operations (chat completions, experiments).  
+- Combine with **quota** system (19.md) based on tokens.
+
+### 50.8.2. IP & Geo Controls (Optional)
+
+- Support IP allow/deny lists per org via `OrgSettings.security.ip_allowlist`.  
+- Apply in Fastify hooks before handlers.
+
+---
+
+## 50.9. Security Logging, Audit & Incident Response
+
+### 50.9.1. Central Audit Bus
+
+See 38.md: `AuditEvent` & event bus.
+
+- All security‑relevant actions should emit events:
+  - Login/logout, password change, SSO success/fail.  
+  - Role changes, org membership changes.  
+  - Billing & plan changes.  
+  - SCIM provisioning actions.  
+  - API tokens creation/deletion (if added).
+
+### 50.9.2. Admin Security View
+
+In the Org Admin Console (40.md), provide:
+
+- **Security events timeline** for the org (filtered from `AuditEvent` + `SsoLoginAudit` + `ScimAudit`).  
+- Filters: date range, user, event type.  
+- Export to CSV for compliance.
+
+### 50.9.3. Incident Handling (Process Skeleton)
+
+Not code, but process to document in ops runbooks:
+
+1. Detect anomaly (high login failures, suspicious IP, unusual token usage).  
+2. Flip org feature flags (e.g. force logout, disable SSO, revoke SCIM token).  
+3. Export logs for time window.  
+4. Communicate to affected org admins.
+
+---
+
+## 50.10. Hardening & Deployment Checklist
+
+Before going to production or enabling large enterprise tenants, verify:
+
+- [ ] All externally exposed endpoints are HTTPS only.  
+- [ ] DB, Redis and object storage are **not** publicly accessible.  
+- [ ] All secrets loaded from env / secret manager, not hard‑coded.  
+- [ ] JWT signing keys use strong algorithms and are stored securely.  
+- [ ] `assertOrgPermission` is called from all sensitive routes.  
+- [ ] Logs do not contain full chat payloads or secrets.  
+- [ ] SCIM bearer tokens and SSO client secrets are rotated at least annually.  
+- [ ] Retention jobs are running and monitored.  
+- [ ] Rate limiting is enabled on chat and experiment endpoints.  
+- [ ] Grafana dashboards exist for security metrics (login failures, seat limit rejections, SCIM errors).  
+- [ ] Backups (DB, object storage) are configured, encrypted, and restore is tested.
+
+If all items pass, the platform has a **solid, enforceable security baseline** that can be extended towards SOC 2 / ISO 27001 while supporting demanding enterprise tenants.
+
+---
+
+_End of 50.md – Security, Data Protection & Compliance Foundations_

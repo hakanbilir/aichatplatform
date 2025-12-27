@@ -1,0 +1,1578 @@
+# 38. Events, Audit Log & Webhooks – Backend + Material 3 UI
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human backend/frontend engineers.  
+> **Goal of this file:** Add an **enterprise‑grade events & audit layer** to the AI chat platform so that:
+>
+> - All important actions (login, conversation created, message sent, tool call, RAG usage, policy changes, preset edits, etc.) are **captured as structured events**.  
+> - Orgs can **view an audit log** via a Material 3 UI (filterable, searchable).  
+> - Orgs can configure **webhooks** to receive selected events in external systems (Slack, custom backend, SIEM, etc.).  
+> - The system integrates with metrics/observability (Grafana) and respects multi‑tenant & RBAC rules.
+>
+> This file is written so that Cursor‑like AI agents can implement the feature end‑to‑end without human clarification.
+
+This spec builds on:
+
+- 13.md – Role & RBAC model.  
+- 19.md – Org usage & quotas.  
+- 25.md – Conversation & messages API.  
+- 28.md – Metrics & observability.  
+- 29.md – Org analytics.  
+- 33–37.md – RAG, prompts, presets, search, inbox.
+
+---
+
+## 38.1. Concepts & Scope
+
+We introduce three closely related concepts:
+
+1. **Event** – A structured record of something that happened. Examples:  
+   - `auth.login_succeeded`  
+   - `conversation.created`  
+   - `conversation.message_sent`  
+   - `conversation.tool_call`  
+   - `knowledge.document_ingested`  
+   - `org.ai_policy_updated`  
+   - `org.preset_created`  
+
+2. **Audit Log** – A **read‑only, time‑ordered list** of events, scoped by org, surfaced in an admin UI.  
+3. **Webhook** – An org‑configurable integration that **subscribes** to a subset of event types and posts them (signed) to an external HTTP endpoint.
+
+Non‑goals for this file (can be future extensions):
+
+- Multi‑tenant event streaming infra (Kafka) – we use Postgres + background workers for now.  
+- Fine‑grained PII redaction policies – we only include safe metadata by default (no full message text).
+
+---
+
+## 38.2. Data Model (Prisma)
+
+Extend Prisma schema (`packages/db/prisma/schema.prisma`) with two new models: `Event` and `Webhook`.
+
+```prisma
+model Event {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  orgId       String
+  // optional, depending on context
+  userId      String?
+
+  // e.g. "conversation.message_sent", "org.ai_policy_updated"
+  type        String
+
+  // High-level resource identifiers
+  conversationId String?
+  messageId      String?
+
+  // key/value metadata, safe for externalization (no raw message content)
+  metadata    Json
+
+  org  Org  @relation(fields: [orgId], references: [id])
+  user User @relation(fields: [userId], references: [id])?
+}
+
+model Webhook {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orgId       String
+
+  name        String
+  description String?
+
+  // Target URL (HTTPS recommended)
+  url         String
+
+  // Shared secret used for HMAC signatures
+  secret      String
+
+  // List of event type prefixes, e.g. ["conversation.", "org.ai_"]
+  eventTypes  Json
+
+  // Whether the webhook is active
+  isEnabled   Boolean  @default(true)
+
+  org Org @relation(fields: [orgId], references: [id])
+
+  deliveries WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  webhookId   String
+  eventId     String
+
+  status      String   // "pending" | "success" | "failed"
+  statusCode  Int?
+  // error message on failure
+  error       String?
+
+  // For troubleshooting
+  requestBody  Json
+  responseBody Json?
+
+  webhook Webhook @relation(fields: [webhookId], references: [id])
+  event   Event   @relation(fields: [eventId], references: [id])
+}
+```
+
+> **Note:** `metadata` is where we store safe context, e.g. `{ modelId, toolNames, presetId, hasRag }`. Do not store raw prompts or full message content here.
+
+Run migrations after editing the schema.
+
+---
+
+## 38.3. Event Emitter Service (Backend)
+
+We create a small event emitter abstraction in the API gateway.
+
+### 38.3.1. Event Types & Payloads
+
+**File:** `apps/api-gateway/src/events/types.ts`
+
+```ts
+// apps/api-gateway/src/events/types.ts
+
+export type EventType =
+  | 'auth.login_succeeded'
+  | 'auth.login_failed'
+  | 'conversation.created'
+  | 'conversation.message_sent'
+  | 'conversation.tool_call'
+  | 'conversation.rag_used'
+  | 'knowledge.document_ingested'
+  | 'org.ai_policy_updated'
+  | 'org.preset_created'
+  | 'org.preset_updated';
+
+export interface BaseEventContext {
+  orgId: string;
+  userId?: string | null;
+}
+
+export interface ConversationEventContext extends BaseEventContext {
+  conversationId: string;
+}
+
+export interface MessageEventContext extends ConversationEventContext {
+  messageId: string;
+}
+
+export interface EmitEventParams {
+  type: EventType;
+  context: BaseEventContext & {
+    conversationId?: string;
+    messageId?: string;
+  };
+  metadata?: Record<string, any>;
+}
+```
+
+### 38.3.2. Event Emitter Implementation
+
+**File:** `apps/api-gateway/src/events/emitter.ts`
+
+```ts
+// apps/api-gateway/src/events/emitter.ts
+
+import { prisma } from '@ai-chat/db';
+import { EmitEventParams } from './types';
+
+export async function emitEvent(params: EmitEventParams): Promise<void> {
+  const { type, context, metadata } = params;
+
+  await prisma.event.create({
+    data: {
+      orgId: context.orgId,
+      userId: context.userId ?? null,
+      type,
+      conversationId: context.conversationId ?? null,
+      messageId: context.messageId ?? null,
+      metadata: metadata ?? {}
+    }
+  });
+}
+```
+
+> **Later**, the webhook dispatcher (38.5) will read from `Event` rows and send POST requests.
+
+---
+
+## 38.4. Emitting Events from Core Flows
+
+We wire `emitEvent` into key flows. Below are **example snippets**; Cursor/agents can locate the actual files and insert calls accordingly.
+
+### 38.4.1. Conversation Created
+
+In conversation creation handler (see 25.md, e.g. `routes/conversations.ts`):
+
+```ts
+import { emitEvent } from '../events/emitter';
+
+// inside handler, after conversation is created
+await emitEvent({
+  type: 'conversation.created',
+  context: {
+    orgId,
+    userId: payload.userId,
+    conversationId: conversation.id
+  },
+  metadata: {
+    modelId: conversation.modelId,
+    presetId: conversation.presetId ?? null
+  }
+});
+```
+
+### 38.4.2. Message Sent
+
+In message send handler (chat turn, e.g. `routes/messages.ts` or `chatEngine.ts`):
+
+```ts
+await emitEvent({
+  type: 'conversation.message_sent',
+  context: {
+    orgId: conversation.orgId,
+    userId: payload.userId,
+    conversationId: conversation.id,
+    messageId: userMessage.id
+  },
+  metadata: {
+    modelId: conversation.modelId,
+    hasTools: Boolean(conversation.settings.tools?.length),
+    hasRag: Boolean(conversation.settings.rag?.enabled)
+  }
+});
+```
+
+### 38.4.3. Tool Calls & RAG Usage
+
+In the part of `chatEngine.ts` where tools are executed and RAG is applied:
+
+```ts
+if (toolCalls.length > 0) {
+  await emitEvent({
+    type: 'conversation.tool_call',
+    context: {
+      orgId: conversation.orgId,
+      userId: payload.userId,
+      conversationId: conversation.id
+    },
+    metadata: {
+      toolNames: toolCalls.map((t) => t.name),
+      modelId: conversation.modelId
+    }
+  });
+}
+
+if (ragContextChunks && ragContextChunks.length > 0) {
+  await emitEvent({
+    type: 'conversation.rag_used',
+    context: {
+      orgId: conversation.orgId,
+      userId: payload.userId,
+      conversationId: conversation.id
+    },
+    metadata: {
+      spaceId: ragConfig.spaceId ?? null,
+      chunkCount: ragContextChunks.length
+    }
+  });
+}
+```
+
+### 38.4.4. Org Policy & Presets
+
+In `orgAiPolicyRoutes` (35.md) after `upsertOrgAiPolicy`:
+
+```ts
+await emitEvent({
+  type: 'org.ai_policy_updated',
+  context: {
+    orgId,
+    userId: payload.userId
+  },
+  metadata: {
+    name: policy.name
+  }
+});
+```
+
+In presets routes (35.md) after create/update:
+
+```ts
+await emitEvent({
+  type: 'org.preset_created',
+  context: {
+    orgId,
+    userId: payload.userId
+  },
+  metadata: {
+    presetId: preset.id,
+    name: preset.name,
+    modelId: preset.config.modelId
+  }
+});
+```
+
+Similar calls can be added for updates and knowledge document ingestion.
+
+---
+
+## 38.5. Webhook Dispatcher Worker
+
+We implement a **background worker** that:
+
+1. Periodically scans for new events.  
+2. Finds matching webhooks (by org + event type prefix).  
+3. Enqueues deliveries in `WebhookDelivery`.  
+4. Sends HTTP POST requests with signed payloads.  
+5. Updates delivery status.
+
+This worker can live in a separate process (e.g. `apps/worker`) or inside API gateway with a timer. Below is a minimal version as a worker.
+
+### 38.5.1. Webhook Payload & Signature
+
+Webhook payload structure:
+
+```ts
+export interface WebhookEventPayload {
+  id: string; // event id
+  type: string;
+  createdAt: string;
+  orgId: string;
+  userId?: string | null;
+  conversationId?: string | null;
+  messageId?: string | null;
+  metadata: Record<string, any>;
+}
+```
+
+Signature headers:
+
+- `X-AIChat-Signature` – HMAC‑SHA256 of the raw JSON body using the webhook `secret`, encoded as hex.  
+- `X-AIChat-Timestamp` – Unix timestamp (seconds).
+
+### 38.5.2. Worker Implementation (Sketch)
+
+**File:** `apps/worker/src/webhookDispatcher.ts`
+
+```ts
+// apps/worker/src/webhookDispatcher.ts
+
+import crypto from 'node:crypto';
+import fetch from 'node-fetch';
+import { prisma } from '@ai-chat/db';
+
+function hmacSignature(secret: string, payload: string, timestamp: number): string {
+  const toSign = `${timestamp}.${payload}`;
+  return crypto.createHmac('sha256', secret).update(toSign).digest('hex');
+}
+
+async function dispatchDelivery(deliveryId: string) {
+  const delivery = await prisma.webhookDelivery.findUnique({
+    where: { id: deliveryId },
+    include: {
+      webhook: true,
+      event: true
+    }
+  });
+
+  if (!delivery || !delivery.webhook.isEnabled) return;
+
+  const event = delivery.event;
+  const payloadObj = {
+    id: event.id,
+    type: event.type,
+    createdAt: event.createdAt.toISOString(),
+    orgId: event.orgId,
+    userId: event.userId,
+    conversationId: event.conversationId,
+    messageId: event.messageId,
+    metadata: event.metadata
+  };
+
+  const body = JSON.stringify(payloadObj);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = hmacSignature(delivery.webhook.secret, body, timestamp);
+
+  try {
+    const res = await fetch(delivery.webhook.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-AIChat-Signature': signature,
+        'X-AIChat-Timestamp': String(timestamp)
+      },
+      body
+    });
+
+    const text = await res.text();
+
+    await prisma.webhookDelivery.update({
+      where: { id: delivery.id },
+      data: {
+        status: res.ok ? 'success' : 'failed',
+        statusCode: res.status,
+        responseBody: text
+      }
+    });
+  } catch (err) {
+    await prisma.webhookDelivery.update({
+      where: { id: delivery.id },
+      data: {
+        status: 'failed',
+        error: (err as Error).message
+      }
+    });
+  }
+}
+
+export async function processWebhooksBatch(limit = 50) {
+  const pending = await prisma.webhookDelivery.findMany({
+    where: { status: 'pending' },
+    take: limit
+  });
+
+  for (const d of pending) {
+    await dispatchDelivery(d.id);
+  }
+}
+```
+
+You can then run this worker periodically (e.g. with a simple `setInterval` in a worker main file or via a cron job invoking `processWebhooksBatch`).
+
+### 38.5.3. Enqueuing Deliveries on Event Creation
+
+Modify `emitEvent` to **also enqueue** webhook deliveries for matching webhooks.
+
+**Updated emitter:**
+
+```ts
+// apps/api-gateway/src/events/emitter.ts
+
+import { prisma } from '@ai-chat/db';
+import { EmitEventParams } from './types';
+
+function matchesEventType(eventType: string, pattern: string): boolean {
+  // simple prefix match: "conversation." matches "conversation.message_sent"
+  return eventType === pattern || eventType.startsWith(pattern);
+}
+
+export async function emitEvent(params: EmitEventParams): Promise<void> {
+  const { type, context, metadata } = params;
+
+  const event = await prisma.event.create({
+    data: {
+      orgId: context.orgId,
+      userId: context.userId ?? null,
+      type,
+      conversationId: context.conversationId ?? null,
+      messageId: context.messageId ?? null,
+      metadata: metadata ?? {}
+    }
+  });
+
+  const webhooks = await prisma.webhook.findMany({
+    where: {
+      orgId: context.orgId,
+      isEnabled: true
+    }
+  });
+
+  if (webhooks.length === 0) return;
+
+  const deliveriesData = webhooks
+    .filter((wh) => {
+      const types = (wh.eventTypes as string[]) || [];
+      return types.length === 0 || types.some((pattern) => matchesEventType(type, pattern));
+    })
+    .map((wh) => ({
+      webhookId: wh.id,
+      eventId: event.id,
+      status: 'pending' as const,
+      requestBody: event.metadata // can be enriched by worker
+    }));
+
+  if (deliveriesData.length > 0) {
+    await prisma.webhookDelivery.createMany({ data: deliveriesData });
+  }
+}
+```
+
+This keeps the request path light (only DB writes); HTTP calls happen in the worker.
+
+---
+
+## 38.6. Webhook Management API (Org‑Scoped)
+
+We expose CRUD for webhooks in the API gateway.
+
+### 38.6.1. Routes
+
+**File:** `apps/api-gateway/src/routes/webhooks.ts`
+
+```ts
+// apps/api-gateway/src/routes/webhooks.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { z } from 'zod';
+import crypto from 'node:crypto';
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
+import { prisma } from '@ai-chat/db';
+
+const webhookBodySchema = z.object({
+  name: z.string().min(1).max(128),
+  description: z.string().max(512).optional(),
+  url: z.string().url(),
+  eventTypes: z.array(z.string()).optional()
+});
+
+const updateWebhookBodySchema = webhookBodySchema.partial().extend({
+  isEnabled: z.boolean().optional()
+});
+
+export default async function webhooksRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  app.get('/orgs/:orgId/webhooks', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:integrations:read'
+    );
+
+    const webhooks = await prisma.webhook.findMany({
+      where: { orgId },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    return reply.send({ webhooks });
+  });
+
+  app.post('/orgs/:orgId/webhooks', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:integrations:write'
+    );
+
+    const parsed = webhookBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsed.error.format() });
+    }
+
+    const secret = crypto.randomBytes(32).toString('hex');
+
+    const webhook = await prisma.webhook.create({
+      data: {
+        orgId,
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        url: parsed.data.url,
+        secret,
+        eventTypes: parsed.data.eventTypes ?? []
+      }
+    });
+
+    return reply.code(201).send({ webhook: { ...webhook, secret: undefined } });
+  });
+
+  app.patch('/orgs/:orgId/webhooks/:webhookId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+    const webhookId = (request.params as any).webhookId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:integrations:write'
+    );
+
+    const parsed = updateWebhookBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsed.error.format() });
+    }
+
+    const webhook = await prisma.webhook.updateMany({
+      where: { id: webhookId, orgId },
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+        url: parsed.data.url,
+        eventTypes: parsed.data.eventTypes,
+        isEnabled: parsed.data.isEnabled
+      }
+    });
+
+    return reply.send({ ok: true, updatedCount: webhook.count });
+  });
+
+  app.delete('/orgs/:orgId/webhooks/:webhookId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+    const webhookId = (request.params as any).webhookId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:integrations:write'
+    );
+
+    await prisma.webhook.deleteMany({
+      where: { id: webhookId, orgId }
+    });
+
+    return reply.send({ ok: true });
+  });
+}
+```
+
+Register in `main.ts`:
+
+```ts
+import webhooksRoutes from './routes/webhooks';
+
+await app.register(webhooksRoutes);
+```
+
+---
+
+## 38.7. Audit Log API
+
+We expose a paginated, filterable audit log endpoint.
+
+### 38.7.1. Routes
+
+**File:** `apps/api-gateway/src/routes/auditLog.ts`
+
+```ts
+// apps/api-gateway/src/routes/auditLog.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { z } from 'zod';
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
+import { prisma } from '@ai-chat/db';
+
+const auditQuerySchema = z.object({
+  page: z.coerce.number().int().min(0).default(0),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  type: z.string().optional(),
+  userId: z.string().optional(),
+  conversationId: z.string().optional()
+});
+
+export default async function auditLogRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  app.get('/orgs/:orgId/audit-log', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:audit:read'
+    );
+
+    const parsed = auditQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_QUERY', details: parsed.error.format() });
+    }
+
+    const { page, pageSize, type, userId, conversationId } = parsed.data;
+
+    const where: any = { orgId };
+
+    if (type) where.type = type;
+    if (userId) where.userId = userId;
+    if (conversationId) where.conversationId = conversationId;
+
+    const [total, events] = await Promise.all([
+      prisma.event.count({ where }),
+      prisma.event.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: page * pageSize,
+        take: pageSize,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              displayName: true
+            }
+          }
+        }
+      })
+    ]);
+
+    return reply.send({
+      total,
+      page,
+      pageSize,
+      events: events.map((ev) => ({
+        id: ev.id,
+        createdAt: ev.createdAt.toISOString(),
+        type: ev.type,
+        user: ev.user
+          ? {
+              id: ev.user.id,
+              email: ev.user.email,
+              displayName: ev.user.displayName
+            }
+          : null,
+        conversationId: ev.conversationId,
+        messageId: ev.messageId,
+        metadata: ev.metadata
+      }))
+    });
+  });
+}
+```
+
+Register in `main.ts`:
+
+```ts
+import auditLogRoutes from './routes/auditLog';
+
+await app.register(auditLogRoutes);
+```
+
+---
+
+## 38.8. Frontend: Webhook & Audit Log APIs
+
+### 38.8.1. Webhook API Wrapper & Hook
+
+**File:** `apps/web/src/api/webhooks.ts`
+
+```ts
+// apps/web/src/api/webhooks.ts
+
+import { apiRequest } from './client';
+
+export interface Webhook {
+  id: string;
+  orgId: string;
+  name: string;
+  description?: string | null;
+  url: string;
+  eventTypes: string[];
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWebhookInput {
+  name: string;
+  description?: string;
+  url: string;
+  eventTypes?: string[];
+}
+
+export async function fetchWebhooks(token: string, orgId: string): Promise<Webhook[]> {
+  const res = await apiRequest<{ webhooks: Webhook[] }>(
+    `/orgs/${orgId}/webhooks`,
+    { method: 'GET' },
+    token
+  );
+  return res.webhooks;
+}
+
+export async function createWebhookApi(
+  token: string,
+  orgId: string,
+  input: CreateWebhookInput
+): Promise<Webhook> {
+  const res = await apiRequest<{ webhook: Webhook }>(
+    `/orgs/${orgId}/webhooks`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input)
+    },
+    token
+  );
+  return res.webhook;
+}
+
+export async function updateWebhookApi(
+  token: string,
+  orgId: string,
+  webhookId: string,
+  data: Partial<CreateWebhookInput & { isEnabled: boolean }>
+): Promise<void> {
+  await apiRequest<{ ok: boolean }>(
+    `/orgs/${orgId}/webhooks/${webhookId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    },
+    token
+  );
+}
+
+export async function deleteWebhookApi(
+  token: string,
+  orgId: string,
+  webhookId: string
+): Promise<void> {
+  await apiRequest<{ ok: boolean }>(
+    `/orgs/${orgId}/webhooks/${webhookId}`,
+    { method: 'DELETE' },
+    token
+  );
+}
+```
+
+**File:** `apps/web/src/integrations/useWebhooks.ts`
+
+```ts
+// apps/web/src/integrations/useWebhooks.ts
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import {
+  Webhook,
+  CreateWebhookInput,
+  fetchWebhooks,
+  createWebhookApi,
+  updateWebhookApi,
+  deleteWebhookApi
+} from '../api/webhooks';
+
+export function useWebhooks(orgId: string | null) {
+  const { token } = useAuth();
+  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchWebhooks(token, orgId);
+        if (!cancelled) setWebhooks(data);
+      } catch (err) {
+        if (!cancelled) setError((err as Error).message || 'Failed to load webhooks');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId]);
+
+  async function create(input: CreateWebhookInput) {
+    if (!token || !orgId) return;
+    const created = await createWebhookApi(token, orgId, input);
+    setWebhooks((prev) => [...prev, created]);
+  }
+
+  async function update(id: string, data: Partial<CreateWebhookInput & { isEnabled: boolean }>) {
+    if (!token || !orgId) return;
+    await updateWebhookApi(token, orgId, id, data);
+    const fresh = await fetchWebhooks(token, orgId);
+    setWebhooks(fresh);
+  }
+
+  async function remove(id: string) {
+    if (!token || !orgId) return;
+    await deleteWebhookApi(token, orgId, id);
+    setWebhooks((prev) => prev.filter((w) => w.id !== id));
+  }
+
+  return {
+    webhooks,
+    loading,
+    error,
+    create,
+    update,
+    remove
+  };
+}
+```
+
+---
+
+### 38.8.2. Audit Log API Wrapper & Hook
+
+**File:** `apps/web/src/api/auditLog.ts`
+
+```ts
+// apps/web/src/api/auditLog.ts
+
+import { apiRequest } from './client';
+
+export interface AuditEventUser {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface AuditEvent {
+  id: string;
+  createdAt: string;
+  type: string;
+  user: AuditEventUser | null;
+  conversationId?: string | null;
+  messageId?: string | null;
+  metadata: Record<string, any>;
+}
+
+export interface AuditLogResponse {
+  total: number;
+  page: number;
+  pageSize: number;
+  events: AuditEvent[];
+}
+
+export interface AuditLogQuery {
+  page?: number;
+  pageSize?: number;
+  type?: string;
+  userId?: string;
+  conversationId?: string;
+}
+
+export async function fetchAuditLog(
+  token: string,
+  orgId: string,
+  query: AuditLogQuery
+): Promise<AuditLogResponse> {
+  const params = new URLSearchParams();
+
+  if (query.page !== undefined) params.set('page', String(query.page));
+  if (query.pageSize !== undefined) params.set('pageSize', String(query.pageSize));
+  if (query.type) params.set('type', query.type);
+  if (query.userId) params.set('userId', query.userId);
+  if (query.conversationId) params.set('conversationId', query.conversationId);
+
+  return apiRequest<AuditLogResponse>(
+    `/orgs/${orgId}/audit-log?${params.toString()}`,
+    { method: 'GET' },
+    token
+  );
+}
+```
+
+**File:** `apps/web/src/audit/useAuditLog.ts`
+
+```ts
+// apps/web/src/audit/useAuditLog.ts
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { AuditEvent, AuditLogResponse, AuditLogQuery, fetchAuditLog } from '../api/auditLog';
+
+export function useAuditLog(orgId: string | null, initialQuery: AuditLogQuery = {}) {
+  const { token } = useAuth();
+
+  const [query, setQuery] = useState<AuditLogQuery>({ page: 0, pageSize: 25, ...initialQuery });
+  const [response, setResponse] = useState<AuditLogResponse | null>(null);
+  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetchAuditLog(token, orgId, query);
+        if (!cancelled) {
+          setResponse(res);
+          setEvents(res.events);
+        }
+      } catch (err) {
+        if (!cancelled) setError((err as Error).message || 'Failed to load audit log');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId, query]);
+
+  return {
+    query,
+    setQuery,
+    response,
+    events,
+    loading,
+    error
+  };
+}
+```
+
+---
+
+## 38.9. UI: Webhook Management (Material 3)
+
+We add an **Integrations > Webhooks** page under org settings.
+
+Route: `/app/orgs/:orgId/settings/webhooks`
+
+**File:** `apps/web/src/integrations/WebhooksPage.tsx`
+
+```tsx
+// apps/web/src/integrations/WebhooksPage.tsx
+
+import React, { useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  TextField,
+  Typography
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import LinkIcon from '@mui/icons-material/Link';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { useParams } from 'react-router-dom';
+import { useWebhooks } from './useWebhooks';
+
+export const WebhooksPage: React.FC = () => {
+  const { orgId } = useParams();
+  const { webhooks, loading, error, create, remove, update } = useWebhooks(orgId || null);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [url, setUrl] = useState('');
+  const [eventTypes, setEventTypes] = useState('');
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(129,140,248,0.18), transparent 55%), ' +
+    'radial-gradient(circle at bottom right, rgba(56,189,248,0.18), transparent 55%)';
+
+  const handleCreate = async () => {
+    if (!orgId) return;
+
+    const types = eventTypes
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    await create({
+      name: name.trim(),
+      description: description.trim() || undefined,
+      url: url.trim(),
+      eventTypes: types.length > 0 ? types : undefined
+    });
+
+    setDialogOpen(false);
+    setName('');
+    setDescription('');
+    setUrl('');
+    setEventTypes('');
+  };
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" gap={1}>
+          <AutoAwesomeIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">Webhooks</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Notify external systems when events happen in this organization.
+            </Typography>
+          </Box>
+        </Box>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => setDialogOpen(true)}
+        >
+          New webhook
+        </Button>
+      </Box>
+
+      <Card sx={{ borderRadius: 3, flex: 1 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {loading && (
+            <Typography variant="body2" color="text.secondary">
+              Loading webhooks…
+            </Typography>
+          )}
+          {error && (
+            <Typography variant="body2" color="error">
+              {error}
+            </Typography>
+          )}
+          {!loading && !error && webhooks.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No webhooks yet. Create one to receive signed HTTP POST calls on events.
+            </Typography>
+          )}
+
+          {!loading && !error && webhooks.length > 0 && (
+            <Box display="flex" flexDirection="column" gap={1}>
+              {webhooks.map((wh) => (
+                <Box
+                  key={wh.id}
+                  sx={{
+                    p: 1.25,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.5,
+                    '&:hover': {
+                      borderColor: 'primary.main'
+                    },
+                    transition: 'border-color 120ms ease-out'
+                  }}
+                >
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <Typography variant="body2">{wh.name}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {wh.description || 'No description'}
+                      </Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Chip
+                        size="small"
+                        label={wh.isEnabled ? 'Enabled' : 'Disabled'}
+                        color={wh.isEnabled ? 'success' : 'default'}
+                        variant={wh.isEnabled ? 'filled' : 'outlined'}
+                        onClick={() => update(wh.id, { isEnabled: !wh.isEnabled })}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => remove(wh.id)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+
+                  <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
+                    <LinkIcon fontSize="small" />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ wordBreak: 'break-all' }}
+                    >
+                      {wh.url}
+                    </Typography>
+                  </Box>
+
+                  <Box mt={0.5} display="flex" flexWrap="wrap" gap={0.5}>
+                    {(wh.eventTypes || []).length === 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        All events
+                      </Typography>
+                    )}
+                    {(wh.eventTypes || []).map((t) => (
+                      <Chip key={t} size="small" label={t} variant="outlined" />
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>New webhook</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <TextField
+            label="Name"
+            fullWidth
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <TextField
+            label="Description"
+            fullWidth
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <TextField
+            label="Target URL"
+            fullWidth
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            helperText="Use an HTTPS endpoint that can verify HMAC signatures."
+          />
+          <TextField
+            label="Event type prefixes (comma separated)"
+            fullWidth
+            value={eventTypes}
+            onChange={(e) => setEventTypes(e.target.value)}
+            helperText="Example: conversation., org.ai_policy_updated"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleCreate}
+            disabled={!name.trim() || !url.trim()}
+          >
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+```
+
+Add route:
+
+```tsx
+import { WebhooksPage } from './integrations/WebhooksPage';
+
+<Route path="/app/orgs/:orgId/settings/webhooks" element={<WebhooksPage />} />
+```
+
+---
+
+## 38.10. UI: Audit Log Page (Material 3)
+
+We add an **Audit Log** page for org admins.
+
+Route: `/app/orgs/:orgId/audit-log`
+
+**File:** `apps/web/src/audit/AuditLogPage.tsx`
+
+```tsx
+// apps/web/src/audit/AuditLogPage.tsx
+
+import React from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  MenuItem,
+  Pagination,
+  Select,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography
+} from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
+import { useParams } from 'react-router-dom';
+import { useAuditLog } from './useAuditLog';
+
+export const AuditLogPage: React.FC = () => {
+  const { orgId } = useParams();
+
+  const {
+    query,
+    setQuery,
+    response,
+    events,
+    loading,
+    error
+  } = useAuditLog(orgId || null, { page: 0, pageSize: 25 });
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(251,191,36,0.16), transparent 55%), ' +
+    'radial-gradient(circle at bottom right, rgba(59,130,246,0.18), transparent 55%)';
+
+  const totalPages = response ? Math.ceil(response.total / response.pageSize) : 0;
+
+  const handleRefresh = () => {
+    setQuery((prev) => ({ ...prev }));
+  };
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" gap={1}>
+          <AutoAwesomeIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">Audit log</Typography>
+            <Typography variant="caption" color="text.secondary">
+              See who did what, and when, across this organization.
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton size="small" onClick={handleRefresh}>
+          <RefreshIcon fontSize="small" />
+        </IconButton>
+      </Box>
+
+      <Card sx={{ borderRadius: 3, flex: 1, minHeight: 200 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={1.5}>
+            <Box display="flex" alignItems="center" gap={1} flex={2}>
+              <SearchIcon fontSize="small" />
+              <TextField
+                label="Event type contains"
+                size="small"
+                fullWidth
+                value={query.type || ''}
+                onChange={(e) =>
+                  setQuery((prev) => ({
+                    ...prev,
+                    page: 0,
+                    type: e.target.value || undefined
+                  }))
+                }
+              />
+            </Box>
+            <Box display="flex" alignItems="center" gap={1} flex={1}>
+              <Typography variant="caption" color="text.secondary">
+                Page size
+              </Typography>
+              <Select
+                size="small"
+                value={query.pageSize || 25}
+                onChange={(e) =>
+                  setQuery((prev) => ({
+                    ...prev,
+                    pageSize: Number(e.target.value),
+                    page: 0
+                  }))
+                }
+              >
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+              </Select>
+            </Box>
+          </Box>
+
+          {loading && (
+            <Box mt={2}>
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <Skeleton key={idx} variant="rectangular" height={32} sx={{ mb: 1 }} />
+              ))}
+            </Box>
+          )}
+
+          {!loading && error && (
+            <Typography variant="body2" color="error">
+              {error}
+            </Typography>
+          )}
+
+          {!loading && !error && events.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No audit events yet.
+            </Typography>
+          )}
+
+          {!loading && !error && events.length > 0 && (
+            <Box sx={{ overflow: 'auto', mt: 1 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Time</TableCell>
+                    <TableCell>User</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Conversation</TableCell>
+                    <TableCell>Metadata</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {events.map((ev) => (
+                    <TableRow key={ev.id} hover>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(ev.createdAt).toLocaleString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {ev.user ? (
+                          <Box display="flex" flexDirection="column">
+                            <Typography variant="body2">{ev.user.displayName}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {ev.user.email}
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            System
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" label={ev.type} variant="outlined" />
+                      </TableCell>
+                      <TableCell>
+                        {ev.conversationId ? (
+                          <Tooltip title="Open conversation">
+                            <Typography
+                              variant="caption"
+                              color="primary"
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                if (!orgId) return;
+                                window.open(
+                                  `/app/orgs/${orgId}/conversations/${ev.conversationId}`,
+                                  '_blank'
+                                );
+                              }}
+                            >
+                              {ev.conversationId.slice(0, 8)}…
+                            </Typography>
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            maxWidth: 320,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {JSON.stringify(ev.metadata)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          )}
+
+          {response && totalPages > 1 && (
+            <Box mt={1.5} display="flex" justifyContent="center">
+              <Pagination
+                count={totalPages}
+                size="small"
+                page={(query.page || 0) + 1}
+                onChange={(_, p) =>
+                  setQuery((prev) => ({
+                    ...prev,
+                    page: p - 1
+                  }))
+                }
+              />
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
+```
+
+Register route:
+
+```tsx
+import { AuditLogPage } from './audit/AuditLogPage';
+
+<Route path="/app/orgs/:orgId/audit-log" element={<AuditLogPage />} />
+```
+
+---
+
+## 38.11. Metrics & Grafana
+
+Integrate events & webhooks with metrics (28.md):
+
+- Counters:  
+  - `events_emitted_total{orgId,type}` – increment in `emitEvent`.  
+  - `webhook_deliveries_total{orgId,status}` – increment in worker when delivery success/failure is recorded.  
+- Histograms:  
+  - `webhook_delivery_latency_ms` – measure HTTP round‑trip time.  
+- Gauges:  
+  - `webhook_pending_deliveries{orgId}` – count of `WebhookDelivery` with `status = 'pending'`.
+
+Grafana dashboards:
+
+- Webhook health per org (success rate, average latency).  
+- Event volume per type and org.  
+- Top event types, top orgs by activity.
+
+---
+
+## 38.12. Sanity Checklist
+
+Before enabling Events, Audit Log & Webhooks in production:
+
+- [ ] Prisma migrations for `Event`, `Webhook`, `WebhookDelivery` applied.  
+- [ ] `emitEvent` calls exist in all critical flows: auth, conversation creation, messages, tools, RAG, policy & preset changes.  
+- [ ] Webhook worker runs periodically and processes pending deliveries.  
+- [ ] Webhook signature verification docs are provided to customers (headers & HMAC format).  
+- [ ] Webhooks page in org settings can create, toggle and delete webhooks.  
+- [ ] Audit log page is accessible only to roles with `org:audit:read`.  
+- [ ] Metrics for events and webhooks visible in Grafana.
+
+If all checks pass, the AI chat platform now has an **enterprise‑grade eventing and auditing layer**, with clean UI for admins and a robust webhook system for integration with external tools.
+
+---
+
+_End of 38.md – Events, Audit Log & Webhooks – Backend + Material 3 UI_

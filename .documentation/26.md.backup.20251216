@@ -1,0 +1,815 @@
+# 26. Structured Tools Engine & Tool‑Aware Chat Orchestration
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Turn the **toolsEnabled** flags from 24.md into a real, production‑ready **tools engine** and integrate it with the chat flow.
+>
+> - Define a type‑safe tools abstraction (registry, context, execution).  
+> - Implement a few **safe built‑in tools** (time, org usage snapshot, conversation search).  
+> - Expose an HTTP endpoint to execute tools manually.  
+> - Extend the chat engine to **optionally** call tools automatically when `toolsEnabled.structuredTools` is enabled (two‑phase LLM+tools orchestration).
+>
+> After this file, conversations can:
+>
+> - Discover which tools are available.  
+> - Execute tools via API (for UI panels).  
+> - Let the LLM reason about when to call tools, using a simple JSON‑based protocol.
+
+> **Important instructions to AI agents:**
+> - This file **extends and refines** the chat engine from 25.md. Where there is overlap, treat this file as the latest version.  
+> - The tools defined here are intentionally **safe**, read‑only utilities (no arbitrary shell execution).  
+> - All code must be fully written – no TODOs, no stubs.
+
+---
+
+## 26.1. Tools Abstraction – Types & Contracts
+
+We start with a small set of core types that all tools share.
+
+### 26.1.1. Tool Types
+
+**File:** `apps/api-gateway/src/tools/types.ts`
+
+```ts
+// apps/api-gateway/src/tools/types.ts
+
+export interface ToolContext {
+  userId: string;
+  orgId: string | null;
+  conversationId: string | null;
+}
+
+export interface ToolDefinition<Args = unknown, Result = unknown> {
+  /** Unique tool name, e.g. "time.now" or "org.usageSnapshot" */
+  name: string;
+  /** Human-friendly description, for prompt injection into the LLM */
+  description: string;
+  /** JSON schema for args (loosely typed here, but you can plug in Zod or similar) */
+  argsSchema: any;
+  /** Execute the tool with validated args */
+  execute: (args: Args, ctx: ToolContext) => Promise<Result>;
+}
+
+export interface ToolCall {
+  tool: string;
+  args: unknown;
+}
+
+export interface ToolExecutionResult {
+  tool: string;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+/**
+ * Envelope that the LLM can emit when it wants to call tools.
+ *
+ * Example JSON:
+ * {
+ *   "toolCalls": [
+ *     { "tool": "time.now", "args": {} },
+ *     { "tool": "org.usageSnapshot", "args": { "windowDays": 30 } }
+ *   ]
+ * }
+ */
+export interface ToolCallEnvelope {
+  toolCalls: ToolCall[];
+}
+```
+
+> **Note:** We intentionally keep `argsSchema` as `any` here – individual tools can use Zod or custom checkers. The main engine only expects a `parse`‑like function.
+
+---
+
+## 26.2. Built‑In Tools
+
+We implement a few safe tools that are genuinely useful for this app:
+
+1. `time.now` – returns server current time in ISO 8601.  
+2. `org.usageSnapshot` – returns the org’s quota snapshot (uses `getOrgQuotaWindowUsage` from 19.md).  
+3. `conversation.searchMessages` – search recent messages in a conversation for a keyword.
+
+### 26.2.1. `time.now` Tool
+
+**File:** `apps/api-gateway/src/tools/timeNowTool.ts`
+
+```ts
+// apps/api-gateway/src/tools/timeNowTool.ts
+
+import { ToolDefinition } from './types';
+
+interface TimeNowArgs {}
+
+interface TimeNowResult {
+  iso: string;
+  unixMs: number;
+}
+
+export const timeNowTool: ToolDefinition<TimeNowArgs, TimeNowResult> = {
+  name: 'time.now',
+  description: 'Returns the current server time in ISO 8601 format.',
+  argsSchema: {
+    type: 'object',
+    properties: {},
+    additionalProperties: false
+  },
+  async execute(_args, _ctx) {
+    const now = new Date();
+    return {
+      iso: now.toISOString(),
+      unixMs: now.getTime()
+    };
+  }
+};
+```
+
+### 26.2.2. `org.usageSnapshot` Tool
+
+**File:** `apps/api-gateway/src/tools/orgUsageSnapshotTool.ts`
+
+```ts
+// apps/api-gateway/src/tools/orgUsageSnapshotTool.ts
+
+import { ToolDefinition, ToolContext } from './types';
+import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard';
+
+interface OrgUsageSnapshotArgs {
+  windowDays?: number;
+}
+
+export interface OrgUsageSnapshotResult {
+  orgId: string;
+  windowDays: number;
+  quota: any;
+}
+
+export const orgUsageSnapshotTool: ToolDefinition<OrgUsageSnapshotArgs, OrgUsageSnapshotResult> = {
+  name: 'org.usageSnapshot',
+  description:
+    'Returns the organization\'s usage and quota snapshot for the given window (e.g. 30 days).',
+  argsSchema: {
+    type: 'object',
+    properties: {
+      windowDays: {
+        type: 'number',
+        minimum: 1,
+        maximum: 365
+      }
+    },
+    additionalProperties: false
+  },
+  async execute(args, ctx: ToolContext) {
+    if (!ctx.orgId) {
+      throw new Error('No organization context available');
+    }
+
+    const windowDays = typeof args.windowDays === 'number' ? args.windowDays : 30;
+    const quota = await getOrgQuotaWindowUsage(ctx.orgId, windowDays);
+
+    return {
+      orgId: ctx.orgId,
+      windowDays,
+      quota
+    };
+  }
+};
+```
+
+### 26.2.3. `conversation.searchMessages` Tool
+
+**File:** `apps/api-gateway/src/tools/conversationSearchTool.ts`
+
+```ts
+// apps/api-gateway/src/tools/conversationSearchTool.ts
+
+import { ToolDefinition, ToolContext } from './types';
+import { prisma } from '@ai-chat/db';
+
+interface ConversationSearchArgs {
+  query: string;
+  limit?: number;
+}
+
+interface ConversationSearchResultItem {
+  role: 'SYSTEM' | 'USER' | 'ASSISTANT' | 'TOOL';
+  content: string;
+  createdAt: string;
+}
+
+interface ConversationSearchResult {
+  conversationId: string;
+  query: string;
+  matches: ConversationSearchResultItem[];
+}
+
+export const conversationSearchTool: ToolDefinition<ConversationSearchArgs, ConversationSearchResult> = {
+  name: 'conversation.searchMessages',
+  description:
+    'Searches recent messages in this conversation for the given query string and returns the best matches.',
+  argsSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', minLength: 1 },
+      limit: { type: 'number', minimum: 1, maximum: 50 }
+    },
+    required: ['query'],
+    additionalProperties: false
+  },
+  async execute(args, ctx: ToolContext) {
+    if (!ctx.conversationId) {
+      throw new Error('No conversation context available');
+    }
+
+    const limit = typeof args.limit === 'number' ? args.limit : 20;
+
+    const messages = await prisma.message.findMany({
+      where: {
+        conversationId: ctx.conversationId,
+        content: {
+          contains: args.query,
+          mode: 'insensitive'
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: limit,
+      select: {
+        role: true,
+        content: true,
+        createdAt: true
+      }
+    });
+
+    const matches: ConversationSearchResultItem[] = messages.map((m) => ({
+      role: m.role as ConversationSearchResultItem['role'],
+      content: m.content,
+      createdAt: m.createdAt.toISOString()
+    }));
+
+    return {
+      conversationId: ctx.conversationId,
+      query: args.query,
+      matches
+    };
+  }
+};
+```
+
+All three tools are **read‑only** and safe in a multi‑tenant SaaS environment.
+
+---
+
+## 26.3. Tool Registry & Execution Engine
+
+We now create a registry that aggregates tools and a small engine that can execute them.
+
+### 26.3.1. Tool Registry
+
+**File:** `apps/api-gateway/src/tools/registry.ts`
+
+```ts
+// apps/api-gateway/src/tools/registry.ts
+
+import { ToolDefinition } from './types';
+import { timeNowTool } from './timeNowTool';
+import { orgUsageSnapshotTool } from './orgUsageSnapshotTool';
+import { conversationSearchTool } from './conversationSearchTool';
+
+const TOOLS: ToolDefinition[] = [timeNowTool, orgUsageSnapshotTool, conversationSearchTool];
+
+export function listAllTools(): ToolDefinition[] {
+  return TOOLS.slice();
+}
+
+export function getToolByName(name: string): ToolDefinition | undefined {
+  return TOOLS.find((t) => t.name === name);
+}
+```
+
+### 26.3.2. Execution Engine
+
+**File:** `apps/api-gateway/src/services/toolEngine.ts`
+
+```ts
+// apps/api-gateway/src/services/toolEngine.ts
+
+import { ToolCall, ToolContext, ToolExecutionResult, ToolCallEnvelope } from '../tools/types';
+import { getToolByName, listAllTools } from '../tools/registry';
+
+function validateArgs(schema: any, args: unknown): any {
+  // Minimal validation – you can replace this with Zod or Ajv if desired.
+  if (!schema || typeof schema !== 'object') {
+    return args ?? {};
+  }
+
+  // For now, just return the args as-is; individual tools may perform deeper checks.
+  return args ?? {};
+}
+
+export async function executeToolCall(
+  call: ToolCall,
+  ctx: ToolContext
+): Promise<ToolExecutionResult> {
+  const tool = getToolByName(call.tool);
+
+  if (!tool) {
+    return {
+      tool: call.tool,
+      ok: false,
+      error: `Unknown tool: ${call.tool}`
+    };
+  }
+
+  try {
+    const validatedArgs = validateArgs(tool.argsSchema, call.args);
+    const result = await tool.execute(validatedArgs, ctx);
+
+    return {
+      tool: tool.name,
+      ok: true,
+      result
+    };
+  } catch (err) {
+    return {
+      tool: tool.name,
+      ok: false,
+      error: (err as Error).message || 'Tool execution failed'
+    };
+  }
+}
+
+export async function executeToolEnvelope(
+  envelope: ToolCallEnvelope,
+  ctx: ToolContext
+): Promise<ToolExecutionResult[]> {
+  const results: ToolExecutionResult[] = [];
+
+  for (const call of envelope.toolCalls) {
+    const res = await executeToolCall(call, ctx);
+    results.push(res);
+  }
+
+  return results;
+}
+
+export function listToolsForContext(_ctx: ToolContext) {
+  // In the future you can filter tools by org/role/plan. For now, return all.
+  return listAllTools();
+}
+```
+
+This engine is deliberately simple but fully functional.
+
+---
+
+## 26.4. Tools HTTP API
+
+We expose a small HTTP API for the frontend to:
+
+- List available tools for a conversation.  
+- Execute one or more tools (manual use / debugging).
+
+### 26.4.1. Tools Routes
+
+**File:** `apps/api-gateway/src/routes/tools.ts`
+
+```ts
+// apps/api-gateway/src/routes/tools.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { JwtPayload } from '../auth/types';
+import { z } from 'zod';
+import { listToolsForContext, executeToolCall, executeToolEnvelope } from '../services/toolEngine';
+
+const listQuerySchema = z.object({
+  conversationId: z.string().optional(),
+  orgId: z.string().optional()
+});
+
+const executeBodySchema = z.object({
+  conversationId: z.string().nullable().optional(),
+  orgId: z.string().nullable().optional(),
+  tool: z.string().min(1),
+  args: z.unknown().optional()
+});
+
+const executeEnvelopeBodySchema = z.object({
+  conversationId: z.string().nullable().optional(),
+  orgId: z.string().nullable().optional(),
+  toolCalls: z
+    .array(
+      z.object({
+        tool: z.string().min(1),
+        args: z.unknown().optional()
+      })
+    )
+    .min(1)
+});
+
+export default async function toolsRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  app.get('/tools', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    const parsedQuery = listQuerySchema.safeParse(request.query);
+    if (!parsedQuery.success) {
+      return reply.code(400).send({ error: 'INVALID_QUERY', details: parsedQuery.error.format() });
+    }
+
+    const { conversationId, orgId } = parsedQuery.data;
+
+    const ctx = {
+      userId: payload.userId,
+      orgId: orgId ?? null,
+      conversationId: conversationId ?? null
+    };
+
+    const tools = listToolsForContext(ctx).map((t) => ({
+      name: t.name,
+      description: t.description,
+      argsSchema: t.argsSchema
+    }));
+
+    return reply.send({ tools });
+  });
+
+  app.post('/tools/execute', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    const parsedBody = executeBodySchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsedBody.error.format() });
+    }
+
+    const { conversationId, orgId, tool, args } = parsedBody.data;
+
+    const ctx = {
+      userId: payload.userId,
+      orgId: orgId ?? null,
+      conversationId: conversationId ?? null
+    };
+
+    const result = await executeToolCall({ tool, args }, ctx);
+
+    return reply.send(result);
+  });
+
+  app.post('/tools/execute-envelope', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    const parsedBody = executeEnvelopeBodySchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsedBody.error.format() });
+    }
+
+    const { conversationId, orgId, toolCalls } = parsedBody.data;
+
+    const ctx = {
+      userId: payload.userId,
+      orgId: orgId ?? null,
+      conversationId: conversationId ?? null
+    };
+
+    const results = await executeToolEnvelope({ toolCalls }, ctx);
+
+    return reply.send({ results });
+  });
+}
+```
+
+Register the routes in `apps/api-gateway/src/main.ts`:
+
+```ts
+import toolsRoutes from './routes/tools';
+
+await app.register(toolsRoutes);
+```
+
+---
+
+## 26.5. Tool‑Aware Chat Orchestration
+
+We now extend the chat engine to:
+
+- Use tools automatically when `toolsEnabled.structuredTools` is enabled for the conversation.  
+- Otherwise, behave like the simple one‑shot turn defined in 25.md.
+
+### 26.5.1. Tool‑Aware System Prompt
+
+We will inject a compact instruction to the LLM describing available tools and the required JSON protocol.
+
+**File:** `apps/api-gateway/src/services/chatEngineToolsPrompt.ts`
+
+```ts
+// apps/api-gateway/src/services/chatEngineToolsPrompt.ts
+
+import { ToolDefinition } from '../tools/types';
+
+export function buildToolsSystemPrompt(tools: ToolDefinition[]): string {
+  const toolLines = tools.map((t) => `- ${t.name}: ${t.description}`).join('\n');
+
+  return `You can optionally call tools to help you answer the user.\n\n` +
+    `Available tools:\n${toolLines}\n\n` +
+    `When you decide that tools are necessary, respond with a JSON object ONLY, ` +
+    `using this structure (no extra text):\n\n` +
+    `{"toolCalls": [{"tool": "tool.name", "args": { ... }}]}\n\n` +
+    `If you do not need tools, respond normally in natural language. Do NOT mix normal language and the JSON object in the same response.`;
+}
+```
+
+This keeps the protocol clear:
+
+- If the response starts with `{` and parses as `ToolCallEnvelope`, we treat it as a tool call.  
+- Otherwise, it is a normal assistant response.
+
+### 26.5.2. Updated Chat Engine
+
+**File:** `apps/api-gateway/src/services/chatEngine.ts`
+
+This version **replaces** the one from 25.5.1; treat this as canonical.
+
+```ts
+// apps/api-gateway/src/services/chatEngine.ts
+
+import { prisma } from '@ai-chat/db';
+import { ProviderMessage, ProviderUsage } from '../providers/base';
+import { getModelConfig, resolveModelId } from '../config/models';
+import { getProviderForModel } from './modelRouter';
+import { listToolsForContext, executeToolEnvelope } from './toolEngine';
+import { ToolCallEnvelope, ToolContext } from '../tools/types';
+import { buildToolsSystemPrompt } from './chatEngineToolsPrompt';
+
+export type ChatRole = 'SYSTEM' | 'USER' | 'ASSISTANT' | 'TOOL';
+
+export interface RunConversationTurnInput {
+  conversationId: string;
+  userId: string;
+  content: string; // latest user message content
+}
+
+export interface RunConversationTurnResult {
+  assistantMessageId: string;
+  assistantContent: string;
+  usage?: ProviderUsage;
+}
+
+function parseToolEnvelopeCandidate(text: string): ToolCallEnvelope | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{')) return null;
+
+  try {
+    const json = JSON.parse(trimmed);
+    if (!json || typeof json !== 'object' || !Array.isArray(json.toolCalls)) return null;
+    return json as ToolCallEnvelope;
+  } catch {
+    return null;
+  }
+}
+
+export async function runConversationTurn(
+  input: RunConversationTurnInput
+): Promise<RunConversationTurnResult> {
+  const { conversationId, userId, content } = input;
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: {
+      id: true,
+      orgId: true,
+      model: true,
+      temperature: true,
+      systemPrompt: true,
+      toolsEnabled: true
+    }
+  });
+
+  if (!conversation) {
+    throw new Error('Conversation not found');
+  }
+
+  // Create the user message first so history is consistent
+  await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      role: 'USER',
+      content,
+      authorId: userId,
+      meta: {}
+    }
+  });
+
+  // Load recent history (e.g. last 50 messages)
+  const history = await prisma.message.findMany({
+    where: { conversationId: conversation.id },
+    orderBy: { createdAt: 'asc' },
+    take: 50,
+    select: {
+      role: true,
+      content: true
+    }
+  });
+
+  const effectiveModelId = resolveModelId(conversation.model);
+  const modelConfig = getModelConfig(effectiveModelId);
+  const provider = getProviderForModel(modelConfig);
+
+  const temperature =
+    typeof conversation.temperature === 'number'
+      ? conversation.temperature
+      : modelConfig.defaultTemperature;
+
+  const toolsEnabled = (conversation.toolsEnabled as any) || {};
+  const structuredToolsEnabled = Boolean(toolsEnabled.structuredTools);
+
+  // Build base provider messages (history)
+  const baseMessages: ProviderMessage[] = [];
+
+  if (conversation.systemPrompt && conversation.systemPrompt.trim()) {
+    baseMessages.push({
+      role: 'system',
+      content: conversation.systemPrompt.trim()
+    });
+  }
+
+  for (const msg of history) {
+    const role = (msg.role as ChatRole) || 'USER';
+
+    if (role === 'SYSTEM') {
+      baseMessages.push({ role: 'system', content: msg.content });
+    } else if (role === 'USER') {
+      baseMessages.push({ role: 'user', content: msg.content });
+    } else if (role === 'ASSISTANT') {
+      baseMessages.push({ role: 'assistant', content: msg.content });
+    } else if (role === 'TOOL') {
+      baseMessages.push({ role: 'tool', content: msg.content });
+    }
+  }
+
+  const ctx: ToolContext = {
+    userId,
+    orgId: conversation.orgId,
+    conversationId: conversation.id
+  };
+
+  // If structured tools are enabled, run a two-phase orchestration:
+  //   1) Ask the model if it wants to call tools.
+  //   2) If it returns a ToolCallEnvelope, execute tools and then ask again with tool results.
+
+  if (structuredToolsEnabled) {
+    const tools = listToolsForContext(ctx);
+    const toolsPrompt = buildToolsSystemPrompt(tools);
+
+    const planningMessages: ProviderMessage[] = [
+      { role: 'system', content: toolsPrompt },
+      ...baseMessages
+    ];
+
+    const planResult = await provider.chat(planningMessages, {
+      model: modelConfig.providerModel,
+      temperature,
+      toolsEnabled
+    });
+
+    const envelope = parseToolEnvelopeCandidate(planResult.content);
+
+    if (envelope && envelope.toolCalls.length > 0) {
+      // Execute tools
+      const toolResults = await executeToolEnvelope(envelope, ctx);
+
+      // Store tool result message
+      const toolMessage = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'TOOL',
+          content: JSON.stringify(toolResults, null, 2),
+          authorId: null,
+          meta: {
+            toolsEnvelope: envelope
+          }
+        }
+      });
+
+      // Ask model again with tool results appended
+      const messagesWithTools: ProviderMessage[] = [
+        ...baseMessages,
+        {
+          role: 'tool',
+          content:
+            'Tool results (JSON):\n' +
+            JSON.stringify({ toolResults }, null, 2) +
+            '\nUse this information to answer the user. Respond normally to the user now.'
+        }
+      ];
+
+      const finalResult = await provider.chat(messagesWithTools, {
+        model: modelConfig.providerModel,
+        temperature,
+        toolsEnabled
+      });
+
+      const assistantMessage = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'ASSISTANT',
+          content: finalResult.content,
+          authorId: null,
+          meta: {
+            usage: finalResult.usage || {},
+            toolMessageId: toolMessage.id
+          }
+        }
+      });
+
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: {
+          lastActivityAt: new Date()
+        }
+      });
+
+      return {
+        assistantMessageId: assistantMessage.id,
+        assistantContent: assistantMessage.content,
+        usage: finalResult.usage
+      };
+    }
+
+    // If no valid tool envelope, fall through to normal single-pass behavior below.
+  }
+
+  // Single-pass behavior (no tools or tools not used)
+  const result = await provider.chat(baseMessages, {
+    model: modelConfig.providerModel,
+    temperature,
+    toolsEnabled
+  });
+
+  const assistantMessage = await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      role: 'ASSISTANT',
+      content: result.content,
+      authorId: null,
+      meta: {
+        usage: result.usage || {}
+      }
+    }
+  });
+
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: {
+      lastActivityAt: new Date()
+    }
+  });
+
+  return {
+    assistantMessageId: assistantMessage.id,
+    assistantContent: assistantMessage.content,
+    usage: result.usage
+  };
+}
+```
+
+This keeps the **public API** of `runConversationTurn` unchanged while enabling tools when configured.
+
+---
+
+## 26.6. Sanity Checks
+
+From the repo root:
+
+1. **Typecheck & lint:**
+
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   ```
+
+2. **Run API gateway:**
+
+   ```bash
+   pnpm dev --filter=api-gateway
+   ```
+
+3. **Test tools API:**
+
+   - `GET /tools` → should list `time.now`, `org.usageSnapshot`, `conversation.searchMessages`.  
+   - `POST /tools/execute` with `{ tool: "time.now", args: {} }` → should return server time.  
+   - `POST /tools/execute` with `{ tool: "org.usageSnapshot", orgId: "..." }` → should return org quota snapshot.
+
+4. **Test tool‑aware chat:**
+
+   - Ensure a conversation has `toolsEnabled.structuredTools = true` (24.md).  
+   - Ask a question like: *“What is our org usage like in the last 30 days? Use your tools if needed.”*  
+   - The model may decide to output a JSON `toolCalls` envelope; backend will:
+     - Execute tools.  
+     - Store TOOL message.  
+     - Call the model again with tool results.  
+     - Store and return final ASSISTANT message.
+
+If all checks pass, your AI chat system now supports **tool‑augmented reasoning** with a clean abstraction and safe built‑in tools, fully controlled via per‑conversation settings.
+
+---
+
+_End of 26.md – Structured Tools Engine & Tool‑Aware Chat Orchestration_

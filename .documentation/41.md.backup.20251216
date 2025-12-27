@@ -1,0 +1,1354 @@
+# 41. Safety, Moderation, Abuse Detection & Guardrails – Backend + Material 3 UI
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human backend/frontend engineers.  
+> **Goal of this file:** Implement **enterprise‑grade safety & moderation** capabilities for the AI chat platform so that:
+>
+> - Every message (user + assistant) can be **classified, filtered and logged** for safety.  
+> - Orgs can configure **custom moderation policies** (block, warn, allow) per category.  
+> - We detect and react to **abuse patterns** (spam, flooding, prompt‑injection, data exfiltration).  
+> - Safety incidents are visible in a **Material 3 Safety Console** for admins.  
+> - Everything is multi‑tenant, RBAC‑aware, auditable (38.md) and observable (28.md).
+>
+> The spec is written so Cursor‑like agents can implement it end‑to‑end without clarification.
+
+This spec builds on:
+
+- 11–14.md – Users, orgs, roles & RBAC.  
+- 19.md – Quotas & usage guard (rate limiting hooks).  
+- 25.md – Conversation/message pipeline.  
+- 28.md – Metrics & Grafana.  
+- 33–37.md – RAG & tool calling (prompt injection risks).  
+- 38.md – Events & audit log.  
+- 39.md – Data retention.  
+- 40.md – Org Admin Console.
+
+---
+
+## 41.1. Concepts & Scope
+
+We define four safety layers:
+
+1. **Content Moderation**  
+   - Synchronous checks on **user messages** before sending to the LLM.  
+   - Optional checks on **assistant responses** before showing to the user.  
+   - Built‑in categories (e.g. `self_harm`, `hate`, `sexual_minors`, `violence`, `harassment`, `pii`, `copyright`, `malware`).
+
+2. **Policy Engine (Org‑Configurable)**  
+   - For each category & severity, org can choose **`block` | `warn` | `log_only` | `allow`**.  
+   - Per‑org thresholds; some categories may be locked at `block` globally.
+
+3. **Abuse & Anomaly Detection**  
+   - Simple patterns: spam, flooding, repeated prompts, excessive length, prompt‑injection markers.  
+   - Integration with quota/usage to throttle abusive patterns.
+
+4. **Safety Console & Incident Log**  
+   - Org admin UI to view incidents, filter by category, conversation, user.  
+   - Manual overrides (e.g. mark as false positive, escalate, block user temporarily).
+
+All safety decisions must:
+
+- Be **explainable** in API responses (`block_reason`, `categories`, `scores`).  
+- Emit **events** (38.md) for audit & webhooks.  
+- Expose **metrics** for Grafana (28.md).
+
+---
+
+## 41.2. Data Model – Prisma
+
+Extend `packages/db/prisma/schema.prisma` with **org safety config** and **moderation incidents**.
+
+```prisma
+model OrgSafetyConfig {
+  id        String   @id @default(cuid())
+  orgId     String   @unique
+
+  // Whether moderation is enabled for user messages
+  moderateUserMessages     Boolean @default(true)
+
+  // Whether moderation is enabled for assistant messages
+  moderateAssistantMessages Boolean @default(false)
+
+  // Map category -> action (block, warn, log_only, allow)
+  // Example: { "self_harm": "block", "hate": "block", "sexual_minors": "block", "pii": "warn" }
+  categoryActions Json @default("{}")
+
+  // Optional allowed domains for URLs, used by prompt injection / exfiltration checks
+  allowedDomains Json @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id])
+}
+
+model ModerationIncident {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  orgId       String
+  conversationId String?
+  messageId   String?
+  userId      String?
+
+  // source: "user" | "assistant" | "tool"
+  source      String
+
+  // The raw categories returned by the moderation engine
+  categories  Json
+
+  // The computed action taken: "block" | "warn" | "log_only" | "allow"
+  action      String
+
+  // Optional short reason for UI display
+  reason      String?
+
+  // Snapshotted message content (may be truncated or redacted)
+  contentSnippet String
+
+  // Derived flags for quick filtering
+  isSevere    Boolean @default(false)
+
+  org         Org          @relation(fields: [orgId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+  user        User?         @relation(fields: [userId], references: [id])
+}
+
+model BlockedUser {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+
+  reason    String?
+  until     DateTime? // null = indefinitely
+
+  createdAt DateTime @default(now())
+
+  org  Org  @relation(fields: [orgId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([orgId, userId])
+}
+```
+
+Run Prisma migration after adding these models.
+
+---
+
+## 41.3. Moderation Engine Abstraction (Backend)
+
+We do **not** hard‑code a single provider. Instead, we define an abstraction the platform can route to:
+
+- External API (e.g. OpenAI, internal safety model).  
+- Local LLM (via Ollama or other runtime).  
+- Heuristic/regex‑based fallback when external moderation is unavailable.
+
+### 41.3.1. Types & Categories
+
+**File:** `apps/api-gateway/src/safety/types.ts`
+
+```ts
+// apps/api-gateway/src/safety/types.ts
+
+export type ModerationSource = 'user' | 'assistant' | 'tool';
+
+export type ModerationCategory =
+  | 'self_harm'
+  | 'hate'
+  | 'sexual_minors'
+  | 'sexual_content'
+  | 'violence'
+  | 'harassment'
+  | 'malware'
+  | 'pii'
+  | 'prompt_injection'
+  | 'copyright'
+  | 'other';
+
+export type ModerationAction = 'block' | 'warn' | 'log_only' | 'allow';
+
+export interface ModerationCategoryScore {
+  category: ModerationCategory;
+  score: number; // 0..1
+}
+
+export interface ModerationResult {
+  categories: ModerationCategoryScore[];
+  flagged: boolean;
+  // engine-specific payload for debugging
+  raw: unknown;
+}
+
+export interface SafetyDecision {
+  action: ModerationAction;
+  categories: ModerationCategoryScore[];
+  reason?: string;
+}
+```
+
+### 41.3.2. Provider Interface
+
+**File:** `apps/api-gateway/src/safety/provider.ts`
+
+```ts
+// apps/api-gateway/src/safety/provider.ts
+
+export interface ModerationProvider {
+  moderate(text: string, context?: { orgId?: string; userId?: string }): Promise<ModerationResult>;
+}
+
+let provider: ModerationProvider | null = null;
+
+export function setModerationProvider(impl: ModerationProvider) {
+  provider = impl;
+}
+
+export function getModerationProvider(): ModerationProvider {
+  if (!provider) {
+    throw new Error('Moderation provider not configured');
+  }
+  return provider;
+}
+```
+
+A concrete implementation can be plugged in at bootstrap (e.g. OpenAI client, local microservice, etc.).
+
+### 41.3.3. Simple Heuristic Fallback
+
+**File:** `apps/api-gateway/src/safety/heuristicProvider.ts`
+
+```ts
+// apps/api-gateway/src/safety/heuristicProvider.ts
+
+import { ModerationProvider, ModerationResult } from './provider';
+import { ModerationCategoryScore } from './types';
+
+const BLOCKLIST: { category: ModerationCategoryScore['category']; patterns: RegExp[] }[] = [
+  {
+    category: 'self_harm',
+    patterns: [/kill myself/i, /suicide/i, /end my life/i]
+  },
+  {
+    category: 'prompt_injection',
+    patterns: [/ignore previous instructions/i, /you must forget the rules/i]
+  }
+  // ...extend as needed
+];
+
+export class HeuristicModerationProvider implements ModerationProvider {
+  async moderate(text: string): Promise<ModerationResult> {
+    const scores: ModerationCategoryScore[] = [];
+
+    for (const item of BLOCKLIST) {
+      const hit = item.patterns.some((re) => re.test(text));
+      if (hit) {
+        scores.push({ category: item.category, score: 0.99 });
+      }
+    }
+
+    const flagged = scores.length > 0;
+
+    return {
+      categories: scores,
+      flagged,
+      raw: { heuristic: true }
+    };
+  }
+}
+```
+
+In `main.ts`, we can configure:
+
+```ts
+import { setModerationProvider } from './safety/provider';
+import { HeuristicModerationProvider } from './safety/heuristicProvider';
+
+setModerationProvider(new HeuristicModerationProvider());
+```
+
+Later this can be replaced with a richer provider without changing the call sites.
+
+---
+
+## 41.4. Policy Engine & Decision Logic
+
+We need to turn `ModerationResult` into a concrete **action** based on `OrgSafetyConfig`.
+
+**File:** `apps/api-gateway/src/safety/policy.ts`
+
+```ts
+// apps/api-gateway/src/safety/policy.ts
+
+import { prisma } from '@ai-chat/db';
+import { ModerationCategory, ModerationResult, ModerationAction, SafetyDecision } from './types';
+
+// Default platform-wide actions (can be overridden by org config unless locked elsewhere):
+const PLATFORM_DEFAULTS: Record<ModerationCategory, ModerationAction> = {
+  self_harm: 'block',
+  hate: 'block',
+  sexual_minors: 'block',
+  sexual_content: 'warn',
+  violence: 'warn',
+  harassment: 'warn',
+  malware: 'block',
+  pii: 'warn',
+  prompt_injection: 'warn',
+  copyright: 'log_only',
+  other: 'log_only'
+};
+
+export async function decideSafetyAction(
+  orgId: string,
+  result: ModerationResult
+): Promise<SafetyDecision> {
+  const cfg = await prisma.orgSafetyConfig.findUnique({ where: { orgId } });
+
+  const actionMap: Record<string, ModerationAction> = {
+    ...PLATFORM_DEFAULTS,
+    ...(cfg?.categoryActions as any)
+  };
+
+  // Pick max severity category score
+  const sorted = [...result.categories].sort((a, b) => b.score - a.score);
+
+  if (sorted.length === 0) {
+    return {
+      action: 'allow',
+      categories: [],
+      reason: undefined
+    };
+  }
+
+  const top = sorted[0];
+  const action = actionMap[top.category] ?? 'allow';
+
+  let reason: string | undefined;
+  switch (action) {
+    case 'block':
+      reason = `Blocked due to ${top.category} (score=${top.score.toFixed(2)})`;
+      break;
+    case 'warn':
+      reason = `Warning: ${top.category} (score=${top.score.toFixed(2)})`;
+      break;
+    case 'log_only':
+      reason = `Logged category ${top.category}`;
+      break;
+    default:
+      reason = undefined;
+  }
+
+  return {
+    action,
+    categories: sorted,
+    reason
+  };
+}
+```
+
+---
+
+## 41.5. Integrating Moderation into the Chat Pipeline
+
+Moderation must be applied during **message send** (user → assistant) and optionally on **assistant output**.
+
+We assume 25.md defined something like `POST /orgs/:orgId/conversations/:conversationId/messages` and a message handling pipeline.
+
+### 41.5.1. Safety Middleware (User Messages)
+
+**File:** `apps/api-gateway/src/safety/middleware.ts`
+
+```ts
+// apps/api-gateway/src/safety/middleware.ts
+
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { getModerationProvider } from './provider';
+import { decideSafetyAction } from './policy';
+import { prisma } from '@ai-chat/db';
+import { ModerationSource } from './types';
+
+interface SafetyContext {
+  orgId: string;
+  conversationId?: string;
+  userId?: string;
+  source: ModerationSource;
+  content: string;
+}
+
+export async function runModeration(ctx: SafetyContext) {
+  const provider = getModerationProvider();
+  const result = await provider.moderate(ctx.content, {
+    orgId: ctx.orgId,
+    userId: ctx.userId
+  });
+
+  if (!result.flagged || result.categories.length === 0) {
+    return {
+      action: 'allow' as const,
+      categories: [],
+      reason: undefined
+    };
+  }
+
+  const decision = await decideSafetyAction(ctx.orgId, result);
+
+  const isSevere = decision.action === 'block';
+
+  await prisma.moderationIncident.create({
+    data: {
+      orgId: ctx.orgId,
+      conversationId: ctx.conversationId ?? null,
+      userId: ctx.userId ?? null,
+      source: ctx.source,
+      categories: decision.categories,
+      action: decision.action,
+      reason: decision.reason,
+      contentSnippet: ctx.content.slice(0, 512),
+      isSevere
+    }
+  });
+
+  // Optional: emitEvent('safety.moderation_incident', ...)
+
+  return decision;
+}
+
+// Example Fastify preHandler for user message creation
+export async function userMessageSafetyGuard(request: FastifyRequest, reply: FastifyReply) {
+  const { orgId, conversationId } = request.params as any;
+  const body: any = request.body;
+  const content: string = body?.content ?? '';
+
+  const user = request.user as any; // JwtPayload
+
+  const cfg = await prisma.orgSafetyConfig.findUnique({ where: { orgId } });
+  if (cfg && !cfg.moderateUserMessages) {
+    return; // skip
+  }
+
+  const decision = await runModeration({
+    orgId,
+    conversationId,
+    userId: user?.userId,
+    source: 'user',
+    content
+  });
+
+  if (decision.action === 'block') {
+    return reply.code(403).send({
+      error: 'MESSAGE_BLOCKED_BY_SAFETY',
+      reason: decision.reason,
+      categories: decision.categories
+    });
+  }
+
+  if (decision.action === 'warn') {
+    // We still allow the message but include warning in response metadata.
+    // The calling handler may decide to surface this in the UI.
+    (request as any).safetyWarning = {
+      reason: decision.reason,
+      categories: decision.categories
+    };
+  }
+}
+```
+
+Hook this into the message creation route (25.md):
+
+```ts
+import { userMessageSafetyGuard } from '../safety/middleware';
+
+app.post('/orgs/:orgId/conversations/:conversationId/messages', {
+  preHandler: [app.authenticate, userMessageSafetyGuard]
+}, async (request, reply) => {
+  // ... existing message creation & LLM call
+});
+```
+
+### 41.5.2. Assistant Output Moderation (Optional)
+
+For assistant responses, we can optionally run moderation **after** the LLM output but **before** returning to client.
+
+Pseudo‑code in message handler:
+
+```ts
+// After getting LLM result
+const assistantText = llmResult.text;
+
+const cfg = await prisma.orgSafetyConfig.findUnique({ where: { orgId } });
+if (cfg?.moderateAssistantMessages) {
+  const decision = await runModeration({
+    orgId,
+    conversationId,
+    userId: user.userId,
+    source: 'assistant',
+    content: assistantText
+  });
+
+  if (decision.action === 'block') {
+    // Replace with safe fallback
+    const safeText = 'The assistant response was blocked by safety policies.';
+
+    // Save blocked assistant message in incident but do not expose raw text
+    return reply.send({
+      message: {
+        role: 'assistant',
+        content: safeText
+      },
+      safety: {
+        blocked: true,
+        reason: decision.reason,
+        categories: decision.categories
+      }
+    });
+  }
+}
+```
+
+---
+
+## 41.6. Abuse & Anomaly Detection Hooks
+
+Besides content categories, we also want to catch **behavioral abuse patterns**:
+
+- Excessive message frequency or token usage (use 19.md quotas).  
+- Repeated prompt injection phrases.  
+- Long, structured exfiltration prompts ("list all secrets", "dump environment variables", etc.).
+
+### 41.6.1. Simple Abuse Guard
+
+**File:** `apps/api-gateway/src/safety/abuseGuard.ts`
+
+```ts
+// apps/api-gateway/src/safety/abuseGuard.ts
+
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { prisma } from '@ai-chat/db';
+
+// Example: limit N messages per minute per user per org
+const MAX_MESSAGES_PER_MINUTE = 60;
+
+export async function abuseRateGuard(request: FastifyRequest, reply: FastifyReply) {
+  const { orgId } = request.params as any;
+  const user = request.user as any;
+
+  // Check BlockedUser table
+  const blocked = await prisma.blockedUser.findFirst({
+    where: {
+      orgId,
+      userId: user.userId,
+      OR: [{ until: null }, { until: { gt: new Date() } }]
+    }
+  });
+
+  if (blocked) {
+    return reply.code(403).send({
+      error: 'USER_BLOCKED',
+      reason: blocked.reason
+    });
+  }
+
+  // Simple rate check using ModerationIncident or message logs (implementation choice)
+  const oneMinuteAgo = new Date(Date.now() - 60_000);
+
+  const recentMessagesCount = await prisma.message.count({
+    where: {
+      orgId,
+      userId: user.userId,
+      createdAt: { gt: oneMinuteAgo }
+    }
+  });
+
+  if (recentMessagesCount > MAX_MESSAGES_PER_MINUTE) {
+    return reply.code(429).send({
+      error: 'RATE_LIMITED',
+      reason: 'Too many messages per minute. Please slow down.'
+    });
+  }
+}
+```
+
+Attach `abuseRateGuard` as a `preHandler` alongside `userMessageSafetyGuard` for chat message routes.
+
+---
+
+## 41.7. Safety & Moderation API Routes
+
+We expose simple read‑only APIs for the **Safety Console** and org safety config.
+
+### 41.7.1. Org Safety Config
+
+**File:** `apps/api-gateway/src/routes/orgSafety.ts`
+
+```ts
+// apps/api-gateway/src/routes/orgSafety.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { z } from 'zod';
+import { prisma } from '@ai-chat/db';
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
+
+const safetyConfigSchema = z.object({
+  moderateUserMessages: z.boolean().optional(),
+  moderateAssistantMessages: z.boolean().optional(),
+  categoryActions: z.record(z.string(), z.enum(['block', 'warn', 'log_only', 'allow'])).optional(),
+  allowedDomains: z.array(z.string().url()).optional()
+});
+
+export default async function orgSafetyRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  app.get('/orgs/:orgId/safety', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:settings:read'
+    );
+
+    const cfg = await prisma.orgSafetyConfig.findUnique({ where: { orgId } });
+    return reply.send({ config: cfg });
+  });
+
+  app.put('/orgs/:orgId/safety', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const orgId = (request.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:settings:write'
+    );
+
+    const parsed = safetyConfigSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsed.error.format() });
+    }
+
+    const cfg = await prisma.orgSafetyConfig.upsert({
+      where: { orgId },
+      update: {
+        moderateUserMessages:
+          typeof parsed.data.moderateUserMessages === 'boolean'
+            ? parsed.data.moderateUserMessages
+            : undefined,
+        moderateAssistantMessages:
+          typeof parsed.data.moderateAssistantMessages === 'boolean'
+            ? parsed.data.moderateAssistantMessages
+            : undefined,
+        categoryActions: parsed.data.categoryActions ?? undefined,
+        allowedDomains: parsed.data.allowedDomains ?? undefined
+      },
+      create: {
+        orgId,
+        moderateUserMessages: parsed.data.moderateUserMessages ?? true,
+        moderateAssistantMessages: parsed.data.moderateAssistantMessages ?? false,
+        categoryActions: parsed.data.categoryActions ?? {},
+        allowedDomains: parsed.data.allowedDomains ?? []
+      }
+    });
+
+    return reply.send({ config: cfg });
+  });
+}
+```
+
+Register:
+
+```ts
+import orgSafetyRoutes from './routes/orgSafety';
+
+await app.register(orgSafetyRoutes);
+```
+
+### 41.7.2. Moderation Incidents Listing
+
+**File:** `apps/api-gateway/src/routes/moderationIncidents.ts`
+
+```ts
+// apps/api-gateway/src/routes/moderationIncidents.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { z } from 'zod';
+import { prisma } from '@ai-chat/db';
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
+
+const incidentsQuerySchema = z.object({
+  page: z.string().optional(),
+  pageSize: z.string().optional(),
+  source: z.enum(['user', 'assistant', 'tool']).optional(),
+  severeOnly: z.string().optional()
+});
+
+export default async function moderationIncidentsRoutes(
+  app: FastifyInstance,
+  _opts: FastifyPluginOptions
+) {
+  app.get('/orgs/:orgId/safety/incidents', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const { orgId } = request.params as any;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:safety:read'
+    );
+
+    const parsed = incidentsQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_QUERY', details: parsed.error.format() });
+    }
+
+    const page = parsed.data.page ? parseInt(parsed.data.page, 10) || 1 : 1;
+    const pageSize = parsed.data.pageSize ? parseInt(parsed.data.pageSize, 10) || 50 : 50;
+
+    const where: any = { orgId };
+
+    if (parsed.data.source) {
+      where.source = parsed.data.source;
+    }
+
+    if (parsed.data.severeOnly === 'true') {
+      where.isSevere = true;
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.moderationIncident.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize
+      }),
+      prisma.moderationIncident.count({ where })
+    ]);
+
+    return reply.send({
+      items,
+      page,
+      pageSize,
+      total
+    });
+  });
+}
+```
+
+Register:
+
+```ts
+import moderationIncidentsRoutes from './routes/moderationIncidents';
+
+await app.register(moderationIncidentsRoutes);
+```
+
+---
+
+## 41.8. Frontend – Safety API Wrappers
+
+### 41.8.1. Org Safety Config – Web
+
+**File:** `apps/web/src/api/orgSafety.ts`
+
+```ts
+// apps/web/src/api/orgSafety.ts
+
+import { apiRequest } from './client';
+
+export interface OrgSafetyConfigDto {
+  id: string;
+  orgId: string;
+  moderateUserMessages: boolean;
+  moderateAssistantMessages: boolean;
+  categoryActions: Record<string, 'block' | 'warn' | 'log_only' | 'allow'>;
+  allowedDomains: string[];
+}
+
+export async function fetchOrgSafetyConfig(
+  token: string,
+  orgId: string
+): Promise<{ config: OrgSafetyConfigDto | null }> {
+  return apiRequest<{ config: OrgSafetyConfigDto | null }>(
+    `/orgs/${orgId}/safety`,
+    { method: 'GET' },
+    token
+  );
+}
+
+export async function updateOrgSafetyConfig(
+  token: string,
+  orgId: string,
+  data: Partial<{
+    moderateUserMessages: boolean;
+    moderateAssistantMessages: boolean;
+    categoryActions: Record<string, 'block' | 'warn' | 'log_only' | 'allow'>;
+    allowedDomains: string[];
+  }>
+): Promise<{ config: OrgSafetyConfigDto }> {
+  return apiRequest<{ config: OrgSafetyConfigDto }>(
+    `/orgs/${orgId}/safety`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    },
+    token
+  );
+}
+```
+
+### 41.8.2. Moderation Incidents – Web
+
+**File:** `apps/web/src/api/moderationIncidents.ts`
+
+```ts
+// apps/web/src/api/moderationIncidents.ts
+
+import { apiRequest } from './client';
+
+export interface ModerationIncidentDto {
+  id: string;
+  createdAt: string;
+  orgId: string;
+  conversationId?: string | null;
+  messageId?: string | null;
+  userId?: string | null;
+  source: 'user' | 'assistant' | 'tool';
+  categories: { category: string; score: number }[];
+  action: 'block' | 'warn' | 'log_only' | 'allow';
+  reason?: string | null;
+  contentSnippet: string;
+  isSevere: boolean;
+}
+
+export interface ModerationIncidentsResponse {
+  items: ModerationIncidentDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export async function fetchModerationIncidents(
+  token: string,
+  orgId: string,
+  params: { page?: number; pageSize?: number; source?: string; severeOnly?: boolean } = {}
+): Promise<ModerationIncidentsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+  if (params.source) searchParams.set('source', params.source);
+  if (params.severeOnly) searchParams.set('severeOnly', 'true');
+
+  const query = searchParams.toString();
+
+  return apiRequest<ModerationIncidentsResponse>(
+    `/orgs/${orgId}/safety/incidents${query ? `?${query}` : ''}`,
+    { method: 'GET' },
+    token
+  );
+}
+```
+
+---
+
+## 41.9. Material 3 UI – Safety Console & Settings
+
+We add two pages under org settings:
+
+- `/app/orgs/:orgId/settings/safety` – Safety policy configuration.  
+- `/app/orgs/:orgId/safety/incidents` – Moderation incidents list.
+
+### 41.9.1. Safety Settings Page
+
+**File:** `apps/web/src/org/OrgSafetySettingsPage.tsx`
+
+```tsx
+// apps/web/src/org/OrgSafetySettingsPage.tsx
+
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  FormControlLabel,
+  TextField,
+  Typography
+} from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import {
+  fetchOrgSafetyConfig,
+  updateOrgSafetyConfig,
+  OrgSafetyConfigDto
+} from '../api/orgSafety';
+
+const KNOWN_CATEGORIES: { key: string; label: string }[] = [
+  { key: 'self_harm', label: 'Self-harm' },
+  { key: 'hate', label: 'Hate' },
+  { key: 'sexual_minors', label: 'Sexual content involving minors' },
+  { key: 'sexual_content', label: 'Adult sexual content' },
+  { key: 'violence', label: 'Violence' },
+  { key: 'harassment', label: 'Harassment / bullying' },
+  { key: 'malware', label: 'Malware / hacking' },
+  { key: 'pii', label: 'Personal data (PII)' },
+  { key: 'prompt_injection', label: 'Prompt injection / jailbreak' },
+  { key: 'copyright', label: 'Copyright / IP' }
+];
+
+const ACTION_OPTIONS: { value: 'block' | 'warn' | 'log_only' | 'allow'; label: string }[] = [
+  { value: 'block', label: 'Block' },
+  { value: 'warn', label: 'Warn' },
+  { value: 'log_only', label: 'Log only' },
+  { value: 'allow', label: 'Allow' }
+];
+
+export const OrgSafetySettingsPage: React.FC = () => {
+  const { orgId } = useParams();
+  const { token } = useAuth();
+
+  const [config, setConfig] = useState<OrgSafetyConfigDto | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(248,250,252,0.0), transparent 55%), ' +
+    'radial-gradient(circle at top right, rgba(56,189,248,0.18), transparent 55%), ' +
+    'radial-gradient(circle at bottom left, rgba(129,140,248,0.18), transparent 55%)';
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetchOrgSafetyConfig(token, orgId);
+        if (!cancelled) {
+          setConfig(
+            res.config || {
+              id: 'temp',
+              orgId,
+              moderateUserMessages: true,
+              moderateAssistantMessages: false,
+              categoryActions: {},
+              allowedDomains: []
+            }
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId]);
+
+  const handleSave = async () => {
+    if (!token || !orgId || !config) return;
+
+    const res = await updateOrgSafetyConfig(token, orgId, {
+      moderateUserMessages: config.moderateUserMessages,
+      moderateAssistantMessages: config.moderateAssistantMessages,
+      categoryActions: config.categoryActions,
+      allowedDomains: config.allowedDomains
+    });
+
+    setConfig(res.config);
+  };
+
+  const setCategoryAction = (category: string, action: 'block' | 'warn' | 'log_only' | 'allow') => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        categoryActions: {
+          ...prev.categoryActions,
+          [category]: action
+        }
+      };
+    });
+  };
+
+  const handleAllowedDomainsChange = (value: string) => {
+    const domains = value
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean);
+
+    setConfig((prev) => (prev ? { ...prev, allowedDomains: domains } : prev));
+  };
+
+  if (!config) {
+    return null;
+  }
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" gap={1}>
+          <AutoAwesomeIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">Safety & moderation</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Configure how safety policies are applied to conversations in this organization.
+            </Typography>
+          </Box>
+        </Box>
+        <Button variant="contained" onClick={handleSave} disabled={loading}>
+          Save changes
+        </Button>
+      </Box>
+
+      <Card sx={{ borderRadius: 3 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="subtitle2">Moderation toggles</Typography>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.moderateUserMessages}
+                onChange={(e) =>
+                  setConfig((prev) =>
+                    prev ? { ...prev, moderateUserMessages: e.target.checked } : prev
+                  )
+                }
+              />
+            }
+            label="Moderate user messages before sending to the model"
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.moderateAssistantMessages}
+                onChange={(e) =>
+                  setConfig((prev) =>
+                    prev ? { ...prev, moderateAssistantMessages: e.target.checked } : prev
+                  )
+                }
+              />
+            }
+            label="Moderate assistant responses before showing to users"
+          />
+        </CardContent>
+      </Card>
+
+      <Card sx={{ borderRadius: 3 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Typography variant="subtitle2">Category actions</Typography>
+          <Typography variant="caption" color="text.secondary">
+            For each category, choose what should happen when it is detected.
+          </Typography>
+
+          {KNOWN_CATEGORIES.map((c) => {
+            const value = config.categoryActions[c.key] ?? 'block';
+            return (
+              <Box
+                key={c.key}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  py: 0.75
+                }}
+              >
+                <Box>
+                  <Typography variant="body2">{c.label}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {c.key}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  {ACTION_OPTIONS.map((opt) => (
+                    <Button
+                      key={opt.value}
+                      size="small"
+                      variant={value === opt.value ? 'contained' : 'outlined'}
+                      onClick={() => setCategoryAction(c.key, opt.value)}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Card sx={{ borderRadius: 3 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Typography variant="subtitle2">Allowed domains</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Used by prompt injection and data exfiltration checks to decide which domains are trusted.
+          </Typography>
+
+          <TextField
+            label="Comma-separated domains"
+            value={config.allowedDomains.join(', ')}
+            onChange={(e) => handleAllowedDomainsChange(e.target.value)}
+            placeholder="https://example.com, https://docs.yourcompany.com"
+          />
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
+```
+
+### 41.9.2. Moderation Incidents Page
+
+**File:** `apps/web/src/org/OrgSafetyIncidentsPage.tsx`
+
+```tsx
+// apps/web/src/org/OrgSafetyIncidentsPage.tsx
+
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  FormControlLabel,
+  Pagination,
+  Radio,
+  RadioGroup,
+  Typography
+} from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import WarningIcon from '@mui/icons-material/Warning';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import {
+  fetchModerationIncidents,
+  ModerationIncidentDto
+} from '../api/moderationIncidents';
+
+export const OrgSafetyIncidentsPage: React.FC = () => {
+  const { orgId } = useParams();
+  const { token } = useAuth();
+
+  const [items, setItems] = useState<ModerationIncidentDto[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(25);
+  const [total, setTotal] = useState(0);
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'user' | 'assistant' | 'tool'>('all');
+  const [severeOnly, setSevereOnly] = useState(false);
+
+  const gradientBg =
+    'radial-gradient(circle at top left, rgba(248,250,252,0.0), transparent 55%), ' +
+    'radial-gradient(circle at top right, rgba(248,113,113,0.18), transparent 55%), ' +
+    'radial-gradient(circle at bottom left, rgba(56,189,248,0.18), transparent 55%)';
+
+  const load = async () => {
+    if (!token || !orgId) return;
+
+    const res = await fetchModerationIncidents(token, orgId, {
+      page,
+      pageSize,
+      source: sourceFilter === 'all' ? undefined : sourceFilter,
+      severeOnly
+    });
+
+    setItems(res.items);
+    setTotal(res.total);
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, token, page, sourceFilter, severeOnly]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return (
+    <Box
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        height: '100%',
+        backgroundImage: gradientBg,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" gap={1}>
+          <AutoAwesomeIcon fontSize="small" />
+          <Box>
+            <Typography variant="h6">Safety incidents</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Review messages flagged by moderation, including blocks and warnings.
+            </Typography>
+          </Box>
+        </Box>
+        <Box display="flex" alignItems="center" gap={2}>
+          <RadioGroup
+            row
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value as any)}
+          >
+            <FormControlLabel value="all" control={<Radio size="small" />} label="All" />
+            <FormControlLabel value="user" control={<Radio size="small" />} label="User" />
+            <FormControlLabel
+              value="assistant"
+              control={<Radio size="small" />}
+              label="Assistant"
+            />
+            <FormControlLabel value="tool" control={<Radio size="small" />} label="Tool" />
+          </RadioGroup>
+
+          <FormControlLabel
+            control={
+              <Radio
+                checked={severeOnly}
+                onChange={(e) => setSevereOnly(e.target.checked)}
+              />
+            }
+            label="Severe only"
+          />
+        </Box>
+      </Box>
+
+      <Card sx={{ borderRadius: 3, flex: 1, minHeight: 0 }}>
+        <CardContent
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+            height: '100%',
+            overflow: 'auto'
+          }}
+        >
+          {items.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No incidents for this filter.
+            </Typography>
+          )}
+
+          {items.map((inc) => (
+            <Box
+              key={inc.id}
+              sx={{
+                p: 1.25,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: inc.isSevere ? 'error.light' : 'divider',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0.5
+              }}
+            >
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  {inc.isSevere && <WarningIcon fontSize="small" color="error" />}
+                  <Typography variant="body2">
+                    {inc.source.toUpperCase()} · {inc.action.toUpperCase()}
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  {new Date(inc.createdAt).toLocaleString()}
+                </Typography>
+              </Box>
+
+              {inc.reason && (
+                <Typography variant="caption" color="text.secondary">
+                  {inc.reason}
+                </Typography>
+              )}
+
+              <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
+                {inc.categories.map((c) => (
+                  <Chip
+                    key={c.category}
+                    size="small"
+                    label={`${c.category} (${c.score.toFixed(2)})`}
+                  />
+                ))}
+              </Box>
+
+              <Typography
+                variant="body2"
+                sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}
+              >
+                {inc.contentSnippet}
+              </Typography>
+            </Box>
+          ))}
+
+          {totalPages > 1 && (
+            <Box display="flex" justifyContent="flex-end" mt={1}>
+              <Pagination
+                size="small"
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+              />
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
+```
+
+Register routes in the router:
+
+```tsx
+import { OrgSafetySettingsPage } from './org/OrgSafetySettingsPage';
+import { OrgSafetyIncidentsPage } from './org/OrgSafetyIncidentsPage';
+
+<Route path="/app/orgs/:orgId/settings/safety" element={<OrgSafetySettingsPage />} />
+<Route path="/app/orgs/:orgId/safety/incidents" element={<OrgSafetyIncidentsPage />} />
+```
+
+---
+
+## 41.10. Observability & Metrics
+
+Tie safety into the platform metrics layer (28.md):
+
+- `moderation_requests_total{orgId,source}` – increment on every moderation call.  
+- `moderation_incidents_total{orgId,action}` – count incidents per action (`block`, `warn`, etc.).  
+- `moderation_latency_ms` – time spent in moderation provider.  
+- `abuse_rate_limited_total{orgId}` – number of requests blocked by `abuseRateGuard`.
+
+Create a **Grafana dashboard** section:
+
+- Panel: incidents per category over time.  
+- Panel: block vs warn ratios per org.  
+- Panel: Top orgs by moderation volume.
+
+---
+
+## 41.11. Sanity Checklist
+
+Before enabling Safety & Moderation in production:
+
+- [ ] Prisma migrations for `OrgSafetyConfig`, `ModerationIncident`, `BlockedUser` applied.  
+- [ ] Moderation provider is configured and reachable (heuristic or external).  
+- [ ] User message pipeline uses `userMessageSafetyGuard` + `abuseRateGuard`.  
+- [ ] Assistant output moderation (optional) is wired for sensitive orgs.  
+- [ ] Safety settings & incidents pages render and filter correctly.  
+- [ ] Safety incidents appear in the audit log and metrics in Grafana.
+
+If all checks pass, the AI chat platform now has **enterprise‑grade guardrails** for content and behavior—comparable to, and configurable beyond, what modern AI chat platforms (like ChatGPT) provide.
+
+---
+
+_End of 41.md – Safety, Moderation, Abuse Detection & Guardrails – Backend + Material 3 UI_

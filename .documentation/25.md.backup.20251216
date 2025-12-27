@@ -1,0 +1,586 @@
+# 25. Model Routing & Ollama Provider Integration
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Wire the **per‑conversation settings** (24.md) into a real **model routing & provider layer** with a production‑ready **Ollama** integration.
+>
+> - Define a model key convention (e.g. `ollama:llama3`, `openai:gpt-4.1`, `local:my-model`).  
+> - Implement a provider abstraction and a concrete **Ollama chat provider**.  
+> - Implement a model router that picks the correct provider based on the conversation’s `model` setting.  
+> - Implement a chat engine service that:
+>   - Reads conversation settings,  
+>   - Builds the prompt (system + history + latest user message),  
+>   - Calls the provider,  
+>   - Persists messages + usage.
+>
+> After this file, the backend can call **Ollama** (and other providers later) using a clean abstraction, and each conversation’s `model`, `temperature`, `systemPrompt`, and `toolsEnabled` will actually affect behavior.
+
+> **Important instructions to AI agents:**
+> - Treat this file as canonical for **model routing and Ollama integration**.  
+> - It is safe to *replace* earlier ad‑hoc provider calls with the abstractions in this file.  
+> - Do **not** introduce TODOs; all code must be complete and compilable.
+
+---
+
+## 25.1. Model Key Convention & Registry
+
+We standardize how models are referenced from the `Conversation.model` field.
+
+### 25.1.1. Model Key Format
+
+We will use a simple `provider:key` convention:
+
+- `ollama:llama3` → Ollama, model `llama3`  
+- `ollama:phi3` → Ollama, model `phi3`  
+- `openai:gpt-4.1` → OpenAI, model `gpt-4.1` (can be implemented later)  
+- `local:my-model` → Custom/local provider (future extension)
+
+If the `Conversation.model` value does not contain a colon, we treat it as:
+
+- `default` → fallback configured in the registry (e.g. `ollama:llama3`).  
+- Any other value → provider `ollama` with that value as the inner model (e.g. `llama3`).
+
+### 25.1.2. Model Registry Config
+
+Create a model registry module.
+
+**File:** `apps/api-gateway/src/config/models.ts`
+
+```ts
+// apps/api-gateway/src/config/models.ts
+
+export type ModelProviderId = 'ollama' | 'openai' | 'local';
+
+export interface ModelConfig {
+  /** Fully qualified id as used by clients & Conversation.model, e.g. "ollama:llama3" */
+  id: string;
+  /** Provider family */
+  provider: ModelProviderId;
+  /** Human-friendly label for UI */
+  label: string;
+  /** Underlying model name used by the provider (e.g. ollama model name) */
+  providerModel: string;
+  /** Default temperature if conversation.temperature is null */
+  defaultTemperature: number;
+  /** Whether the model supports tools / function calling (future extension) */
+  supportsTools: boolean;
+}
+
+/**
+ * Default model registry. In a real system this could be loaded from DB/config center.
+ */
+export const MODEL_REGISTRY: ModelConfig[] = [
+  {
+    id: 'ollama:llama3',
+    provider: 'ollama',
+    label: 'Llama 3 (Ollama)',
+    providerModel: 'llama3',
+    defaultTemperature: 0.7,
+    supportsTools: false
+  },
+  {
+    id: 'ollama:phi3',
+    provider: 'ollama',
+    label: 'Phi-3 (Ollama)',
+    providerModel: 'phi3',
+    defaultTemperature: 0.7,
+    supportsTools: false
+  }
+  // You can extend this registry with openai:*, local:* etc.
+];
+
+export const DEFAULT_MODEL_ID = 'ollama:llama3';
+
+export function resolveModelId(raw: string | null | undefined): string {
+  if (!raw || raw === 'default') {
+    return DEFAULT_MODEL_ID;
+  }
+
+  if (raw.includes(':')) {
+    return raw;
+  }
+
+  // No provider prefix: assume Ollama by default
+  return `ollama:${raw}`;
+}
+
+export function getModelConfig(effectiveId: string): ModelConfig {
+  const found = MODEL_REGISTRY.find((m) => m.id === effectiveId);
+  if (found) return found;
+
+  // Fallback: if the id looks like "provider:key", synthesize a config
+  const [provider, key] = effectiveId.split(':', 2) as [ModelProviderId, string];
+
+  return {
+    id: effectiveId,
+    provider,
+    label: effectiveId,
+    providerModel: key,
+    defaultTemperature: 0.7,
+    supportsTools: false
+  };
+}
+```
+
+This registry allows you to:
+
+1. Resolve any `Conversation.model` string into a concrete `ModelConfig`.  
+2. Default to `ollama:llama3` when model is empty or `default`.
+
+---
+
+## 25.2. Provider Abstraction
+
+We define a minimal provider interface for chat completions.
+
+### 25.2.1. Base Types & Interface
+
+**File:** `apps/api-gateway/src/providers/base.ts`
+
+```ts
+// apps/api-gateway/src/providers/base.ts
+
+export type ProviderRole = 'system' | 'user' | 'assistant' | 'tool';
+
+export interface ProviderMessage {
+  role: ProviderRole;
+  content: string;
+}
+
+export interface ProviderUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+export interface ProviderChatOptions {
+  model: string; // provider-specific model key (e.g. "llama3")
+  temperature?: number;
+  toolsEnabled?: {
+    codeExecution?: boolean;
+    webSearch?: boolean;
+    structuredTools?: boolean;
+  };
+}
+
+export interface ProviderChatResult {
+  content: string;
+  usage?: ProviderUsage;
+}
+
+export interface ModelProvider {
+  /**
+   * Execute a single-turn chat completion with full history.
+   */
+  chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult>;
+}
+```
+
+This interface is intentionally small but enough to support:
+
+- System + history messages.  
+- Temperature.  
+- Tool flags for future extensions.
+
+---
+
+## 25.3. Ollama Chat Provider
+
+We implement a provider that talks to **Ollama**’s HTTP API.
+
+> **Environment:**  
+> Configure the base URL via `OLLAMA_BASE_URL` (default: `http://localhost:11434`).
+
+### 25.3.1. Implementation
+
+**File:** `apps/api-gateway/src/providers/ollamaProvider.ts`
+
+```ts
+// apps/api-gateway/src/providers/ollamaProvider.ts
+
+import { ModelProvider, ProviderChatOptions, ProviderChatResult, ProviderMessage } from './base';
+
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+
+interface OllamaChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+interface OllamaChatRequestBody {
+  model: string;
+  messages: OllamaChatMessage[];
+  stream?: boolean;
+  options?: {
+    temperature?: number;
+  };
+}
+
+interface OllamaChatResponse {
+  model: string;
+  created_at: string;
+  message: {
+    role: 'assistant';
+    content: string;
+  };
+  done: boolean;
+  // Additional fields (durations, eval counts) are ignored here.
+}
+
+export class OllamaProvider implements ModelProvider {
+  async chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult> {
+    const body: OllamaChatRequestBody = {
+      model: options.model,
+      messages: messages.map((m) => ({
+        role: m.role === 'tool' ? 'assistant' : m.role,
+        content: m.content
+      })),
+      stream: false,
+      options: {
+        temperature: options.temperature
+      }
+    };
+
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new Error(
+        `Ollama chat failed with status ${response.status}: ${text || response.statusText}`
+      );
+    }
+
+    const json = (await response.json()) as OllamaChatResponse;
+
+    return {
+      content: json.message?.content ?? ''
+      // Ollama does not currently return token counts in a standard way; usage is left undefined.
+    };
+  }
+}
+```
+
+> **Note:** We use `globalThis.fetch` (available in modern Node). If your runtime does not support it, ensure `node-fetch` or an equivalent polyfill is installed and imported.
+
+---
+
+## 25.4. Model Router – Mapping ModelConfig → Provider
+
+We now create a simple factory that returns a `ModelProvider` based on `ModelConfig.provider`.
+
+### 25.4.1. Implementation
+
+**File:** `apps/api-gateway/src/services/modelRouter.ts`
+
+```ts
+// apps/api-gateway/src/services/modelRouter.ts
+
+import { ModelConfig } from '../config/models';
+import { ModelProvider } from '../providers/base';
+import { OllamaProvider } from '../providers/ollamaProvider';
+
+export function getProviderForModel(config: ModelConfig): ModelProvider {
+  switch (config.provider) {
+    case 'ollama':
+      return new OllamaProvider();
+    // case 'openai':
+    //   return new OpenAIProvider();
+    // case 'local':
+    //   return new LocalProvider();
+    default:
+      return new OllamaProvider();
+  }
+}
+```
+
+This function centralizes provider selection. Later you can add `OpenAIProvider`, `LocalProvider`, etc., without touching the chat routes.
+
+---
+
+## 25.5. Chat Engine – Conversation‑Aware Orchestration
+
+We now implement a `chatEngine` service that:
+
+1. Loads the conversation (including settings) from DB.  
+2. Loads recent messages as history.  
+3. Builds provider messages (system + history + new user message).  
+4. Resolves model & provider via the registry.  
+5. Calls the provider and stores the assistant message.
+
+> **Assumptions about DB schema:**
+>
+> - There is a `Message` model related to `Conversation` with at least:  
+>   - `id`, `conversationId`, `role`, `content`, `createdAt`, `meta` (JSON).  
+> - `role` is one of `'SYSTEM' | 'USER' | 'ASSISTANT' | 'TOOL'`.
+
+### 25.5.1. Implementation
+
+**File:** `apps/api-gateway/src/services/chatEngine.ts`
+
+```ts
+// apps/api-gateway/src/services/chatEngine.ts
+
+import { prisma } from '@ai-chat/db';
+import { ProviderMessage, ProviderUsage } from '../providers/base';
+import { getModelConfig, resolveModelId } from '../config/models';
+import { getProviderForModel } from './modelRouter';
+
+export type ChatRole = 'SYSTEM' | 'USER' | 'ASSISTANT' | 'TOOL';
+
+export interface RunConversationTurnInput {
+  conversationId: string;
+  userId: string;
+  content: string; // latest user message content
+}
+
+export interface RunConversationTurnResult {
+  assistantMessageId: string;
+  assistantContent: string;
+  usage?: ProviderUsage;
+}
+
+export async function runConversationTurn(
+  input: RunConversationTurnInput
+): Promise<RunConversationTurnResult> {
+  const { conversationId, userId, content } = input;
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: {
+      id: true,
+      orgId: true,
+      model: true,
+      temperature: true,
+      systemPrompt: true,
+      toolsEnabled: true
+    }
+  });
+
+  if (!conversation) {
+    throw new Error('Conversation not found');
+  }
+
+  // Create the user message first so history is consistent
+  await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      role: 'USER',
+      content,
+      authorId: userId,
+      meta: {}
+    }
+  });
+
+  // Load recent history (e.g. last 50 messages)
+  const history = await prisma.message.findMany({
+    where: { conversationId: conversation.id },
+    orderBy: { createdAt: 'asc' },
+    take: 50,
+    select: {
+      role: true,
+      content: true
+    }
+  });
+
+  const providerMessages: ProviderMessage[] = [];
+
+  // Optional system prompt from conversation settings
+  if (conversation.systemPrompt && conversation.systemPrompt.trim()) {
+    providerMessages.push({
+      role: 'system',
+      content: conversation.systemPrompt.trim()
+    });
+  }
+
+  for (const msg of history) {
+    const role = (msg.role as ChatRole) || 'USER';
+
+    if (role === 'SYSTEM') {
+      providerMessages.push({ role: 'system', content: msg.content });
+    } else if (role === 'USER') {
+      providerMessages.push({ role: 'user', content: msg.content });
+    } else if (role === 'ASSISTANT') {
+      providerMessages.push({ role: 'assistant', content: msg.content });
+    } else if (role === 'TOOL') {
+      providerMessages.push({ role: 'tool', content: msg.content });
+    }
+  }
+
+  // Resolve model & provider
+  const effectiveModelId = resolveModelId(conversation.model);
+  const modelConfig = getModelConfig(effectiveModelId);
+  const provider = getProviderForModel(modelConfig);
+
+  const temperature =
+    typeof conversation.temperature === 'number'
+      ? conversation.temperature
+      : modelConfig.defaultTemperature;
+
+  const toolsEnabled = (conversation.toolsEnabled as any) || {};
+
+  const result = await provider.chat(providerMessages, {
+    model: modelConfig.providerModel,
+    temperature,
+    toolsEnabled
+  });
+
+  const assistantMessage = await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      role: 'ASSISTANT',
+      content: result.content,
+      authorId: null,
+      meta: {
+        usage: result.usage || {}
+      }
+    }
+  });
+
+  // Update lastActivityAt
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: {
+      lastActivityAt: new Date()
+    }
+  });
+
+  return {
+    assistantMessageId: assistantMessage.id,
+    assistantContent: assistantMessage.content,
+    usage: result.usage
+  };
+}
+```
+
+This function is **provider‑agnostic** and uses the conversation’s `model`, `temperature`, `systemPrompt`, and `toolsEnabled` to drive behavior.
+
+---
+
+## 25.6. Using the Chat Engine from Routes
+
+Finally, we show how to call `runConversationTurn` from an HTTP route. If you already have a `/chat/stream` route, you can adapt this example into that handler.
+
+### 25.6.1. Example Non‑Streaming Chat Route
+
+**File:** `apps/api-gateway/src/routes/chat.ts` (excerpt)
+
+```ts
+// apps/api-gateway/src/routes/chat.ts
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { JwtPayload } from '../auth/types';
+import { z } from 'zod';
+import { runConversationTurn } from '../services/chatEngine';
+import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard';
+
+const chatBodySchema = z.object({
+  conversationId: z.string().min(1),
+  content: z.string().min(1)
+});
+
+export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  app.post('/chat', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    const parsedBody = chatBodySchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsedBody.error.format() });
+    }
+
+    const { conversationId, content } = parsedBody.data;
+
+    // Optional: load conversation to determine orgId for quota guard
+    const conversation = await app.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: {
+        id: true,
+        orgId: true
+      }
+    });
+
+    if (!conversation) {
+      return reply.code(404).send({ error: 'NOT_FOUND', message: 'Conversation not found.' });
+    }
+
+    if (conversation.orgId) {
+      const quota = await getOrgQuotaWindowUsage(conversation.orgId, 30);
+
+      if (quota.hardLimitExceeded) {
+        return reply.code(429).send({
+          error: 'ORG_HARD_QUOTA_EXCEEDED',
+          message: 'This organization has exceeded its hard token limit in the current billing window.',
+          plan: quota.plan,
+          quota
+        });
+      }
+    }
+
+    const result = await runConversationTurn({
+      conversationId,
+      userId: payload.userId,
+      content
+    });
+
+    return reply.send({
+      assistantMessageId: result.assistantMessageId,
+      content: result.assistantContent,
+      usage: result.usage
+    });
+  });
+}
+```
+
+> If you want **streaming**, you can still use `runConversationTurn` as the core logic and adapt it to stream partial results. For a first version, a non‑streaming `/chat` endpoint is often sufficient.
+
+---
+
+## 25.7. Sanity Checks
+
+From the repo root:
+
+1. **Model registry & provider build:**
+
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   ```
+
+2. **Run Ollama locally:**
+
+   ```bash
+   # Example: pull llama3 and start Ollama (depends on your installation)
+   ollama pull llama3
+   # Ollama typically runs a daemon at http://localhost:11434
+   ```
+
+3. **Run API gateway:**
+
+   ```bash
+   pnpm dev --filter=api-gateway
+   ```
+
+   - Create a conversation with `model = "ollama:llama3"` (or leave as `default`).  
+   - Call `POST /chat` with `{ conversationId, content: "Hello" }`.  
+   - Verify that Ollama is hit and an assistant message is created in DB.
+
+4. **Run web app:**
+
+   ```bash
+   cd apps/web
+   pnpm dev
+   ```
+
+   - Open `/app/orgs/<orgId>/chat/<conversationId>`.  
+   - Use the per‑conversation settings drawer (24.md) to change the model to `ollama:phi3` or another registered model.  
+   - Send messages and confirm that responses come from the selected Ollama backend.
+
+If all checks pass, your system now has a **clean, extensible model routing layer** with a concrete **Ollama provider**, tightly integrated with conversation settings, quota guard, and the multi‑conversation UI built in earlier markdown files.
+
+---
+
+_End of 25.md – Model Routing & Ollama Provider Integration_

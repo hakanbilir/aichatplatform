@@ -1,3 +1,5 @@
+**Note:** This project has been migrated from Docker to PM2 process management. See `/root/PM2_MIGRATION_GUIDE.md` for details.
+
 ---
 name: Start Docker and Application
 overview: Verify Docker is running, then build and start all application services using Docker Compose, including database migrations.
@@ -86,7 +88,7 @@ docker compose ps
 ## Service URLs (after startup)
 
 - **Web UI:** http://localhost:3001
-- **API Gateway:** http://localhost:8080
+- **API Gateway:** http://localhost:4000
 - **Grafana:** http://localhost:3000
 - **Prometheus:** http://localhost:9090
 - **PostgreSQL:** localhost:5436

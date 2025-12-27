@@ -23,7 +23,7 @@ const refreshTokenBodySchema = z.object({
 });
 
 export default async function authRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
-  app.post('/auth/signup', async (request, reply) => {
+  app.post('/api/v1/auth/signup', async (request, reply) => {
     const parseResult = signupBodySchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidSignupData'), details: parseResult.error.format() });
@@ -118,16 +118,47 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     });
   });
 
-  app.post('/auth/login', async (request, reply) => {
+  app.post('/api/v1/auth/login', async (request, reply) => {
     const parseResult = loginBodySchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidLoginData'), details: parseResult.error.format() });
     }
 
     const { email, password } = parseResult.data;
+    const normalizedEmail = email.toLowerCase().trim();
+    const ipAddress = (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
+                      (request.headers['x-real-ip'] as string) || 
+                      request.ip || 
+                      'unknown';
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Helper function to validate password strength
+    const validatePasswordStrength = (pwd: string): void => {
+      if (pwd.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+      if (!/[A-Z]/.test(pwd)) {
+        throw new Error('Password must contain at least one uppercase letter');
+      }
+      if (!/[a-z]/.test(pwd)) {
+        throw new Error('Password must contain at least one lowercase letter');
+      }
+      if (!/[0-9]/.test(pwd)) {
+        throw new Error('Password must contain at least one number');
+      }
+    };
+
+    // Helper function to mask email for logging
+    const maskEmail = (email: string): string => {
+      const [local, domain] = email.split('@');
+      if (!local || !domain) return '***@***';
+      const maskedLocal = local.length > 2 
+        ? `${local[0]}${'*'.repeat(local.length - 2)}${local[local.length - 1]}`
+        : '**';
+      return `${maskedLocal}@${domain}`;
+    };
+
+    let user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
       include: {
         orgMemberships: {
           include: {
@@ -137,12 +168,90 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
       },
     });
 
+    // Demo mode: Auto-create user if doesn't exist
+    const isProduction = process.env.NODE_ENV === 'production';
+    const demoModeEnabled = process.env.DEMO_MODE === 'true';
+    const isDemoMode = demoModeEnabled && (!isProduction || demoModeEnabled);
+
     if (!user) {
-      return reply.code(401).send({ error: request.i18n.t('errors.invalidCredentials') });
+      if (isDemoMode) {
+        // Validate password strength for auto-created accounts
+        try {
+          validatePasswordStrength(password);
+        } catch (error: any) {
+          return reply.code(400).send({ error: error.message });
+        }
+
+        // Create user with default org
+        const name = normalizedEmail.split('@')[0];
+        const passwordHash = await hashPassword(password);
+        const orgDisplayName = `${name}'s Workspace`;
+        const orgSlugBase = orgDisplayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        
+        let slug = orgSlugBase || 'workspace';
+        let suffix = 1;
+        while (true) {
+          const existingOrg = await prisma.organization.findUnique({ where: { slug } });
+          if (!existingOrg) break;
+          slug = `${orgSlugBase}-${suffix++}`;
+        }
+
+        user = await prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            name,
+            passwordHash,
+            orgMemberships: {
+              create: {
+                role: 'OWNER',
+                org: {
+                  create: {
+                    name: orgDisplayName,
+                    slug,
+                  },
+                },
+              },
+            },
+          },
+          include: {
+            orgMemberships: {
+              include: {
+                org: true,
+              },
+            },
+          },
+        });
+
+        // Log auto-creation
+        await writeAuditLog({
+          orgId: user.orgMemberships[0]?.org?.id ?? null,
+          user: { userId: user.id, orgId: user.orgMemberships[0]?.org?.id ?? null, isSuperadmin: false },
+          action: 'auth.login',
+          ipAddress,
+          userAgent: request.headers['user-agent'],
+          metadata: { email: maskEmail(normalizedEmail), demoMode: true, autoCreated: true }
+        });
+      } else {
+        // User enumeration prevention: Always perform password verification with dummy hash
+        // This ensures consistent timing regardless of user existence
+        const dummyHash = '$2a$10$dummyhashfordummyverificationpurposesonly';
+        await verifyPassword(password, dummyHash);
+        return reply.code(401).send({ error: request.i18n.t('errors.invalidCredentials') });
+      }
     }
 
-    const valid = await verifyPassword(password, user.passwordHash);
+    // Verify password (timing-safe)
+    const valid = await verifyPassword(password, user.passwordHash || '');
     if (!valid) {
+      // Log failed attempt
+      await writeAuditLog({
+        orgId: user.orgMemberships[0]?.org?.id ?? null,
+        user: { userId: user.id, orgId: user.orgMemberships[0]?.org?.id ?? null, isSuperadmin: user.isSuperadmin },
+        action: 'auth.login_failed',
+        ipAddress,
+        userAgent: request.headers['user-agent'],
+        metadata: { email: maskEmail(normalizedEmail), reason: 'invalid_password' }
+      });
       return reply.code(401).send({ error: request.i18n.t('errors.invalidCredentials') });
     }
 
@@ -192,7 +301,7 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     });
   });
 
-  app.get('/auth/me', { preHandler: [app.authenticate] }, async (request, reply) => {
+  app.get('/api/v1/auth/me', { preHandler: [app.authenticate] }, async (request, reply) => {
     const payload = request.user as JwtPayload;
 
     const user = await prisma.user.findUnique({
@@ -235,7 +344,7 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     });
   });
 
-  app.post('/auth/refresh', async (request, reply) => {
+  app.post('/api/v1/auth/refresh', async (request, reply) => {
     const parseResult = refreshTokenBodySchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidRefreshToken'), details: parseResult.error.format() });
@@ -279,7 +388,7 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     });
   });
 
-  app.post('/auth/logout', { preHandler: [app.authenticate] }, async (request, reply) => {
+  app.post('/api/v1/auth/logout', { preHandler: [app.authenticate] }, async (request, reply) => {
     const parseResult = refreshTokenBodySchema.safeParse(request.body);
     if (parseResult.success) {
       await revokeRefreshToken(parseResult.data.refreshToken);

@@ -1,0 +1,674 @@
+# 5. Database Schema & Prisma Modeling
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Define the **complete relational data model** and implement it using **Prisma** so that an AI agent can:
+>
+> - Create the Prisma schema and migrations for PostgreSQL (with pgvector support).
+> - Implement the `@ai-chat/db` package that exports a ready-to-use Prisma client.
+> - Run migrations and verify the database is correctly configured.
+>
+> After following this file, the database layer must be **fully functional**, even if higher-level APIs are not yet implemented.
+
+> **Important instructions to AI agents:**
+> - Use **Prisma** as the ORM, targeting **PostgreSQL**.
+> - Do **not** change the database provider or add additional ORMs.
+> - Keep models and relations exactly as specified unless later documents extend them.
+> - Always run `prisma generate` after changing the schema.
+
+---
+
+## 5.1. Role of the Database in the Architecture
+
+The database serves as the **single source of truth** for:
+
+- Users and organizations (tenants).
+- Memberships and roles (RBAC at org level).
+- Conversations and messages.
+- Tools / plugins and their configuration.
+- Uploaded files and knowledge bases for RAG.
+- Knowledge chunks and embeddings.
+- Usage metrics and API keys.
+
+We use **PostgreSQL 16** with **pgvector** extension for embeddings.
+Prisma will generate a TypeScript client used by:
+
+- `apps/api-gateway` for REST endpoints.
+- `apps/worker-jobs` for background processing (RAG ingestion, analytics, etc.).
+
+The `@ai-chat/db` package encapsulates Prisma client initialization and will be imported by other packages/apps.
+
+---
+
+## 5.2. Install Prisma Dependencies in `@ai-chat/db`
+
+We keep Prisma-related dependencies **scoped** to the `@ai-chat/db` package.
+
+### 5.2.1. Update `packages/db/package.json`
+
+Replace `packages/db/package.json` with:
+
+```json
+{
+  "name": "@ai-chat/db",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0"
+  }
+}
+```
+
+> **AI Agent Note:**  
+> Prisma CLI (`prisma`) is available in this package via `node_modules/.bin/prisma`. All Prisma commands should be executed via pnpm filtering this workspace.
+
+### 5.2.2. Optional Root Scripts for Convenience
+
+Update the **root** `package.json` to add convenient scripts.
+
+Add the following entries under `"scripts"` (do not remove existing ones):
+
+```jsonc
+{
+  "scripts": {
+    // ...existing scripts...
+    "db:migrate:dev": "pnpm --filter @ai-chat/db prisma:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @ai-chat/db prisma:migrate:deploy",
+    "db:generate": "pnpm --filter @ai-chat/db prisma:generate",
+    "db:studio": "pnpm --filter @ai-chat/db prisma:studio"
+  }
+}
+```
+
+> **AI Agent Note:**  
+> When modifying `package.json`, ensure JSON remains valid. Merge keys carefully.
+
+---
+
+## 5.3. Prisma Folder Structure
+
+We keep Prisma files inside `packages/db/prisma`.
+
+Create the directory:
+
+```bash
+mkdir -p packages/db/prisma
+```
+
+The structure will be:
+
+```text
+packages/db/
+  prisma/
+    schema.prisma
+  src/
+    index.ts
+    seed.ts (optional, created later)
+```
+
+---
+
+## 5.4. Prisma Schema Overview
+
+We will define the following **models** and **enums**:
+
+### Enums
+
+- `OrgRole` – organization-level roles.
+- `MessageRole` – message roles: system/user/assistant/tool.
+
+### Models
+
+- `User` – account identity.
+- `Organization` – tenant/workspace.
+- `OrgMember` – membership + role per org.
+- `Conversation` – chat thread.
+- `Message` – messages in conversations.
+- `Tool` – tools/plugins definitions.
+- `File` – uploaded files.
+- `KnowledgeBase` – named knowledge collections.
+- `KnowledgeChunk` – chunked documents with embeddings.
+- `UsageMetric` – usage aggregation records.
+- `ApiKey` – API keys for programmatic access.
+
+We keep the schema **minimal but production-ready** and easy to extend later.
+
+---
+
+## 5.5. Create `schema.prisma`
+
+Create `packages/db/prisma/schema.prisma` with the following content:
+
+```prisma
+// packages/db/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================
+// ENUMS
+// =========================
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageRole {
+  SYSTEM
+  USER
+  ASSISTANT
+  TOOL
+}
+
+// =========================
+// MODELS
+// =========================
+
+model User {
+  id                String       @id @default(cuid())
+  email             String       @unique
+  name              String?
+  passwordHash      String
+  customInstructions String?     @db.Text
+  isSuperadmin      Boolean      @default(false)
+
+  orgMemberships    OrgMember[]
+  conversations     Conversation[]     @relation("UserConversations")
+  apiKeys           ApiKey[]
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([email])
+}
+
+model Organization {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String         @unique
+  description    String?        @db.Text
+
+  members        OrgMember[]
+  conversations  Conversation[] @relation("OrgConversations")
+  tools          Tool[]
+  files          File[]
+  knowledgeBases KnowledgeBase[]
+  usageMetrics   UsageMetric[]
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([slug])
+}
+
+model OrgMember {
+  id        String       @id @default(cuid())
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String
+  org       Organization @relation(fields: [orgId], references: [id])
+  orgId     String
+  role      OrgRole      @default(MEMBER)
+
+  createdAt DateTime     @default(now())
+
+  @@unique([userId, orgId])
+  @@index([orgId, role])
+}
+
+model Conversation {
+  id             String         @id @default(cuid())
+  title          String
+
+  // creator / owner
+  user           User?          @relation("UserConversations", fields: [userId], references: [id])
+  userId         String?
+
+  // organization this conversation belongs to (optional for personal)
+  org            Organization?  @relation("OrgConversations", fields: [orgId], references: [id])
+  orgId          String?
+
+  model          String
+  systemPrompt   String?        @db.Text
+  temperature    Float?         @default(0.7)
+  topP           Float?         @default(1)
+  isArchived     Boolean        @default(false)
+
+  messages       Message[]
+
+  // JSON configuration for tools and attached knowledge bases
+  toolConfig     Json?
+  kbConfig       Json?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([orgId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  conversation   Conversation  @relation(fields: [conversationId], references: [id])
+  conversationId String
+
+  role           MessageRole
+  content        String        @db.Text
+  // meta can contain tool call details, error info, etc.
+  meta           Json?
+
+  // optional: link to a tool used in this message
+  tool           Tool?         @relation(fields: [toolId], references: [id])
+  toolId         String?
+
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Tool {
+  id                String         @id @default(cuid())
+  org               Organization?  @relation(fields: [orgId], references: [id])
+  orgId             String?
+
+  name              String
+  description       String         @db.Text
+  parametersSchema  Json
+  isEnabled         Boolean        @default(true)
+
+  messages          Message[]
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([orgId, name])
+}
+
+model File {
+  id             String         @id @default(cuid())
+  org            Organization   @relation(fields: [orgId], references: [id])
+  orgId          String
+
+  uploadedBy     User?          @relation(fields: [uploadedById], references: [id])
+  uploadedById   String?
+
+  filename       String
+  mimeType       String
+  sizeBytes      Int
+  storageKey     String         // key/path in object storage (S3, MinIO, etc.)
+
+  knowledgeBase  KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId String?
+
+  status         String         @default("READY") // READY, PROCESSING, ERROR
+  errorMessage   String?        @db.Text
+
+  chunks         KnowledgeChunk[]
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([orgId, createdAt])
+}
+
+model KnowledgeBase {
+  id          String           @id @default(cuid())
+  org         Organization     @relation(fields: [orgId], references: [id])
+  orgId       String
+
+  name        String
+  description String?          @db.Text
+
+  files       File[]
+  chunks      KnowledgeChunk[]
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([orgId, name])
+}
+
+model KnowledgeChunk {
+  id              String         @id @default(cuid())
+
+  knowledgeBase   KnowledgeBase  @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId String
+
+  file            File?          @relation(fields: [fileId], references: [id])
+  fileId          String?
+
+  chunkIndex      Int
+  content         String         @db.Text
+  tokenCount      Int?
+
+  // pgvector column for embeddings
+  embedding       Unsupported("vector")?
+
+  createdAt       DateTime       @default(now())
+
+  @@index([knowledgeBaseId])
+  @@index([fileId])
+}
+
+model UsageMetric {
+  id              String         @id @default(cuid())
+
+  org             Organization?  @relation(fields: [orgId], references: [id])
+  orgId           String?
+
+  user            User?          @relation(fields: [userId], references: [id])
+  userId          String?
+
+  conversation    Conversation?  @relation(fields: [conversationId], references: [id])
+  conversationId  String?
+
+  model           String
+  day             DateTime       // normalized date (UTC midnight)
+
+  requestCount    Int            @default(0)
+  tokensIn        Int            @default(0)
+  tokensOut       Int            @default(0)
+  totalLatencyMs  Int            @default(0)
+
+  createdAt       DateTime       @default(now())
+
+  @@index([day, orgId])
+  @@index([day, model])
+}
+
+model ApiKey {
+  id           String     @id @default(cuid())
+
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+
+  org          Organization? @relation(fields: [orgId], references: [id])
+  orgId        String?
+
+  name         String
+  keyHash      String     @unique // store hash, not raw key
+  scopes       String?    @db.Text
+  isActive     Boolean    @default(true)
+
+  lastUsedAt   DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@index([userId])
+  @@index([orgId])
+}
+```
+
+> **AI Agent Note:**  
+> - The `embedding` field uses `Unsupported("vector")` because Prisma does not (yet) have a native `vector` type. We will interact with it using raw SQL or extension helpers later.  
+> - `DATABASE_URL` must be set (see 4.md).
+
+---
+
+## 5.6. Ensure pgvector Extension Exists
+
+The `KnowledgeChunk.embedding` column uses the `vector` type, which requires the `pgvector` extension.
+
+We will provide a helper function in `@ai-chat/db` to ensure the extension is installed at startup.
+
+> **Database requirement:**  
+> The PostgreSQL user in `DATABASE_URL` must have permission to `CREATE EXTENSION IF NOT EXISTS vector;` in the target database.
+
+---
+
+## 5.7. Implement Prisma Client in `@ai-chat/db`
+
+### 5.7.1. Update `packages/db/tsconfig.json`
+
+Ensure `packages/db/tsconfig.json` is:
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src", "prisma"]
+}
+```
+
+### 5.7.2. Implement `packages/db/src/index.ts`
+
+Replace the contents of `packages/db/src/index.ts` with:
+
+```ts
+import { PrismaClient } from '@prisma/client';
+
+// In dev mode, we use a global singleton to avoid exhausting connections
+// when modules are hot-reloaded.
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
+export const prisma: PrismaClient =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error', 'warn']
+  });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
+
+/**
+ * Ensures that required database extensions (like pgvector) exist.
+ * Should be called once at application startup in API/worker processes.
+ */
+export async function ensureDbExtensions(): Promise<void> {
+  // "vector" extension for pgvector (used by KnowledgeChunk.embedding)
+  await prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS vector;');
+}
+
+/**
+ * Simple health check for DB connectivity.
+ * Can be used by services at startup.
+ */
+export async function checkDbConnection(): Promise<boolean> {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return true;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Database connection check failed:', err);
+    return false;
+  }
+}
+```
+
+> **AI Agent Note:**  
+> - We intentionally keep this file small and focused.  
+> - Higher-level helpers (repositories, query builders) will be defined in future docs.
+
+---
+
+## 5.8. (Optional) Seed Script Skeleton
+
+We provide a basic seed script to create an initial organization and user. This can be expanded later.
+
+Create `packages/db/src/seed.ts` with:
+
+```ts
+/* eslint-disable no-console */
+
+import { prisma } from './index';
+
+async function main() {
+  const existing = await prisma.organization.findFirst({
+    where: { slug: 'default-org' }
+  });
+
+  if (existing) {
+    console.log('Default organization already exists, skipping seed.');
+    return;
+  }
+
+  const org = await prisma.organization.create({
+    data: {
+      name: 'Default Org',
+      slug: 'default-org'
+    }
+  });
+
+  console.log('Created default organization:', org.id);
+}
+
+main()
+  .catch((err) => {
+    console.error('Seed error:', err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+> **AI Agent Note:**  
+> We are not yet creating a default user here; that will be handled later when auth is implemented.
+
+You may later add a root script such as:
+
+```jsonc
+{
+  "scripts": {
+    "db:seed": "pnpm --filter @ai-chat/db ts-node src/seed.ts"
+  }
+}
+```
+
+in the root `package.json` if seeding is needed.
+
+---
+
+## 5.9. Running Migrations
+
+With `schema.prisma` and `@ai-chat/db` set up, we now create the initial migration.
+
+From the repo root (`ai-chat-platform/`):
+
+```bash
+pnpm db:migrate:dev -- --name init
+```
+
+Explanation:
+
+- `db:migrate:dev` – runs `prisma migrate dev` in the `@ai-chat/db` package.
+- `-- --name init` – passes `--name init` to Prisma, naming the migration `init`.
+
+This will:
+
+- Create the PostgreSQL database if it doesn’t exist (based on `DATABASE_URL`).
+- Create all tables and indexes defined in `schema.prisma`.
+
+Afterwards, generate the Prisma client:
+
+```bash
+pnpm db:generate
+```
+
+This compiles the Prisma client into `node_modules/@prisma/client` and allows importing it in `@ai-chat/db`.
+
+---
+
+## 5.10. Sanity Checks
+
+### 5.10.1. Check Database Connectivity
+
+We already have a helper `checkDbConnection()`. For now, you can create a temporary script in `packages/db/src/check.ts` (optional) to verify connectivity:
+
+```ts
+/* eslint-disable no-console */
+
+import { checkDbConnection, prisma } from './index';
+
+async function main() {
+  const ok = await checkDbConnection();
+  console.log('DB connection OK:', ok);
+
+  const orgCount = await prisma.organization.count();
+  console.log('Organizations count:', orgCount);
+}
+
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+You can then run (if you add a script or via direct ts-node command) to verify that:
+
+- DB connection succeeds.
+- Tables exist and queries run.
+
+### 5.10.2. Prisma Studio (Manual Inspection)
+
+Run:
+
+```bash
+pnpm db:studio
+```
+
+This opens Prisma Studio, where you can:
+
+- Inspect tables: User, Organization, Conversation, etc.
+- Manually add or edit rows for quick testing.
+
+---
+
+## 5.11. Integration with Future Docs
+
+Now that the database schema and Prisma client are in place:
+
+- `apps/api-gateway` will later:
+  - Import `prisma` from `@ai-chat/db`.
+  - Call `ensureDbExtensions()` at startup to create the `vector` extension (once).
+  - Implement REST endpoints for users, orgs, conversations, messages, tools, files, etc.
+
+- `apps/worker-jobs` will:
+  - Use `prisma` to implement background tasks, such as:
+    - Ingesting files into `KnowledgeChunk` with embeddings.
+    - Aggregating usage metrics into `UsageMetric`.
+
+- RAG logic will rely on:
+  - `KnowledgeBase`, `File`, `KnowledgeChunk.embedding` for retrieval.
+
+> **AI Agent Instruction:**  
+> Before moving to the next markdown file, ensure:
+> - `pnpm db:migrate:dev -- --name init` runs successfully.
+> - `pnpm db:generate` completes without errors.
+> - `pnpm build` still succeeds for the entire monorepo.
+
+---
+
+_End of 5.md – Database Schema & Prisma Modeling_

@@ -1,0 +1,920 @@
+# 3. Monorepo Structure & Tooling (pnpm + Turborepo)
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Define the **exact monorepo layout**, **tooling**, and **root-level configuration files** so an AI agent can set up the full project structure and tooling **without asking for clarification**.
+
+> **Important instructions to AI agents:**
+> - Use **pnpm** as the package manager.
+> - Use **Turborepo** for task orchestration.
+> - Do **not** introduce alternative tools (no Yarn workspaces, no Lerna, no Nx) unless a later markdown file explicitly changes this.
+> - When editing config files (`package.json`, `tsconfig`, etc.), **replace** the content as specified here instead of merging ad hoc.
+
+---
+
+## 3.1. Monorepo Goals
+
+The monorepo must:
+
+1. Host **all apps** and **shared packages** in a single Git repository.
+2. Use **pnpm workspaces** + **Turborepo** to orchestrate builds, tests, linting, and dev runs.
+3. Provide a **consistent TypeScript configuration** across backend, frontend, and shared packages.
+4. Be easy for AI agents to navigate and modify: clear folder naming, no hidden magic.
+
+We adopt the following **high-level layout**:
+
+```text
+ai-chat-platform/
+  apps/
+    api-gateway/       # Fastify-based backend API server
+    web-app/           # Next.js frontend
+    worker-jobs/       # Background jobs / workers (RAG ingestion, etc.)
+
+  packages/
+    core-types/        # Shared TypeScript types and DTOs
+    db/                # Prisma schema + DB client
+    chat-orchestrator/ # Core chat orchestration logic
+    ollama-client/     # Low-level Ollama HTTP client
+    tools-engine/      # Tools / plugins engine
+    telemetry/         # Logging, metrics, tracing utilities
+
+  infra/
+    docker/            # Dockerfiles, docker-compose
+    k8s/               # (optional) Kubernetes manifests
+
+  docs/                # Markdown specs (1.md, 2.md, 3.md, ...)
+  package.json         # Root package config
+  pnpm-workspace.yaml  # pnpm workspaces definition
+  turbo.json           # Turborepo pipeline config
+  tsconfig.base.json   # Shared TypeScript config
+  .eslintrc.cjs        # ESLint config (root)
+  .prettierrc          # Prettier config (root)
+  .editorconfig        # EditorConfig
+```
+
+> **AI Agent Note:**  
+> If the repository is not yet named `ai-chat-platform`, **rename or create** the root folder accordingly.
+
+---
+
+## 3.2. Root-Level Files Overview
+
+This section lists the root-level files we must create or overwrite:
+
+1. `package.json` – root project and Turborepo scripts.
+2. `pnpm-workspace.yaml` – defines apps and packages workspaces.
+3. `turbo.json` – Turborepo pipelines for lint, build, test, dev.
+4. `tsconfig.base.json` – base TS config extended by all TS projects.
+5. `.eslintrc.cjs` – shared lint config.
+6. `.prettierrc` – formatting rules.
+7. `.editorconfig` – base editor configuration.
+8. `.gitignore` – may already exist; ensure it includes node_modules, dist, etc. (defined previously in 2.md).
+
+We will now define each file **exactly**.
+
+---
+
+## 3.3. Root `package.json`
+
+> **Instruction to AI agents:**  
+> Replace the existing root `package.json` with the following content.
+
+Create/overwrite `ai-chat-platform/package.json` with:
+
+```json
+{
+  "name": "ai-chat-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:api": "turbo run dev --filter=api-gateway",
+    "dev:web": "turbo run dev --filter=web-app",
+    "dev:worker": "turbo run dev --filter=worker-jobs",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "turbo run format",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "ts-node": "^10.9.2",
+    "turbo": "^2.0.0",
+    "eslint": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "prettier": "^3.3.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^7.1.0"
+  }
+}
+```
+
+> **AI Agent Note:**  
+> Later markdown files may add more devDependencies or scripts. When that happens, **extend** this JSON carefully, preserving the existing structure.
+
+---
+
+## 3.4. `pnpm-workspace.yaml`
+
+Create `ai-chat-platform/pnpm-workspace.yaml` with the following content:
+
+```yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+```
+
+> **AI Agent Note:**  
+> Do not add additional workspace globs without instructions. All code must live under `apps/` or `packages/` unless later docs say otherwise.
+
+---
+
+## 3.5. `turbo.json` – Turborepo Pipelines
+
+Create `ai-chat-platform/turbo.json` with:
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "build/**"
+      ]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "test": {
+      "outputs": [
+        "coverage/**"
+      ]
+    },
+    "format": {
+      "outputs": []
+    },
+    "clean": {
+      "cache": false,
+      "outputs": [
+        "dist/**",
+        "build/**",
+        ".next/**",
+        "coverage/**"
+      ]
+    }
+  }
+}
+```
+
+> **AI Agent Note:**  
+> - Backend apps (e.g., `api-gateway`) should output to `dist/` for builds.  
+> - Frontend (`web-app`) will use `.next/` as Next.js’ build folder.
+
+---
+
+## 3.6. Shared TypeScript Config – `tsconfig.base.json`
+
+Create `ai-chat-platform/tsconfig.base.json` with:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ai-chat/core-types/*": ["packages/core-types/src/*"],
+      "@ai-chat/db/*": ["packages/db/src/*"],
+      "@ai-chat/chat-orchestrator/*": ["packages/chat-orchestrator/src/*"],
+      "@ai-chat/ollama-client/*": ["packages/ollama-client/src/*"],
+      "@ai-chat/tools-engine/*": ["packages/tools-engine/src/*"],
+      "@ai-chat/telemetry/*": ["packages/telemetry/src/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    ".next"
+  ]
+}
+```
+
+> **AI Agent Note:**  
+> Each TS project (apps and packages) must extend this base config in their local `tsconfig.json`.
+
+---
+
+## 3.7. Root ESLint Config – `.eslintrc.cjs`
+
+Create `ai-chat-platform/.eslintrc.cjs` with:
+
+```js
+module.exports = {
+  root: true,
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    ecmaVersion: 2020,
+    sourceType: "module",
+    project: undefined
+  },
+  plugins: ["@typescript-eslint", "import", "promise", "node"],
+  extends: [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:import/recommended",
+    "plugin:promise/recommended",
+    "plugin:node/recommended",
+    "prettier"
+  ],
+  env: {
+    node: true,
+    es2020: true,
+    browser: true
+  },
+  settings: {
+    "import/resolver": {
+      node: {
+        extensions: [".js", ".jsx", ".ts", ".tsx"]
+      },
+      typescript: {}
+    }
+  },
+  rules: {
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "node/no-unsupported-features/es-syntax": "off",
+    "node/no-missing-import": "off",
+    "import/order": [
+      "error",
+      {
+        "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
+        "newlines-between": "always"
+      }
+    ]
+  },
+  ignorePatterns: ["dist/", "build/", ".next/", "node_modules/"]
+};
+```
+
+> **AI Agent Note:**  
+> If later project-specific ESLint configs are added, they should **extend** this base configuration.
+
+---
+
+## 3.8. Prettier Config – `.prettierrc`
+
+Create `ai-chat-platform/.prettierrc` with:
+
+```json
+{
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "bracketSpacing": true,
+  "arrowParens": "always"
+}
+```
+
+---
+
+## 3.9. EditorConfig – `.editorconfig`
+
+Create `ai-chat-platform/.editorconfig` with:
+
+```ini
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+max_line_length = off
+trim_trailing_whitespace = false
+```
+
+> **AI Agent Note:**  
+> This ensures consistent formatting across editors. Do not override this unless explicitly requested.
+
+---
+
+## 3.10. Apps: Directory & Basic Config Skeletons
+
+We now define minimal skeletons for each app. These **do not** implement business logic, only minimal TypeScript and package setup.
+
+### 3.10.1. `apps/api-gateway`
+
+Create directory:
+
+```bash
+mkdir -p apps/api-gateway/src
+```
+
+Create `apps/api-gateway/package.json`:
+
+```json
+{
+  "name": "api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node --project tsconfig.json src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "fastify-cors": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
+```
+
+Create `apps/api-gateway/tsconfig.json`:
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}
+```
+
+Create minimal entry file `apps/api-gateway/src/main.ts`:
+
+```ts
+import fastify from 'fastify';
+
+const app = fastify({
+  logger: true,
+});
+
+app.get('/health', async () => {
+  return { status: 'ok' };
+});
+
+const port = Number(process.env.API_PORT || 4000);
+const host = process.env.API_HOST || '0.0.0.0';
+
+app
+  .listen({ port, host })
+  .then(() => {
+    app.log.info(`API Gateway listening on http://${host}:${port}`);
+  })
+  .catch((err) => {
+    app.log.error(err, 'Failed to start API Gateway');
+    process.exit(1);
+  });
+```
+
+> **AI Agent Note:**  
+> Later markdown files will expand this app with real routes, plugins, and middleware.
+
+---
+
+### 3.10.2. `apps/web-app` (Next.js)
+
+Create directory:
+
+```bash
+mkdir -p apps/web-app
+```
+
+Create `apps/web-app/package.json`:
+
+```json
+{
+  "name": "web-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf .next"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0"
+  }
+}
+```
+
+Create Next.js config `apps/web-app/next.config.mjs`:
+
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  experimental: {
+    appDir: true
+  }
+};
+
+export default nextConfig;
+```
+
+Create TS config `apps/web-app/tsconfig.json`:
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "es2020"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}
+```
+
+Create minimal Next.js app router structure:
+
+```bash
+mkdir -p apps/web-app/app
+```
+
+Create `apps/web-app/app/layout.tsx`:
+
+```tsx
+import React from 'react';
+
+export const metadata = {
+  title: 'AI Chat Platform',
+  description: 'Ollama-powered AI chat platform'
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+Create `apps/web-app/app/page.tsx`:
+
+```tsx
+export default function HomePage() {
+  return (
+    <main style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+      <h1>AI Chat Platform</h1>
+      <p>Frontend scaffold is running.</p>
+    </main>
+  );
+}
+```
+
+> **AI Agent Note:**  
+> Later markdown files will replace this barebones UI with a Material 3 + gradient chat interface.
+
+---
+
+### 3.10.3. `apps/worker-jobs`
+
+Create directory:
+
+```bash
+mkdir -p apps/worker-jobs/src
+```
+
+Create `apps/worker-jobs/package.json`:
+
+```json
+{
+  "name": "worker-jobs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node --project tsconfig.json src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
+```
+
+Create `apps/worker-jobs/tsconfig.json`:
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}
+```
+
+Create `apps/worker-jobs/src/main.ts`:
+
+```ts
+/* eslint-disable no-console */
+
+console.log('Worker jobs process started.');
+
+// In future docs, this will be replaced with real queue consumers and scheduled jobs.
+```
+
+---
+
+## 3.11. Packages: Directory & Basic Config Skeletons
+
+For each shared package, we create a minimal structure: `package.json`, `tsconfig.json`, and `src/index.ts`.
+
+### 3.11.1. Helper Template
+
+> **AI Agent Note:**  
+> For each package, use the following patterns, adjusting `name` and paths accordingly.
+
+Common `tsconfig.json` template:
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src"]
+}
+```
+
+Common `src/index.ts` template for now:
+
+```ts
+// This package will be implemented in detail in later markdown files.
+// Do not add logic here yet unless instructed by a later document.
+
+export {};
+```
+
+We now define each package.
+
+---
+
+### 3.11.2. `packages/core-types`
+
+Create directory:
+
+```bash
+mkdir -p packages/core-types/src
+```
+
+Create `packages/core-types/package.json`:
+
+```json
+{
+  "name": "@ai-chat/core-types",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  }
+}
+```
+
+Create `packages/core-types/tsconfig.json` using the template above.
+
+Create `packages/core-types/src/index.ts` with:
+
+```ts
+// Shared TypeScript types and interfaces for the AI chat platform.
+// Detailed definitions will be added in a later markdown file.
+
+export {};
+```
+
+---
+
+### 3.11.3. `packages/db`
+
+Create directory:
+
+```bash
+mkdir -p packages/db/src
+```
+
+Create `packages/db/package.json`:
+
+```json
+{
+  "name": "@ai-chat/db",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  }
+}
+```
+
+Create `packages/db/tsconfig.json` using the template.
+
+Create `packages/db/src/index.ts` with:
+
+```ts
+// Prisma client and database utilities will be implemented here in a later markdown file.
+
+export {};
+```
+
+---
+
+### 3.11.4. `packages/chat-orchestrator`
+
+Create directory:
+
+```bash
+mkdir -p packages/chat-orchestrator/src
+```
+
+Create `packages/chat-orchestrator/package.json`:
+
+```json
+{
+  "name": "@ai-chat/chat-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  }
+}
+```
+
+Create `packages/chat-orchestrator/tsconfig.json` using the template.
+
+Create `packages/chat-orchestrator/src/index.ts`:
+
+```ts
+// Chat orchestration logic (prompt building, context management, etc.) will live here.
+// Implementations will be detailed in a later markdown file.
+
+export {};
+```
+
+---
+
+### 3.11.5. `packages/ollama-client`
+
+Create directory:
+
+```bash
+mkdir -p packages/ollama-client/src
+```
+
+Create `packages/ollama-client/package.json`:
+
+```json
+{
+  "name": "@ai-chat/ollama-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  }
+}
+```
+
+Create `packages/ollama-client/tsconfig.json` using the template.
+
+Create `packages/ollama-client/src/index.ts`:
+
+```ts
+// Low-level HTTP client for interacting with Ollama will be implemented here.
+
+export {};
+```
+
+---
+
+### 3.11.6. `packages/tools-engine`
+
+Create directory:
+
+```bash
+mkdir -p packages/tools-engine/src
+```
+
+Create `packages/tools-engine/package.json`:
+
+```json
+{
+  "name": "@ai-chat/tools-engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  }
+}
+```
+
+Create `packages/tools-engine/tsconfig.json` using the template.
+
+Create `packages/tools-engine/src/index.ts`:
+
+```ts
+// Tools and plugins engine implementation will go here in a later markdown file.
+
+export {};
+```
+
+---
+
+### 3.11.7. `packages/telemetry`
+
+Create directory:
+
+```bash
+mkdir -p packages/telemetry/src
+```
+
+Create `packages/telemetry/package.json`:
+
+```json
+{
+  "name": "@ai-chat/telemetry",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  }
+}
+```
+
+Create `packages/telemetry/tsconfig.json` using the template.
+
+Create `packages/telemetry/src/index.ts`:
+
+```ts
+// Telemetry utilities (logging, metrics, tracing) will be implemented here.
+
+export {};
+```
+
+---
+
+## 3.12. Wiring Workspaces with `pnpm install`
+
+Once all `package.json` files are in place:
+
+From the root (`ai-chat-platform/`), run:
+
+```bash
+pnpm install
+```
+
+This will:
+
+- Install root devDependencies.
+- Link all workspaces (`apps/*` and `packages/*`) together.
+
+> **AI Agent Note:**  
+> If you encounter peer dependency warnings, do **not** attempt to “fix” them by changing versions unless a later markdown file requires it. Prefer the versions specified here.
+
+---
+
+## 3.13. Sanity Checks After Monorepo Setup
+
+Run these commands from the root:
+
+```bash
+pnpm lint
+pnpm build
+pnpm dev --filter=api-gateway
+pnpm dev --filter=web-app
+```
+
+Expected behavior:
+
+- `pnpm lint` prints configured ESLint behavior (no-op or minimal warnings since most files are empty).
+- `pnpm build` builds all packages and apps (should succeed with current skeletons).
+- `pnpm dev --filter=api-gateway` starts the API at `http://localhost:4000` with `/health` endpoint.
+- `pnpm dev --filter=web-app` starts Next.js dev server (usually at `http://localhost:3000`).
+
+You can check:
+
+```bash
+curl http://localhost:4000/health
+```
+
+Response should resemble:
+
+```json
+{"status":"ok"}
+```
+
+And open `http://localhost:3000` in a browser to see the minimal frontend page.
+
+---
+
+## 3.14. Next Steps
+
+After this monorepo and tooling setup is complete:
+
+1. Ensure directory structure matches exactly what is defined in this file.
+2. Ensure all root configs (`package.json`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.base.json`, ESLint, Prettier, EditorConfig) exist with this content.
+3. Confirm that `pnpm install`, `pnpm build`, and `pnpm dev --filter=api-gateway` / `web-app` work without fatal errors.
+
+The subsequent markdown files will:
+
+- Define the **database schema** and Prisma setup in detail.
+- Implement the **Ollama client** and **chat orchestrator** logic.
+- Flesh out the **API routes** for chat, auth, and organizations.
+- Implement the **Material 3 + gradient UI** and chat interface in `web-app`.
+- Configure **telemetry, metrics, and Grafana dashboards**.
+
+> **AI Agent Instruction:**  
+> Do **not** implement business logic in packages and apps until the corresponding markdown files are provided. At this stage, your task is to ensure the skeleton monorepo structure and tooling are set up and running cleanly.
+
+---
+
+_End of 3.md – Monorepo Structure & Tooling_

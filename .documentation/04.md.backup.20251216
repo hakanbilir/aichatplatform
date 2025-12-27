@@ -1,0 +1,656 @@
+
+
+# 4. Environment Configuration & Secrets Management
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Define a **single, consistent configuration strategy** for the entire monorepo (backend, frontend, workers), including **environment variables**, **.env files**, and a **shared config package**. After following this file, an AI agent should be able to:
+>
+> - Create and validate all required environment variables.
+> - Implement a shared `@ai-chat/config` package for runtime configuration.
+> - Wire configuration into `api-gateway`, `web-app`, and `worker-jobs` without ambiguity.
+>
+> **Important instructions to AI agents:**
+> - Do **not** hardcode secrets (keys, passwords, tokens) in source files.
+> - Use `.env` files only for local development; assume production uses real secret managers (Kubernetes secrets, Docker env vars, etc.).
+> - If a variable is optional, implement a **sane default** in config, but keep it explicit.
+> - Any time you add a new env var, update:
+>   - The config schema in `@ai-chat/config`.
+>   - Sample `.env` files in `docs` or `infra` (when provided later).
+
+---
+
+## 4.1. Configuration Philosophy
+
+We follow these principles:
+
+1. **Single Source of Truth**  
+   All services read configuration from a shared **config package** (`@ai-chat/config`), not directly from `process.env` in arbitrary places.
+
+2. **12-Factor App Style**  
+   Configuration is supplied via environment variables. Local dev uses `.env` files. Production uses process environment (Docker, K8s, etc.).
+
+3. **Validation on Startup**  
+   Config is validated at startup (using a schema library like **Zod**). If required values are missing or invalid, the service fails fast with a clear error.
+
+4. **Per-App Overrides with Common Core**  
+   There is a core shared configuration (DB, Redis, Ollama, JWT), and each app (API, web, worker) may have app-specific env vars.
+
+---
+
+## 4.2. Environment Variables – Global Overview
+
+Below is a consolidated list of environment variables expected across the system. Later sections will mark which app uses which variables.
+
+### 4.2.1. Core Variables
+
+- `NODE_ENV` – `development` | `test` | `production`
+- `LOG_LEVEL` – e.g., `info` | `debug` | `warn` | `error`
+- `PORT` – default port if app-specific port vars are not set.
+
+### 4.2.2. Backend (API Gateway)
+
+- `API_HOST` – host to bind the Fastify server (default: `0.0.0.0`).
+- `API_PORT` – port for the API server (default: `4000`).
+
+### 4.2.3. Frontend (Next.js Web App)
+
+- `WEB_PORT` – port for Next.js dev/build/start (default: `3000`).
+- `NEXT_PUBLIC_API_BASE_URL` – base URL for API calls from the browser (e.g., `http://localhost:4000`).
+
+### 4.2.4. Worker Jobs
+
+- `WORKER_CONCURRENCY` – number of concurrent jobs (default: `5`).
+
+### 4.2.5. Database & Cache
+
+- `DATABASE_URL` – PostgreSQL connection string (e.g., `postgresql://user:password@localhost:5432/ai_chat`).
+- `REDIS_URL` – Redis connection string (e.g., `redis://localhost:6379`).
+
+### 4.2.6. Ollama & Models
+
+- `OLLAMA_BASE_URL` – base URL of Ollama server (default: `http://localhost:11434`).
+- `DEFAULT_MODEL` – default model name for chat (e.g., `llama3.1`).
+
+### 4.2.7. Auth & Security
+
+- `JWT_SECRET` – secret key for signing JWTs (required).
+- `JWT_EXPIRES_IN` – token TTL (e.g., `1d`, `12h`).
+- `BCRYPT_SALT_ROUNDS` – integer, e.g., `10`.
+
+### 4.2.8. Telemetry & Metrics
+
+- `PROMETHEUS_METRICS_PORT` – port for metrics endpoint, if exposed separately.
+- `OTEL_EXPORTER_OTLP_ENDPOINT` – optional; OTEL collector URL for traces.
+
+### 4.2.9. Multi-Tenancy & Misc
+
+- `DEFAULT_TENANT_NAME` – default org/tenant name for initial seed (optional).
+- `ALLOW_SIGNUP` – `true` | `false` (whether users can self-register).
+
+> **AI Agent Note:**  
+> Do not assume that all variables are always present. Required vs optional will be encoded in the config schema.
+
+---
+
+## 4.3. .env Files Structure
+
+For local development, we use `.env` files in the **repo root** and app-specific `.env` integration as needed.
+
+### 4.3.1. Root-Level .env Files
+
+At the root (`ai-chat-platform/`):
+
+- `.env` – base variables (committed? **No**, keep it local; `.gitignore` already covers `.env*`).
+- `.env.development` – development-specific overrides.
+- `.env.test` – test environment.
+- `.env.production` – production-like settings (for local simulation).
+
+> **AI Agent Note:**  
+> For now, only `.env.development` is strictly required. The others are optional but recommended for a complete setup.
+
+### 4.3.2. Example `.env.development`
+
+Create `ai-chat-platform/.env.development` with:
+
+```bash
+# General
+NODE_ENV=development
+LOG_LEVEL=debug
+
+# API
+API_HOST=0.0.0.0
+API_PORT=4000
+
+# Web
+WEB_PORT=3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+
+# Worker
+WORKER_CONCURRENCY=5
+
+# Database
+DATABASE_URL=postgresql://ai_chat_user:ai_chat_password@localhost:5432/ai_chat
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Ollama
+OLLAMA_BASE_URL=http://localhost:11434
+DEFAULT_MODEL=llama3.1
+
+# Auth
+JWT_SECRET=replace_with_a_long_random_secret_value
+JWT_EXPIRES_IN=1d
+BCRYPT_SALT_ROUNDS=10
+
+# Telemetry
+PROMETHEUS_METRICS_PORT=9100
+# OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+
+# Multi-tenancy & misc
+DEFAULT_TENANT_NAME=Default Org
+ALLOW_SIGNUP=true
+```
+
+> **Security Note:**  
+> This file is **local only** and must **not** be committed. Ensure `.gitignore` includes `.env*` (already defined in 2.md).
+
+---
+
+## 4.4. Shared Config Package – `@ai-chat/config`
+
+We now create a dedicated package to load and validate environment variables.
+
+### 4.4.1. Add Path Mapping (Root TS Config)
+
+Update `ai-chat-platform/tsconfig.base.json` to add the config package path under `compilerOptions.paths`:
+
+```jsonc
+{
+  "compilerOptions": {
+    // ...existing options...
+    "paths": {
+      "@ai-chat/core-types/*": ["packages/core-types/src/*"],
+      "@ai-chat/db/*": ["packages/db/src/*"],
+      "@ai-chat/chat-orchestrator/*": ["packages/chat-orchestrator/src/*"],
+      "@ai-chat/ollama-client/*": ["packages/ollama-client/src/*"],
+      "@ai-chat/tools-engine/*": ["packages/tools-engine/src/*"],
+      "@ai-chat/telemetry/*": ["packages/telemetry/src/*"],
+      "@ai-chat/config/*": ["packages/config/src/*"]
+    }
+  }
+}
+```
+
+> **AI Agent Note:**  
+> Do not remove existing path entries; only add the new `@ai-chat/config/*` line.
+
+### 4.4.2. Create `packages/config` Skeleton
+
+Create the directory:
+
+```bash
+mkdir -p packages/config/src
+```
+
+Create `packages/config/package.json`:
+
+```json
+{
+  "name": "@ai-chat/config",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "zod": "^3.23.0"
+  }
+}
+```
+
+Create `packages/config/tsconfig.json`:
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src"]
+}
+```
+
+### 4.4.3. Implement Config Loader – `packages/config/src/index.ts`
+
+Create `packages/config/src/index.ts` with the following content:
+
+```ts
+import dotenv from 'dotenv';
+import { z } from 'zod';
+
+// Load .env files in development and test environments
+if (!process.env.SKIP_DOTENV) {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+
+  // Load .env.development, .env.test, etc. if present
+  dotenv.config();
+  dotenv.config({ path: `.env.${nodeEnv}` });
+}
+
+const baseSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  LOG_LEVEL: z
+    .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
+    .default('info'),
+
+  // API
+  API_HOST: z.string().default('0.0.0.0'),
+  API_PORT: z
+    .string()
+    .default('4000')
+    .transform((val) => {
+      const parsed = Number(val);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new Error(`Invalid API_PORT: ${val}`);
+      }
+      return parsed;
+    }),
+
+  // Web
+  WEB_PORT: z
+    .string()
+    .default('3000')
+    .transform((val) => {
+      const parsed = Number(val);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new Error(`Invalid WEB_PORT: ${val}`);
+      }
+      return parsed;
+    }),
+  NEXT_PUBLIC_API_BASE_URL: z
+    .string()
+    .url()
+    .default('http://localhost:4000'),
+
+  // Worker
+  WORKER_CONCURRENCY: z
+    .string()
+    .default('5')
+    .transform((val) => {
+      const parsed = Number(val);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new Error(`Invalid WORKER_CONCURRENCY: ${val}`);
+      }
+      return parsed;
+    }),
+
+  // Database & Redis
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
+
+  // Ollama
+  OLLAMA_BASE_URL: z.string().url().default('http://localhost:11434'),
+  DEFAULT_MODEL: z.string().default('llama3.1'),
+
+  // Auth & Security
+  JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters long'),
+  JWT_EXPIRES_IN: z.string().default('1d'),
+  BCRYPT_SALT_ROUNDS: z
+    .string()
+    .default('10')
+    .transform((val) => {
+      const parsed = Number(val);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new Error(`Invalid BCRYPT_SALT_ROUNDS: ${val}`);
+      }
+      return parsed;
+    }),
+
+  // Telemetry
+  PROMETHEUS_METRICS_PORT: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const parsed = Number(val);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new Error(`Invalid PROMETHEUS_METRICS_PORT: ${val}`);
+      }
+      return parsed;
+    }),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
+
+  // Misc
+  DEFAULT_TENANT_NAME: z.string().default('Default Org'),
+  ALLOW_SIGNUP: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true')
+});
+
+export type AppConfig = z.infer<typeof baseSchema> & {
+  /** Derived booleans */
+  isDev: boolean;
+  isTest: boolean;
+  isProd: boolean;
+};
+
+let cachedConfig: AppConfig | null = null;
+
+export function loadConfig(): AppConfig {
+  if (cachedConfig) return cachedConfig;
+
+  const parsed = baseSchema.safeParse(process.env);
+
+  if (!parsed.success) {
+    // Build a human-readable error message
+    const message = parsed.error.errors
+      .map((err) => `${err.path.join('.')}: ${err.message}`)
+      .join('; ');
+
+    // eslint-disable-next-line no-console
+    console.error('Configuration validation error:', message);
+    throw new Error(`Invalid environment configuration: ${message}`);
+  }
+
+  const cfg = parsed.data;
+
+  const enriched: AppConfig = {
+    ...cfg,
+    isDev: cfg.NODE_ENV === 'development',
+    isTest: cfg.NODE_ENV === 'test',
+    isProd: cfg.NODE_ENV === 'production'
+  };
+
+  cachedConfig = enriched;
+  return enriched;
+}
+
+export function getConfig(): AppConfig {
+  return loadConfig();
+}
+```
+
+> **AI Agent Note:**  
+> - `loadConfig()` should be called once per process (it caches the result).  
+> - **Never** mutate the returned config object.
+
+---
+
+## 4.5. Wiring Config into `api-gateway`
+
+We now update `apps/api-gateway` to use `@ai-chat/config` instead of reading env vars manually.
+
+### 4.5.1. Update `apps/api-gateway/package.json`
+
+Add `@ai-chat/config` as a dependency and ensure TypeScript node types are present.
+
+Replace `apps/api-gateway/package.json` with:
+
+```json
+{
+  "name": "api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node --project tsconfig.json src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "fastify-cors": "^9.0.0",
+    "@ai-chat/config": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
+```
+
+> **AI Agent Note:**  
+> Version `0.1.0` here refers to the local workspace package. pnpm workspaces will link it automatically.
+
+### 4.5.2. Update `apps/api-gateway/src/main.ts`
+
+Replace the content of `apps/api-gateway/src/main.ts` with:
+
+```ts
+import fastify from 'fastify';
+import { getConfig } from '@ai-chat/config';
+
+const config = getConfig();
+
+const app = fastify({
+  logger: {
+    level: config.LOG_LEVEL
+  }
+});
+
+app.get('/health', async () => {
+  return {
+    status: 'ok',
+    env: config.NODE_ENV,
+    defaultModel: config.DEFAULT_MODEL
+  };
+});
+
+const port = config.API_PORT;
+const host = config.API_HOST;
+
+app
+  .listen({ port, host })
+  .then(() => {
+    app.log.info(`API Gateway listening on http://${host}:${port}`);
+  })
+  .catch((err) => {
+    app.log.error(err, 'Failed to start API Gateway');
+    process.exit(1);
+  });
+```
+
+> **Result:**  
+> - The API now uses the validated config values.  
+> - `/health` endpoint returns basic env info (safe subset) which is useful for debugging.
+
+---
+
+## 4.6. Wiring Config into `worker-jobs`
+
+### 4.6.1. Update `apps/worker-jobs/package.json`
+
+Replace with:
+
+```json
+{
+  "name": "worker-jobs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node --project tsconfig.json src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-chat/config": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
+```
+
+### 4.6.2. Update `apps/worker-jobs/src/main.ts`
+
+Replace the file contents with:
+
+```ts
+/* eslint-disable no-console */
+
+import { getConfig } from '@ai-chat/config';
+
+const config = getConfig();
+
+console.log('Worker jobs process started.', {
+  env: config.NODE_ENV,
+  concurrency: config.WORKER_CONCURRENCY
+});
+
+// In later docs, this file will be expanded with actual queue consumers and scheduled jobs.
+```
+
+---
+
+## 4.7. Wiring Config into `web-app` (Next.js)
+
+For the frontend, env vars are managed by Next.js. Any env var prefixed with `NEXT_PUBLIC_` is exposed to the browser.
+
+### 4.7.1. Next.js Env Behavior
+
+- `NEXT_PUBLIC_*` vars are available both on the server and client side via `process.env.NEXT_PUBLIC_*`.
+- Non-prefixed env vars (like `NODE_ENV`) are available only on the server.
+- Next.js reads env vars from:
+  - System env
+  - `.env.local`, `.env.development`, etc. in the app directory or project root.
+
+For simplicity, we rely on root `.env.development`, and we **do not** import `@ai-chat/config` directly in the Next.js app (to avoid bundling server-only logic).
+
+### 4.7.2. Create `apps/web-app/src/config/client.ts`
+
+Create directory:
+
+```bash
+mkdir -p apps/web-app/src/config
+```
+
+Create `apps/web-app/src/config/client.ts` with:
+
+```ts
+export interface ClientConfig {
+  apiBaseUrl: string;
+}
+
+export function loadClientConfig(): ClientConfig {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  if (!apiBaseUrl) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL is not defined');
+  }
+
+  return {
+    apiBaseUrl
+  };
+}
+```
+
+> **AI Agent Note:**  
+> This is a simple client-side helper. We keep frontend and backend config code separate to avoid bundling Node-only dependencies into browser code.
+
+### 4.7.3. Use Config in `app/page.tsx`
+
+Update `apps/web-app/app/page.tsx` to show the configured API base URL.
+
+Replace the file contents with:
+
+```tsx
+import { loadClientConfig } from '../src/config/client';
+
+export default function HomePage() {
+  const { apiBaseUrl } = loadClientConfig();
+
+  return (
+    <main style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+      <h1>AI Chat Platform</h1>
+      <p>Frontend scaffold is running.</p>
+      <p>
+        API base URL: <code>{apiBaseUrl}</code>
+      </p>
+    </main>
+  );
+}
+```
+
+> **Result:**  
+> The homepage confirms the frontend is correctly reading `NEXT_PUBLIC_API_BASE_URL`.
+
+---
+
+## 4.8. Install Dependencies & Sanity Check
+
+After adding the `@ai-chat/config` package and updating app package.json files, run from the repo root:
+
+```bash
+pnpm install
+```
+
+Then:
+
+```bash
+pnpm build
+pnpm dev --filter=api-gateway
+pnpm dev --filter=worker-jobs
+pnpm dev --filter=web-app
+```
+
+Sanity checks:
+
+1. **API Gateway**
+   - Visit or curl:
+
+     ```bash
+     curl http://localhost:4000/health
+     ```
+
+     Response should be like:
+
+     ```json
+     {"status":"ok","env":"development","defaultModel":"llama3.1"}
+     ```
+
+2. **Worker Jobs**
+   - Console output should show environment and concurrency.
+
+3. **Web App**
+   - Open `http://localhost:3000` in a browser.
+   - Page should display the API base URL from env.
+
+If any of these fail with configuration-related errors, verify `.env.development` and ensure `DATABASE_URL`, `REDIS_URL`, and `JWT_SECRET` are set (even though they are not yet used by all features, config validation still requires them).
+
+---
+
+## 4.9. Next Steps
+
+With configuration and secrets handling now standardized:
+
+1. All backend services use `@ai-chat/config` as the **only** way to read env vars.
+2. Frontend uses `NEXT_PUBLIC_*` vars and a small client config helper.
+3. `.env` files are used only for local development; production will pass env vars via deployment tooling.
+
+Upcoming markdown files will:
+
+- Define the **database schema** in Prisma and wiring in `@ai-chat/db`.
+- Implement **Ollama client** in `@ai-chat/ollama-client` using `config.OLLAMA_BASE_URL`.
+- Implement the **chat orchestrator** and core conversation logic.
+- Add **telemetry** and wire `PROMETHEUS_METRICS_PORT` & OTEL configs.
+
+> **AI Agent Instruction:**  
+> Before moving to the next file, make sure all config-related TypeScript code compiles, and the dev servers can start using `pnpm dev --filter=...` commands.
+
+---
+
+_End of 4.md – Environment Configuration & Secrets Management_

@@ -1,0 +1,478 @@
+# 21. Quota‑Aware Chat UI & ORG_HARD_QUOTA_EXCEEDED Handling
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Make the **chat experience quota‑aware** by handling `ORG_HARD_QUOTA_EXCEEDED` errors gracefully in the UI.
+>
+> - Frontend: Normalize `ORG_HARD_QUOTA_EXCEEDED` errors from chat API.  
+> - Frontend: Extend chat streaming hook to surface quota errors.  
+> - Frontend: Update Chat page to show a clear **quota banner**, disable input, and link to **Org Analytics** / **Org Billing**.
+>
+> After following this file, users in orgs that hit the hard token limit will see a **clear, actionable message** instead of a generic error.
+
+> **Important instructions to AI agents:**
+> - Do **not** change backend behavior: error shape is defined in **19.md**.  
+> - Treat this file as canonical for **front‑end quota error handling**.  
+> - You may adapt file paths to the exact project layout, but keep the logic and types intact.
+
+---
+
+## 21.1. Error Shape – `ORG_HARD_QUOTA_EXCEEDED`
+
+From **19.md**, the backend returns for hard quota violations:
+
+```jsonc
+{
+  "error": "ORG_HARD_QUOTA_EXCEEDED",
+  "message": "This organization has exceeded its hard token limit in the current billing window.",
+  "plan": "PRO",
+  "quota": {
+    "windowDays": 30,
+    "usageTokens": 125000,
+    "monthlySoftLimitTokens": 100000,
+    "monthlyHardLimitTokens": 120000,
+    "softLimitRemainingTokens": 0,
+    "hardLimitRemainingTokens": 0,
+    "softLimitExceeded": true,
+    "hardLimitExceeded": true
+  }
+}
+```
+
+We’ll normalize this into a dedicated front‑end error type and handle it specially in the Chat UI.
+
+---
+
+## 21.2. Frontend – Quota Error Types & Helpers
+
+We centralize quota error detection in a small helper.
+
+### 21.2.1. Create `apps/web/src/chat/quotaErrors.ts`
+
+```ts
+// apps/web/src/chat/quotaErrors.ts
+
+export type OrgPlan = 'FREE' | 'PRO' | 'ENTERPRISE' | 'CUSTOM';
+
+export interface OrgQuotaErrorPayload {
+  windowDays: number;
+  usageTokens: number;
+  monthlySoftLimitTokens: number | null;
+  monthlyHardLimitTokens: number | null;
+  softLimitRemainingTokens: number | null;
+  hardLimitRemainingTokens: number | null;
+  softLimitExceeded: boolean;
+  hardLimitExceeded: boolean;
+}
+
+export interface OrgHardQuotaExceededError {
+  type: 'ORG_HARD_QUOTA_EXCEEDED';
+  message: string;
+  plan: OrgPlan | null;
+  quota: OrgQuotaErrorPayload | null;
+  raw: any;
+}
+
+/**
+ * If the given error payload matches the ORG_HARD_QUOTA_EXCEEDED contract,
+ * returns a normalized OrgHardQuotaExceededError. Otherwise returns null.
+ */
+export function parseOrgHardQuotaExceededError(payload: any): OrgHardQuotaExceededError | null {
+  if (!payload || typeof payload !== 'object') return null;
+
+  if (payload.error !== 'ORG_HARD_QUOTA_EXCEEDED') {
+    return null;
+  }
+
+  const plan: OrgPlan | null =
+    typeof payload.plan === 'string' && ['FREE', 'PRO', 'ENTERPRISE', 'CUSTOM'].includes(payload.plan)
+      ? (payload.plan as OrgPlan)
+      : null;
+
+  const q = payload.quota;
+
+  const quota: OrgQuotaErrorPayload | null =
+    q && typeof q === 'object'
+      ? {
+          windowDays: typeof q.windowDays === 'number' ? q.windowDays : 30,
+          usageTokens: typeof q.usageTokens === 'number' ? q.usageTokens : 0,
+          monthlySoftLimitTokens:
+            typeof q.monthlySoftLimitTokens === 'number' ? q.monthlySoftLimitTokens : null,
+          monthlyHardLimitTokens:
+            typeof q.monthlyHardLimitTokens === 'number' ? q.monthlyHardLimitTokens : null,
+          softLimitRemainingTokens:
+            typeof q.softLimitRemainingTokens === 'number' ? q.softLimitRemainingTokens : null,
+          hardLimitRemainingTokens:
+            typeof q.hardLimitRemainingTokens === 'number' ? q.hardLimitRemainingTokens : null,
+          softLimitExceeded: Boolean(q.softLimitExceeded),
+          hardLimitExceeded: Boolean(q.hardLimitExceeded)
+        }
+      : null;
+
+  const message =
+    typeof payload.message === 'string'
+      ? payload.message
+      : 'This organization has exceeded its hard token limit in the current billing window.';
+
+  return {
+    type: 'ORG_HARD_QUOTA_EXCEEDED',
+    message,
+    plan,
+    quota,
+    raw: payload
+  };
+}
+```
+
+This helper is **pure** and can be used both in streaming and non‑streaming chat calls.
+
+---
+
+## 21.3. Frontend – Extend Chat Streaming Hook
+
+> **Note:** If your project already has a chat hook with a different name, adapt this code to that file. The important part is:
+>
+> - Catch 429 responses with quota error JSON.
+> - Use `parseOrgHardQuotaExceededError` to normalize.  
+> - Expose a `quotaError` field to the Chat UI.
+
+### 21.3.1. Example `apps/web/src/chat/useChatStream.ts`
+
+If you don’t already have one, you can implement a simple streaming hook like this.
+
+```ts
+// apps/web/src/chat/useChatStream.ts
+
+import { useCallback, useState } from 'react';
+import { parseOrgHardQuotaExceededError, OrgHardQuotaExceededError } from './quotaErrors';
+import { useAuth } from '../auth/AuthContext';
+
+export interface UseChatStreamOptions {
+  conversationId: string;
+}
+
+export interface UseChatStreamResult {
+  sending: boolean;
+  quotaError: OrgHardQuotaExceededError | null;
+  sendMessage: (content: string) => Promise<void>;
+  clearQuotaError: () => void;
+}
+
+export function useChatStream({ conversationId }: UseChatStreamOptions): UseChatStreamResult {
+  const { token } = useAuth();
+  const [sending, setSending] = useState(false);
+  const [quotaError, setQuotaError] = useState<OrgHardQuotaExceededError | null>(null);
+
+  const clearQuotaError = useCallback(() => {
+    setQuotaError(null);
+  }, []);
+
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+      if (!conversationId) {
+        throw new Error('No conversation id');
+      }
+
+      setSending(true);
+      setQuotaError(null);
+
+      try {
+        const response = await fetch(`/chat/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            conversationId,
+            content
+          })
+        });
+
+        if (response.status === 429) {
+          // Try to parse quota error
+          let json: any = null;
+          try {
+            json = await response.json();
+          } catch (e) {
+            // ignore
+          }
+          const quotaErr = parseOrgHardQuotaExceededError(json);
+          if (quotaErr) {
+            setQuotaError(quotaErr);
+            return;
+          }
+
+          throw new Error('Rate limit or quota exceeded.');
+        }
+
+        if (!response.ok) {
+          throw new Error(`Chat request failed with status ${response.status}`);
+        }
+
+        // Handle streaming here (omitted because it depends on your SSE/Fetch‑stream implementation)
+        // The important part is that if we reach this point, there is no hard quota error.
+      } finally {
+        setSending(false);
+      }
+    },
+    [token, conversationId]
+  );
+
+  return {
+    sending,
+    quotaError,
+    sendMessage,
+    clearQuotaError
+  };
+}
+```
+
+> If you already have a streaming implementation, **only the error handling parts need to be merged**: handle `response.status === 429`, parse JSON, call `parseOrgHardQuotaExceededError`, set a `quotaError` state.
+
+---
+
+## 21.4. Frontend – Quota‑Aware Banner in Chat Page
+
+We now surface `quotaError` in the chat UI.
+
+> **Assumption:** From earlier files (10–15.md), you already have a `ChatPage` that:
+>
+> - Receives `conversationId` from route params.  
+> - Renders header (title, model, settings) and message list + input.  
+> - Has access to `Org` context (or at least `conversation.orgId`) and navigation.
+
+We’ll extend it to:
+
+- Use `useChatStream` (or equivalent) for sending messages.  
+- Show an **Alert banner** when `quotaError` is present.  
+- Disable the input while a hard quota error is active.
+
+### 21.4.1. Update `apps/web/src/chat/ChatPage.tsx`
+
+Below is a **full example** of how to integrate quota handling. If your file already contains additional logic (system prompt drawer, sliders, etc. from 14–18.md), merge the **quota parts** into that version.
+
+```tsx
+// apps/web/src/chat/ChatPage.tsx
+
+import React, { useMemo } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  IconButton,
+  TextField,
+  Typography
+} from '@mui/material';
+import SendIcon from '@mui/icons-material/Send';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useChatStream } from './useChatStream';
+import { OrgHardQuotaExceededError } from './quotaErrors';
+
+// NOTE: Omit or replace with your real message list component
+const MessagesPlaceholder: React.FC = () => {
+  return (
+    <Box flex={1} borderRadius={2} border={1} borderColor="divider" p={2} mb={2}>
+      <Typography variant="body2" color="text.secondary">
+        Messages will be rendered here.
+      </Typography>
+    </Box>
+  );
+};
+
+interface QuotaBannerProps {
+  error: OrgHardQuotaExceededError;
+  onViewAnalytics: () => void;
+  onViewBilling?: () => void;
+}
+
+const QuotaBanner: React.FC<QuotaBannerProps> = ({ error, onViewAnalytics, onViewBilling }) => {
+  const planLabel = error.plan ? `Current plan: ${error.plan}` : undefined;
+  const quota = error.quota;
+
+  const details = useMemo(() => {
+    if (!quota) return null;
+    const parts: string[] = [];
+    parts.push(`Window: last ${quota.windowDays} days`);
+    parts.push(`Usage: ${quota.usageTokens.toLocaleString('en-US')} tokens`);
+    if (quota.monthlyHardLimitTokens != null) {
+      parts.push(`Hard limit: ${quota.monthlyHardLimitTokens.toLocaleString('en-US')} tokens`);
+    }
+    return parts.join(' • ');
+  }, [quota]);
+
+  return (
+    <Alert
+      severity="error"
+      variant="outlined"
+      sx={{ mb: 2, borderRadius: 2, alignItems: 'flex-start', gap: 1.5 }}
+    >
+      <Box flex={1}>
+        <Typography variant="subtitle2" gutterBottom>
+          Hard quota reached for this organization
+        </Typography>
+        <Typography variant="body2" gutterBottom>
+          {error.message}
+        </Typography>
+        {planLabel && (
+          <Typography variant="caption" color="text.secondary" display="block">
+            {planLabel}
+          </Typography>
+        )}
+        {details && (
+          <Typography variant="caption" color="text.secondary" display="block">
+            {details}
+          </Typography>
+        )}
+      </Box>
+      <Box display="flex" flexDirection="column" gap={1}>
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<AnalyticsIcon />}
+          onClick={onViewAnalytics}
+        >
+          View analytics
+        </Button>
+        {onViewBilling && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<SettingsIcon />}
+            onClick={onViewBilling}
+          >
+            Manage plan
+          </Button>
+        )}
+      </Box>
+    </Alert>
+  );
+};
+
+export const ChatPage: React.FC = () => {
+  const { conversationId, orgId } = useParams<{ conversationId: string; orgId?: string }>();
+  const navigate = useNavigate();
+
+  const { sending, quotaError, sendMessage } = useChatStream({ conversationId: conversationId ?? '' });
+
+  const [input, setInput] = React.useState('');
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    await sendMessage(input.trim());
+    setInput('');
+  };
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!sending && !quotaError) {
+        void handleSend();
+      }
+    }
+  };
+
+  const handleViewAnalytics = () => {
+    if (!orgId) return;
+    navigate(`/app/orgs/${orgId}/analytics`);
+  };
+
+  const handleViewBilling = () => {
+    if (!orgId) return;
+    navigate(`/app/admin/orgs/${orgId}/billing`);
+  };
+
+  const inputDisabled = sending || Boolean(quotaError);
+
+  return (
+    <Box
+      display="flex"
+      flexDirection="column"
+      flex={1}
+      sx={{
+        p: 2,
+        gap: 2,
+        background:
+          'radial-gradient(circle at top left, rgba(124,77,255,0.18), transparent 55%), radial-gradient(circle at bottom right, rgba(3,218,198,0.12), transparent 55%)'
+      }}
+    >
+      {/* Header (placeholder – merge with your existing header from earlier files) */}
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+        <Typography variant="h6">Conversation</Typography>
+      </Box>
+
+      {quotaError && (
+        <QuotaBanner
+          error={quotaError}
+          onViewAnalytics={handleViewAnalytics}
+          onViewBilling={handleViewBilling}
+        />
+      )}
+
+      <MessagesPlaceholder />
+
+      {/* Input area */}
+      <Box display="flex" alignItems="flex-end" gap={1}>
+        <TextField
+          fullWidth
+          multiline
+          minRows={1}
+          maxRows={4}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={quotaError ? 'Hard quota limit reached – new messages are blocked.' : 'Send a message...'}
+          disabled={inputDisabled}
+        />
+        <IconButton
+          color="primary"
+          onClick={handleSend}
+          disabled={inputDisabled || !input.trim()}
+        >
+          <SendIcon />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+};
+```
+
+> In your real application, replace `MessagesPlaceholder` and the simple header with the full Chat UI defined in earlier markdown files. The key is **using `quotaError` to render the banner and disable input**.
+
+---
+
+## 21.5. Sanity Checks
+
+From the repo root:
+
+1. **Build / typecheck web app:**
+
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   ```
+
+2. **Simulate hard quota condition:**
+
+   - Configure `Org.monthlyHardLimitTokens` to a small value.  
+   - Generate enough assistant messages to exceed that limit (19.md).  
+   - Attempt to send a new message from the Chat UI in a conversation for that org.
+
+3. **Verify UI behavior:**
+
+   - Chat API should respond with HTTP 429 + `ORG_HARD_QUOTA_EXCEEDED`.  
+   - `useChatStream` should parse it into `quotaError`.  
+   - Chat UI should show a red **Hard quota reached** banner.  
+   - Input area should be disabled and show a clear explanation.  
+   - "View analytics" should navigate to `/app/orgs/:orgId/analytics`.  
+   - "Manage plan" should navigate to `/app/admin/orgs/:orgId/billing`.
+
+If all checks pass, your chat application now provides a **clean, user‑friendly quota experience**, fully integrated with analytics and admin billing configuration.
+
+---
+
+_End of 21.md – Quota‑Aware Chat UI & ORG_HARD_QUOTA_EXCEEDED Handling_

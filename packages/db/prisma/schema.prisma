@@ -35,6 +35,45 @@ enum OrgPlan {
   CUSTOM
 }
 
+enum DatasetType {
+  SFT
+  PREFERENCE
+  CLASSIFICATION
+  RAG_DOCS
+}
+
+enum DatasetVersionStatus {
+  DRAFT
+  PROCESSING
+  READY
+  LOCKED
+  FAILED
+}
+
+enum TrainingMode {
+  SFT
+  DPO
+  SIMPO
+  ORPO
+  RLHF
+  RAG_TRAIN
+  DISTILLATION
+}
+
+enum TrainingBackend {
+  LOCAL_CLUSTER
+  PYTHON_SERVICE
+  EXTERNAL_PROVIDER
+}
+
+enum TrainingRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 // =========================
 // MODELS
 // =========================
@@ -50,6 +89,8 @@ model User {
   orgMemberships            OrgMember[]
   conversations             Conversation[]          @relation("UserConversations")
   apiKeys                   ApiKey[]
+  createdDatasets           Dataset[]              @relation("DatasetCreatedByUser")
+  createdTrainingRuns        TrainingRun[]          @relation("TrainingRunCreatedByUser")
   promptTemplates           PromptTemplate[]
   promptTemplateVersions    PromptTemplateVersion[]
   promptUsages              PromptUsage[]
@@ -135,6 +176,10 @@ model Organization {
   scimResourceMaps       ScimResourceMap[]
   scimAudits             ScimAudit[]
   evalMetrics            EvalMetricDefinition[]
+  projects               Project[]
+  datasets               Dataset[]
+  trainingRuns           TrainingRun[]
+  baseModels             BaseModel[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1475,4 +1520,186 @@ model ScimAudit {
   org Organization @relation(fields: [orgId], references: [id])
 
   @@index([orgId])
+}
+
+// =========================
+// TRAINING & DATASETS MODELS
+// =========================
+
+
+
+model Project {
+  id    String       @id @default(cuid())
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId String
+
+  name        String
+  slug        String
+  description String?
+
+  datasets     Dataset[]
+  trainingRuns TrainingRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+}
+
+model Dataset {
+  id        String       @id @default(cuid())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId     String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  name        String
+  slug        String
+  description String?
+  type        DatasetType
+
+  liveConfig Json? // { ingestionMode, maxSlices, sliceRetentionDays, autoTrainConfig }
+
+  versions DatasetVersion[]
+
+  createdByUser   User?   @relation("DatasetCreatedByUser", fields: [createdByUserId], references: [id])
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@unique([projectId, slug])
+  @@index([orgId])
+  @@index([projectId])
+}
+
+model DatasetVersion {
+  id        String  @id @default(cuid())
+  dataset   Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  datasetId String
+
+  versionNumber Int
+  status        DatasetVersionStatus @default(DRAFT)
+
+  primaryFile   DatasetFile? @relation("PrimaryFile", fields: [primaryFileId], references: [id])
+  primaryFileId String?
+
+  rowCount Int   @default(0)
+  stats    Json? // precomputed stats (length dist, language, etc.)
+  metadata Json? // arbitrary metadata, tags
+
+  isDefault Boolean @default(false)
+
+  files               DatasetFile[] @relation("VersionFiles")
+  primaryTrainingRuns TrainingRun[] @relation("PrimaryDatasetVersion")
+  auxTrainingRuns     TrainingRun[] @relation("AuxDatasetVersion")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([datasetId, versionNumber])
+  @@index([datasetId])
+}
+
+model DatasetFile {
+  id               String         @id @default(cuid())
+  datasetVersion   DatasetVersion @relation("VersionFiles", fields: [datasetVersionId], references: [id], onDelete: Cascade)
+  datasetVersionId String
+
+  storageUri    String // "s3://bucket/path/to/file.jsonl" or MinIO path
+  fileName      String
+  fileSizeBytes Int
+  mimeType      String?
+
+  primaryVersions DatasetVersion[] @relation("PrimaryFile")
+
+  createdAt DateTime @default(now())
+
+  @@index([datasetVersionId])
+}
+
+model BaseModel {
+  id            String   @id @default(cuid())
+  org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId          String?
+  provider      String // e.g., "ollama", "hf", "external"
+  name          String // human-readable name
+  modelId       String // provider-specific ID (e.g., "llama3:8b", "meta/llama-3-8b")
+  family        String? // e.g., "llama", "mistral", "gemma"
+  contextWindow Int?
+  languages     String[] // e.g., ["en", "tr"]
+  capabilities  String[] // e.g., ["chat", "completion", "embedding"]
+
+  isTrainingAllowed Boolean @default(true)
+
+  trainingRuns TrainingRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, provider, modelId])
+  @@index([orgId])
+}
+
+model TrainingRun {
+  id        String       @id @default(cuid())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId     String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  name        String?
+  description String?
+
+  mode    TrainingMode
+  backend TrainingBackend @default(PYTHON_SERVICE)
+
+  baseModel   BaseModel? @relation(fields: [baseModelId], references: [id])
+  baseModelId String?
+
+  datasetVersion   DatasetVersion? @relation("PrimaryDatasetVersion", fields: [datasetVersionId], references: [id])
+  datasetVersionId String?
+
+  auxDatasetVersion   DatasetVersion? @relation("AuxDatasetVersion", fields: [auxDatasetVersionId], references: [id])
+  auxDatasetVersionId String?
+
+  status TrainingRunStatus @default(QUEUED)
+
+  config Json
+
+  metrics Json?
+
+  outputModelId String? @unique
+
+  jobId       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  createdByUser   User?   @relation("TrainingRunCreatedByUser", fields: [createdByUserId], references: [id])
+  createdByUserId String?
+
+  trainingMetrics TrainingRunMetric[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, projectId])
+  @@index([status])
+}
+
+model TrainingRunMetric {
+  id            String      @id @default(cuid())
+  trainingRun   TrainingRun @relation(fields: [trainingRunId], references: [id], onDelete: Cascade)
+  trainingRunId String
+
+  step    Int
+  epoch   Float?
+  metrics Json // e.g., { "loss": 1.23, "val_loss": 1.34, "tokens_per_second": 1234 }
+
+  createdAt DateTime @default(now())
+
+  @@index([trainingRunId, step])
 }

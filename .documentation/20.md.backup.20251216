@@ -1,0 +1,706 @@
+# 20. Admin Org Plan Management UI & Billing Config API
+
+> **Audience:** AI coding assistants (Cursor, Claude Code, ChatGPT, etc.) and human developers.  
+> **Goal of this file:** Add a minimal but production‑ready **Admin panel** to manage per‑org plans & token limits:
+>
+> - Backend: Admin‑only endpoints to **view & update** org plan and monthly token limits.  
+> - Frontend API: Typed client for these admin endpoints.  
+> - Frontend UI: An **Org Billing** page (plan selector, soft/hard limit inputs, quota preview) with a link to Analytics.
+>
+> This file turns the quota model from 18–19.md into something that **admins can control via UI**, preparing the system for real billing integration.
+
+> **Important instructions to AI agents:**
+> - Treat this file as canonical for:
+>   - Admin billing routes in `orgs` module,
+>   - Admin billing API client,
+>   - Admin Billing page.  
+> - Do **not** add TODOs or placeholders. All code must be complete and compilable.
+
+---
+
+## 20.1. Backend – Admin Billing Routes
+
+We extend the existing `orgs` routes with **admin‑only** endpoints to read and update plan & token limits.
+
+### 20.1.1. Add Admin Billing Handlers in `orgs` Routes
+
+Open: `apps/api-gateway/src/routes/orgs.ts`
+
+Add these imports at the top (preserve existing imports):
+
+```ts
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { prisma } from '@ai-chat/db';
+import { JwtPayload } from '../auth/types';
+import { z } from 'zod';
+import { assertOrgPermission } from '../rbac/guards';
+import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard';
+```
+
+> If `assertOrgPermission` is already imported, do **not** duplicate it.  
+> `getOrgQuotaWindowUsage` is defined in **19.md**.
+
+Now extend the default export to include **two new routes** under the same plugin.
+
+```ts
+// apps/api-gateway/src/routes/orgs.ts
+
+export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  // ...existing org routes (list, create, update, etc.)...
+
+  /**
+   * Admin: Get billing configuration & quota preview for an organization.
+   *
+   * Auth:
+   *  - Only superadmins can call this endpoint for now.
+   *    (In the future, this can be expanded to tenant admins with a specific permission.)
+   */
+  app.get('/admin/orgs/:id/billing', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    if (!payload.isSuperadmin) {
+      return reply.code(403).send({ error: 'FORBIDDEN', message: 'Superadmin privileges required.' });
+    }
+
+    const paramsSchema = z.object({ id: z.string().min(1) });
+    const parsedParams = paramsSchema.safeParse(request.params);
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: 'Invalid org id' });
+    }
+
+    const orgId = parsedParams.data.id;
+
+    const org = await prisma.org.findUnique({
+      where: { id: orgId },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        monthlySoftLimitTokens: true,
+        monthlyHardLimitTokens: true,
+        createdAt: true
+      }
+    });
+
+    if (!org) {
+      return reply.code(404).send({ error: 'NOT_FOUND', message: 'Organization not found.' });
+    }
+
+    // Use the same rolling window used for quota enforcement (19.md)
+    const quota = await getOrgQuotaWindowUsage(orgId, 30);
+
+    return reply.send({
+      orgId: org.id,
+      name: org.name,
+      plan: org.plan,
+      monthlySoftLimitTokens: org.monthlySoftLimitTokens,
+      monthlyHardLimitTokens: org.monthlyHardLimitTokens,
+      createdAt: org.createdAt,
+      quota
+    });
+  });
+
+  /**
+   * Admin: Update plan & monthly token limits for an organization.
+   *
+   * Auth:
+   *  - Only superadmins can call this endpoint for now.
+   */
+  app.patch('/admin/orgs/:id/billing', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    if (!payload.isSuperadmin) {
+      return reply.code(403).send({ error: 'FORBIDDEN', message: 'Superadmin privileges required.' });
+    }
+
+    const paramsSchema = z.object({ id: z.string().min(1) });
+    const parsedParams = paramsSchema.safeParse(request.params);
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: 'Invalid org id' });
+    }
+    const orgId = parsedParams.data.id;
+
+    const bodySchema = z.object({
+      plan: z.enum(['FREE', 'PRO', 'ENTERPRISE', 'CUSTOM']),
+      monthlySoftLimitTokens: z.number().int().positive().nullable(),
+      monthlyHardLimitTokens: z.number().int().positive().nullable()
+    });
+
+    const parsedBody = bodySchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: 'INVALID_BODY', details: parsedBody.error.format() });
+    }
+
+    const { plan, monthlySoftLimitTokens, monthlyHardLimitTokens } = parsedBody.data;
+
+    const updated = await prisma.org.update({
+      where: { id: orgId },
+      data: {
+        plan,
+        monthlySoftLimitTokens,
+        monthlyHardLimitTokens
+      },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        monthlySoftLimitTokens: true,
+        monthlyHardLimitTokens: true,
+        createdAt: true
+      }
+    });
+
+    // Return updated config and fresh quota snapshot
+    const quota = await getOrgQuotaWindowUsage(orgId, 30);
+
+    return reply.send({
+      orgId: updated.id,
+      name: updated.name,
+      plan: updated.plan,
+      monthlySoftLimitTokens: updated.monthlySoftLimitTokens,
+      monthlyHardLimitTokens: updated.monthlyHardLimitTokens,
+      createdAt: updated.createdAt,
+      quota
+    });
+  });
+}
+```
+
+These two endpoints are:
+
+- `GET /admin/orgs/:id/billing` – Fetch billing config + 30‑day quota view.  
+- `PATCH /admin/orgs/:id/billing` – Update plan & limits, returning updated config + quota.
+
+Both are **superadmin‑only** for now.
+
+---
+
+## 20.2. Frontend API – Admin Org Billing Client
+
+We now add a small typed API client for the admin billing endpoints.
+
+### 20.2.1. Create `apps/web/src/api/adminOrgs.ts`
+
+```ts
+// apps/web/src/api/adminOrgs.ts
+
+import { apiRequest } from './client';
+import { OrgPlan, OrgUsageQuota } from './orgAnalytics';
+
+export interface AdminOrgBillingConfig {
+  orgId: string;
+  name: string;
+  plan: OrgPlan;
+  monthlySoftLimitTokens: number | null;
+  monthlyHardLimitTokens: number | null;
+  createdAt: string;
+  quota: OrgUsageQuota & {
+    windowDays: number;
+    usageTokens: number;
+  };
+}
+
+export interface UpdateOrgBillingPayload {
+  plan: OrgPlan;
+  monthlySoftLimitTokens: number | null;
+  monthlyHardLimitTokens: number | null;
+}
+
+export async function getAdminOrgBillingConfig(
+  token: string,
+  orgId: string
+): Promise<AdminOrgBillingConfig> {
+  return apiRequest<AdminOrgBillingConfig>(`/admin/orgs/${orgId}/billing`, { method: 'GET' }, token);
+}
+
+export async function updateAdminOrgBillingConfig(
+  token: string,
+  orgId: string,
+  payload: UpdateOrgBillingPayload
+): Promise<AdminOrgBillingConfig> {
+  return apiRequest<AdminOrgBillingConfig>(
+    `/admin/orgs/${orgId}/billing`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    },
+    token
+  );
+}
+```
+
+> We reuse `OrgPlan` and `OrgUsageQuota` from `orgAnalytics.ts` (18.md), ensuring a consistent quota type across admin & analytics views.
+
+---
+
+## 20.3. Admin UI – Org Billing Page
+
+We create a dedicated **Admin Org Billing** page, reachable at e.g. `/admin/orgs/:orgId/billing`.
+
+Features:
+
+- Shows **Org name, plan and created date**.  
+- Allows editing of **plan**, **soft limit**, **hard limit**.  
+- Displays a small **quota preview** (usage vs limits).  
+- Provides a button to jump to the **Org Analytics** dashboard.
+
+### 20.3.1. Create `apps/web/src/admin/OrgBillingPage.tsx`
+
+```tsx
+// apps/web/src/admin/OrgBillingPage.tsx
+
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  Snackbar,
+  TextField,
+  Typography
+} from '@mui/material';
+import SettingsIcon from '@mui/icons-material/Settings';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import {
+  AdminOrgBillingConfig,
+  UpdateOrgBillingPayload,
+  getAdminOrgBillingConfig,
+  updateAdminOrgBillingConfig
+} from '../api/adminOrgs';
+import { OrgPlan } from '../api/orgAnalytics';
+
+function formatNumber(n: number | null | undefined): string {
+  if (n == null) return '—';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+export const OrgBillingPage: React.FC = () => {
+  const { token, user } = useAuth();
+  const { orgId } = useParams<{ orgId: string }>();
+  const navigate = useNavigate();
+
+  const [config, setConfig] = useState<AdminOrgBillingConfig | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [savedOpen, setSavedOpen] = useState<boolean>(false);
+
+  const [plan, setPlan] = useState<OrgPlan>('FREE');
+  const [softLimit, setSoftLimit] = useState<string>('');
+  const [hardLimit, setHardLimit] = useState<string>('');
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAdminOrgBillingConfig(token, orgId);
+        if (!cancelled) {
+          setConfig(data);
+          setPlan(data.plan);
+          setSoftLimit(data.monthlySoftLimitTokens != null ? String(data.monthlySoftLimitTokens) : '');
+          setHardLimit(data.monthlyHardLimitTokens != null ? String(data.monthlyHardLimitTokens) : '');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError((err as Error).message || 'Failed to load org billing configuration.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId]);
+
+  const handlePlanChange = (event: SelectChangeEvent<OrgPlan>) => {
+    setPlan(event.target.value as OrgPlan);
+  };
+
+  const parseLimit = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const num = Number(trimmed);
+    if (!Number.isFinite(num) || num <= 0) {
+      return null;
+    }
+    return Math.round(num);
+  };
+
+  const handleSave = async () => {
+    if (!token || !orgId || !config) return;
+
+    const soft = parseLimit(softLimit);
+    const hard = parseLimit(hardLimit);
+
+    const payload: UpdateOrgBillingPayload = {
+      plan,
+      monthlySoftLimitTokens: soft,
+      monthlyHardLimitTokens: hard
+    };
+
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateAdminOrgBillingConfig(token, orgId, payload);
+      setConfig(updated);
+      setPlan(updated.plan);
+      setSoftLimit(updated.monthlySoftLimitTokens != null ? String(updated.monthlySoftLimitTokens) : '');
+      setHardLimit(updated.monthlyHardLimitTokens != null ? String(updated.monthlyHardLimitTokens) : '');
+      setSavedOpen(true);
+    } catch (err) {
+      setError((err as Error).message || 'Failed to update org billing configuration.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNavigateAnalytics = () => {
+    if (!orgId) return;
+    navigate(`/app/orgs/${orgId}/analytics`);
+  };
+
+  const isSuperadmin = Boolean(user?.isSuperadmin);
+
+  return (
+    <Box
+      display="flex"
+      flexDirection="column"
+      flex={1}
+      sx={{
+        p: 2,
+        gap: 2,
+        maxWidth: 960,
+        mx: 'auto',
+        background:
+          'radial-gradient(circle at top left, rgba(124,77,255,0.18), transparent 55%), radial-gradient(circle at bottom right, rgba(3,218,198,0.12), transparent 55%)'
+      }}
+    >
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+        <Box>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SettingsIcon fontSize="small" /> Org billing configuration
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Manage plan & token limits for this organization. Changes take effect immediately in quota checks.
+          </Typography>
+        </Box>
+
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<AnalyticsIcon />}
+          onClick={handleNavigateAnalytics}
+        >
+          View analytics
+        </Button>
+      </Box>
+
+      {!isSuperadmin && (
+        <Alert severity="warning">
+          You are not a superadmin. This page is read‑only; updates require superadmin privileges.
+        </Alert>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 1 }}>
+          {error}
+        </Alert>
+      )}
+
+      {loading && !config ? (
+        <Box display="flex" alignItems="center" justifyContent="center" flex={1} minHeight={240}>
+          <CircularProgress />
+        </Box>
+      ) : config ? (
+        <>
+          <Card
+            sx={{
+              borderRadius: 3,
+              overflow: 'hidden',
+              mb: 2
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                {config.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                Org ID: {config.orgId}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                Created at: {new Date(config.createdAt).toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card
+            sx={{
+              borderRadius: 3,
+              overflow: 'hidden',
+              mb: 2
+            }}
+          >
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="subtitle2">Plan & limits</Typography>
+
+              <Box display="flex" flexWrap="wrap" gap={2}>
+                <FormControl sx={{ minWidth: 180 }} size="small">
+                  <InputLabel id="plan-select-label">Plan</InputLabel>
+                  <Select
+                    labelId="plan-select-label"
+                    label="Plan"
+                    value={plan}
+                    onChange={handlePlanChange}
+                    disabled={!isSuperadmin || saving}
+                  >
+                    <MenuItem value="FREE">FREE</MenuItem>
+                    <MenuItem value="PRO">PRO</MenuItem>
+                    <MenuItem value="ENTERPRISE">ENTERPRISE</MenuItem>
+                    <MenuItem value="CUSTOM">CUSTOM</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  label="Monthly soft limit (tokens)"
+                  size="small"
+                  value={softLimit}
+                  onChange={(e) => setSoftLimit(e.target.value)}
+                  disabled={!isSuperadmin || saving}
+                  helperText="Empty = no soft limit"
+                />
+
+                <TextField
+                  label="Monthly hard limit (tokens)"
+                  size="small"
+                  value={hardLimit}
+                  onChange={(e) => setHardLimit(e.target.value)}
+                  disabled={!isSuperadmin || saving}
+                  helperText="Empty = no hard limit (not recommended)"
+                />
+              </Box>
+
+              <Box display="flex" justifyContent="flex-end" mt={1}>
+                <Button
+                  variant="contained"
+                  disabled={!isSuperadmin || saving}
+                  onClick={handleSave}
+                >
+                  {saving ? 'Saving…' : 'Save changes'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card
+            sx={{
+              borderRadius: 3,
+              overflow: 'hidden'
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2" gutterBottom>
+                Quota preview (last {config.quota.windowDays} days)
+              </Typography>
+
+              <Box display="flex" flexWrap="wrap" gap={2}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Usage in window
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatNumber(config.quota.usageTokens)} tokens
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Soft limit
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatNumber(config.quota.monthlySoftLimitTokens)} tokens
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Hard limit
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatNumber(config.quota.monthlyHardLimitTokens)} tokens
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Remaining soft
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatNumber(config.quota.softLimitRemainingTokens)} tokens
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Remaining hard
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatNumber(config.quota.hardLimitRemainingTokens)} tokens
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box mt={1}>
+                {config.quota.hardLimitExceeded ? (
+                  <Alert severity="error" variant="outlined">
+                    Hard limit exceeded in the current window. New completions are blocked by the API.
+                  </Alert>
+                ) : config.quota.softLimitExceeded ? (
+                  <Alert severity="warning" variant="outlined">
+                    Soft limit exceeded in the current window. Consider raising limits or upgrading plan.
+                  </Alert>
+                ) : (
+                  <Alert severity="info" variant="outlined">
+                    This preview shows usage in the rolling {config.quota.windowDays}-day window used by quota
+                    enforcement.
+                  </Alert>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+
+      <Snackbar
+        open={savedOpen}
+        autoHideDuration={3000}
+        onClose={() => setSavedOpen(false)}
+        message="Billing configuration updated."
+      />
+    </Box>
+  );
+};
+```
+
+This page:
+
+- Loads org billing config via `getAdminOrgBillingConfig`.  
+- Shows org identity (name, ID, createdAt).  
+- Allows superadmins to change plan & limits and save.  
+- Shows a quota preview panel using the same rolling window as quota guard.  
+- Provides a button to jump to `/app/orgs/:orgId/analytics`.
+
+Non‑superadmins see the page but with **read‑only** controls and a warning.
+
+---
+
+## 20.4. Router Integration Example
+
+If you use `react-router-dom` as in 16–18.md, you can wire the admin route like this.
+
+Open `apps/web/src/AppRoutes.tsx` (or equivalent) and ensure something like:
+
+```tsx
+// apps/web/src/AppRoutes.tsx
+
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AppLayout } from './layout/AppLayout';
+import { ChatShellPage } from './chat/ChatShellPage';
+import { OrgAnalyticsPage } from './orgs/OrgAnalyticsPage';
+import { OrgBillingPage } from './admin/OrgBillingPage';
+
+export const AppRoutes: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/app" element={<AppLayout />}>
+          <Route index element={<ChatShellPage />} />
+          <Route path="orgs/:orgId/analytics" element={<OrgAnalyticsPage />} />
+          <Route path="admin/orgs/:orgId/billing" element={<OrgBillingPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+};
+```
+
+> Adjust the layout / nesting to match your existing route structure. The important part is that `/app/admin/orgs/:orgId/billing` (or a similar path) renders `OrgBillingPage`.
+
+---
+
+## 20.5. Sanity Checks
+
+From the repo root:
+
+1. **Backend:**
+
+   ```bash
+   pnpm dev --filter=api-gateway
+   ```
+
+   - Use a superadmin token to call:
+
+     ```bash
+     curl -H "Authorization: Bearer <superadmin-token>" \
+       http://localhost:4000/admin/orgs/<orgId>/billing
+     ```
+
+     You should see org name, plan, limits, and a `quota` object.
+
+   - Test update:
+
+     ```bash
+     curl -X PATCH \
+       -H "Authorization: Bearer <superadmin-token>" \
+       -H "Content-Type: application/json" \
+       -d '{"plan":"PRO","monthlySoftLimitTokens":500000,"monthlyHardLimitTokens":600000}' \
+       http://localhost:4000/admin/orgs/<orgId>/billing
+     ```
+
+     Response should reflect new values and a fresh quota snapshot.
+
+2. **Frontend:**
+
+   ```bash
+   cd apps/web
+   pnpm dev
+   ```
+
+   - Log in as a **superadmin** user.  
+   - Navigate to `/app/admin/orgs/<orgId>/billing`.  
+   - Verify:
+     - Org name / ID / createdAt shown.  
+     - Plan and limits are editable; “Save changes” persists to backend.  
+     - Quota preview updates after save.  
+     - “View analytics” button goes to `/app/orgs/<orgId>/analytics`.
+
+If all checks pass, your system now has a **full admin loop** for managing org plans & token limits, tightly integrated with the quota analytics and enforcement layers built in 18–19.md.
+
+---
+
+_End of 20.md – Admin Org Plan Management UI & Billing Config API_
