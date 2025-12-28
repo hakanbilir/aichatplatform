@@ -14,6 +14,7 @@ interface SideNavProps {
 
 export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
   const { t } = useTranslation('chat');
+  const { t: tCommon } = useTranslation('common');
   const theme = useTheme();
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -103,6 +104,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
       <>
         <IconButton
           onClick={handleDrawerToggle}
+          aria-label={tCommon('openMenu')}
           sx={{
             position: 'fixed',
             top: 16,
@@ -137,6 +139,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
           <Box sx={{ position: 'relative' }}>
             <IconButton
               onClick={handleDrawerToggle}
+              aria-label={tCommon('closeMenu')}
               sx={{
                 position: 'absolute',
                 top: 8,
