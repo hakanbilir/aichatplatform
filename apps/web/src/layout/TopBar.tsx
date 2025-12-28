@@ -127,6 +127,7 @@ export const TopBar: React.FC = () => {
               onKeyDown={handleSearchKeyDown}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
+              inputProps={{ 'aria-label': t('search') }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -144,6 +145,7 @@ export const TopBar: React.FC = () => {
                     <IconButton
                       size="small"
                       onClick={handleSearchClear}
+                      aria-label={t('clearSearch')}
                       sx={{
                         color: 'text.secondary',
                         '&:hover': { color: 'text.primary' },
@@ -222,6 +224,7 @@ export const TopBar: React.FC = () => {
             size="small"
             onClick={logout}
             title={t('logout')}
+            aria-label={t('logout')}
             sx={{
               minWidth: 44,
               minHeight: 44,
