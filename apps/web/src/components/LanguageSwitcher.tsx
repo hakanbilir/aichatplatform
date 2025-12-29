@@ -15,6 +15,7 @@ export const LanguageSwitcher: React.FC = () => {
       <Select
         value={i18n.language}
         onChange={handleLanguageChange}
+        inputProps={{ 'aria-label': 'Language' }}
         sx={{
           color: 'inherit',
           '& .MuiOutlinedInput-notchedOutline': {
