@@ -144,6 +144,7 @@ export const TopBar: React.FC = () => {
                     <IconButton
                       size="small"
                       onClick={handleSearchClear}
+                      aria-label="Clear search"
                       sx={{
                         color: 'text.secondary',
                         '&:hover': { color: 'text.primary' },
@@ -222,6 +223,7 @@ export const TopBar: React.FC = () => {
             size="small"
             onClick={logout}
             title={t('logout')}
+            aria-label={t('logout')}
             sx={{
               minWidth: 44,
               minHeight: 44,
