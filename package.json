@@ -34,5 +34,8 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^7.2.1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
   }
 }

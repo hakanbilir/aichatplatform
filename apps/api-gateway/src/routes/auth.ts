@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
-import { hashPassword, verifyPassword } from '../auth/password';
+import { hashPassword, verifyPassword, validatePasswordStrength } from '../auth/password';
 import { JwtPayload } from '../auth/types';
 import { generateRefreshToken, verifyRefreshToken, revokeRefreshToken } from '../auth/refreshToken';
 import { writeAuditLog } from '../services/audit';
@@ -30,6 +30,12 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     }
 
     const { email, password, name, orgName } = parseResult.data;
+
+    try {
+      validatePasswordStrength(password);
+    } catch (error: any) {
+      return reply.code(400).send({ error: error.message });
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -130,22 +136,6 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
                       (request.headers['x-real-ip'] as string) || 
                       request.ip || 
                       'unknown';
-
-    // Helper function to validate password strength
-    const validatePasswordStrength = (pwd: string): void => {
-      if (pwd.length < 8) {
-        throw new Error('Password must be at least 8 characters long');
-      }
-      if (!/[A-Z]/.test(pwd)) {
-        throw new Error('Password must contain at least one uppercase letter');
-      }
-      if (!/[a-z]/.test(pwd)) {
-        throw new Error('Password must contain at least one lowercase letter');
-      }
-      if (!/[0-9]/.test(pwd)) {
-        throw new Error('Password must contain at least one number');
-      }
-    };
 
     // Helper function to mask email for logging
     const maskEmail = (email: string): string => {
