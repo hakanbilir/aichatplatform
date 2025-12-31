@@ -37,7 +37,7 @@ async function securityPlugin(app: FastifyInstance) {
   app.register(fastifyRateLimit, {
     max: 10,
     timeWindow: '1 minute',
-    prefix: '/auth',
+    prefix: '/api/v1/auth',
   });
 
   // Stricter rate limiting for chat endpoints
