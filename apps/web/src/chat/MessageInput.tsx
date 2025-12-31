@@ -10,11 +10,16 @@ interface MessageInputProps {
   onChange?: (value: string) => void; // For controlled mode
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, value: controlledValue, onChange }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({
+  disabled,
+  onSend,
+  value: controlledValue,
+  onChange,
+}) => {
   const { t } = useTranslation('chat');
   const [internalValue, setInternalValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
+
   const value = controlledValue !== undefined ? controlledValue : internalValue;
   const setValue = (newValue: string) => {
     if (onChange) {
@@ -44,7 +49,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
   };
 
   return (
-    <Box display="flex" alignItems="center" gap={1} px={2} py={1.2} borderTop="1px solid rgba(255,255,255,0.12)">
+    <Box
+      display="flex"
+      alignItems="center"
+      gap={1}
+      px={2}
+      py={1.2}
+      borderTop="1px solid rgba(255,255,255,0.12)"
+    >
       <TextField
         fullWidth
         multiline
@@ -59,11 +71,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
         disabled={disabled}
         variant="outlined"
         size="small"
+        inputProps={{ 'aria-label': t('messageInput.placeholder') }}
       />
       <IconButton
         color="primary"
         disabled={disabled || submitting}
         onClick={handleSend}
+        aria-label={t('messageInput.send')}
         sx={{
           width: 40,
           height: 40,
@@ -76,4 +90,3 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
     </Box>
   );
 };
-
