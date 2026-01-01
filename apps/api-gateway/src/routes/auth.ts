@@ -23,7 +23,14 @@ const refreshTokenBodySchema = z.object({
 });
 
 export default async function authRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
-  app.post('/api/v1/auth/signup', async (request, reply) => {
+  app.post('/api/v1/auth/signup', {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     const parseResult = signupBodySchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidSignupData'), details: parseResult.error.format() });
@@ -118,7 +125,14 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     });
   });
 
-  app.post('/api/v1/auth/login', async (request, reply) => {
+  app.post('/api/v1/auth/login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     const parseResult = loginBodySchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidLoginData'), details: parseResult.error.format() });
@@ -344,7 +358,14 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     });
   });
 
-  app.post('/api/v1/auth/refresh', async (request, reply) => {
+  app.post('/api/v1/auth/refresh', {
+    config: {
+      rateLimit: {
+        max: 20,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     const parseResult = refreshTokenBodySchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidRefreshToken'), details: parseResult.error.format() });
