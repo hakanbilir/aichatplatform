@@ -6,7 +6,9 @@ interface MessageBubbleProps {
   content: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
+// ⚡ Bolt Optimization: Memoized to prevent re-renders of history messages
+// when the streaming response updates rapidly.
+export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ role, content }) => {
   const isUser = role === 'user';
   return (
     <Box
@@ -33,5 +35,4 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) =
       </Box>
     </Box>
   );
-};
-
+});
