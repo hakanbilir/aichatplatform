@@ -127,7 +127,15 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
   });
 
   // Create a new conversation in an org
-  app.post('/orgs/:orgId/conversations', { preHandler: [app.authenticate] }, async (request, reply) => {
+  app.post('/orgs/:orgId/conversations', {
+    preHandler: [app.authenticate],
+    config: {
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     const payload = request.user as JwtPayload;
 
     const paramsSchema = z.object({ orgId: z.string().min(1) });
@@ -299,7 +307,15 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
 
   // Create a new conversation
   // Yeni bir konuşma oluştur
-  app.post('/conversations', { preHandler: [app.authenticate] }, async (request, reply) => {
+  app.post('/conversations', {
+    preHandler: [app.authenticate],
+    config: {
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     const payload = request.user as JwtPayload;
 
     const parseResult = createConversationBodySchema.safeParse(request.body);
