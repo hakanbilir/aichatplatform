@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import { useDebounce } from '../../hooks/useDebounce';
 
 // Enhanced data grid component with sorting, filtering, pagination, and resizable columns
 // Sıralama, filtreleme, sayfalama ve yeniden boyutlandırılabilir sütunlarla gelişmiş veri ızgarası bileşeni
@@ -83,26 +84,32 @@ export function DataGrid<T extends Record<string, any>>({
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     initialSortColumn ? initialSortDirection : false
   );
-  const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const debouncedSearchQuery = useDebounce(inputValue, 300);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(defaultRowsPerPage);
 
+  // Reset page when search query changes / Arama sorgusu değiştiğinde sayfayı sıfırla
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchQuery]);
+
   // Filter data based on search query / Arama sorgusuna göre veriyi filtrele
   const filteredData = useMemo(() => {
-    if (!searchQuery.trim()) return data;
+    if (!debouncedSearchQuery.trim()) return data;
 
     if (customSearch) {
-      return data.filter((row) => customSearch(searchQuery, row));
+      return data.filter((row) => customSearch(debouncedSearchQuery, row));
     }
 
     // Default search: search in all string/number values / Varsayılan arama: tüm string/sayı değerlerinde ara
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     return data.filter((row) =>
       Object.values(row).some((value) =>
         String(value).toLowerCase().includes(query)
       )
     );
-  }, [data, searchQuery, customSearch]);
+  }, [data, debouncedSearchQuery, customSearch]);
 
   // Sort data / Veriyi sırala
   const sortedData = useMemo(() => {
@@ -156,8 +163,7 @@ export function DataGrid<T extends Record<string, any>>({
 
   // Handle search / Aramayı işle
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
-    setPage(0); // Reset to first page / İlk sayfaya sıfırla
+    setInputValue(event.target.value);
   };
 
   // Handle page change / Sayfa değişimini işle
@@ -180,7 +186,7 @@ export function DataGrid<T extends Record<string, any>>({
             fullWidth
             size="small"
             placeholder={searchPlaceholder}
-            value={searchQuery}
+            value={inputValue}
             onChange={handleSearchChange}
             InputProps={{
               startAdornment: (
@@ -188,11 +194,11 @@ export function DataGrid<T extends Record<string, any>>({
                   <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
                 </InputAdornment>
               ),
-              endAdornment: searchQuery && (
+              endAdornment: inputValue && (
                 <InputAdornment position="end">
                   <IconButton
                     size="small"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => setInputValue('')}
                     sx={{ color: 'text.secondary' }}
                   >
                     <ClearIcon fontSize="small" />
