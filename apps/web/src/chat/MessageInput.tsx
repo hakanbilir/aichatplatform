@@ -50,6 +50,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
         multiline
         maxRows={5}
         placeholder={t('messageInput.placeholder')}
+        inputProps={{ 'aria-label': t('messageInput.label') }}
         value={value}
         onChange={(e) => {
           const newValue = e.target.value;
@@ -64,6 +65,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
         color="primary"
         disabled={disabled || submitting}
         onClick={handleSend}
+        aria-label={submitting ? t('messageInput.sending') : t('messageInput.send')}
         sx={{
           width: 40,
           height: 40,

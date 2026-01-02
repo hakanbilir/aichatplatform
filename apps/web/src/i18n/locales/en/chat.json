@@ -4,7 +4,10 @@
     "description": "Ask anything. Responses are streamed from your Ollama backend."
   },
   "messageInput": {
-    "placeholder": "Send a message…"
+    "placeholder": "Send a message…",
+    "label": "Message input",
+    "send": "Send message",
+    "sending": "Sending…"
   },
   "models": {
     "llama3.1": "llama3.1 (general)",
