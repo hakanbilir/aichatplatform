@@ -74,6 +74,10 @@ const baseSchema = z.object({
       }
       return parsed;
     }),
+  WEB_URL: z
+    .string()
+    .url()
+    .default('http://localhost:3000'),
   NEXT_PUBLIC_API_BASE_URL: z
     .string()
     .url()

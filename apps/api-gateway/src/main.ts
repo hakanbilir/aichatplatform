@@ -91,8 +91,34 @@ async function buildServer() {
   // Moderation provider'ı başlat (41.md)
   setModerationProvider(new HeuristicModerationProvider());
 
+  // Configure CORS
+  // CORS yapılandırması
   await app.register(cors, {
-    origin: true,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      // Origin olmayan isteklere izin ver (mobil uygulamalar veya curl istekleri gibi)
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+
+      // Allow allowed origins
+      // İzin verilen origin'lere izin ver
+      const allowedOrigins = [config.WEB_URL];
+
+      // Also allow localhost/127.0.0.1 for development
+      // Ayrıca geliştirme için localhost/127.0.0.1'e izin ver
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+      if (allowedOrigins.includes(origin) || isLocalhost) {
+        cb(null, true);
+        return;
+      }
+
+      // Block others
+      // Diğerlerini engelle
+      cb(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
   });
 
