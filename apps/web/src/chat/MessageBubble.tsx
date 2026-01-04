@@ -6,7 +6,16 @@ interface MessageBubbleProps {
   content: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
+/**
+ * Renders a single chat message bubble.
+ *
+ * ⚡ Performance Optimization:
+ * Wrapped in React.memo to prevent unnecessary re-renders of the entire message history
+ * when the parent ChatView updates (e.g., during streaming of a new response).
+ *
+ * Impact: Reduces re-renders from O(N) to O(1) per streaming chunk update.
+ */
+export const MessageBubble = React.memo(({ role, content }: MessageBubbleProps) => {
   const isUser = role === 'user';
   return (
     <Box
@@ -33,5 +42,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) =
       </Box>
     </Box>
   );
-};
+});
 
+MessageBubble.displayName = 'MessageBubble';
