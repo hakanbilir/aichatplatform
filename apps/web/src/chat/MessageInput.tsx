@@ -62,6 +62,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
       />
       <IconButton
         color="primary"
+        aria-label={t('messageInput.send', 'Send message')}
         disabled={disabled || submitting}
         onClick={handleSend}
         sx={{
