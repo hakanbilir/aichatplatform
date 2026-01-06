@@ -21,3 +21,27 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
   return bcrypt.compare(plain, hash);
 }
 
+/**
+ * Validate password strength.
+ * Şifre gücünü doğrula.
+ *
+ * Rules:
+ * - At least 8 characters
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one number
+ */
+export function validatePasswordStrength(pwd: string): void {
+  if (pwd.length < 8) {
+    throw new Error('Password must be at least 8 characters long');
+  }
+  if (!/[A-Z]/.test(pwd)) {
+    throw new Error('Password must contain at least one uppercase letter');
+  }
+  if (!/[a-z]/.test(pwd)) {
+    throw new Error('Password must contain at least one lowercase letter');
+  }
+  if (!/[0-9]/.test(pwd)) {
+    throw new Error('Password must contain at least one number');
+  }
+}
