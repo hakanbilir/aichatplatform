@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, IconButton, TextField, CircularProgress } from '@mui/material';
+import { Box, IconButton, TextField, CircularProgress, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SendIcon from '@mui/icons-material/Send';
 
@@ -50,6 +50,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
         multiline
         maxRows={5}
         placeholder={t('messageInput.placeholder')}
+        inputProps={{
+          'aria-label': t('messageInput.label'),
+        }}
         value={value}
         onChange={(e) => {
           const newValue = e.target.value;
@@ -60,19 +63,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
         variant="outlined"
         size="small"
       />
-      <IconButton
-        color="primary"
-        disabled={disabled || submitting}
-        onClick={handleSend}
-        sx={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.06)',
-        }}
-      >
-        {submitting ? <CircularProgress size={20} /> : <SendIcon />}
-      </IconButton>
+      <Tooltip title={t('messageInput.send')}>
+        <span>
+          <IconButton
+            color="primary"
+            aria-label={t('messageInput.send')}
+            disabled={disabled || submitting}
+            onClick={handleSend}
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.06)',
+            }}
+          >
+            {submitting ? <CircularProgress size={20} /> : <SendIcon />}
+          </IconButton>
+        </span>
+      </Tooltip>
     </Box>
   );
 };
