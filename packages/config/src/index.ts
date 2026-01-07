@@ -63,6 +63,16 @@ const baseSchema = z.object({
       return parsed;
     }),
 
+  // CORS
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .optional()
+    .default('http://localhost:3000,http://localhost:5173')
+    .transform((val) => {
+      if (!val) return undefined;
+      return val.split(',').map((origin) => origin.trim());
+    }),
+
   // Web
   WEB_PORT: z
     .string()
