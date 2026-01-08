@@ -1,34 +1,46 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { LoginPage } from './auth/LoginPage';
-import { SignupPage } from './auth/SignupPage';
+import { Box, CircularProgress } from '@mui/material';
 import { RequireAuth } from './auth/RequireAuth';
 import { Shell } from './layout/Shell';
-import { KnowledgeBaseRouteWrapper } from './knowledge/KnowledgeBaseRouteWrapper';
-import { OrgAiPolicyPage } from './org/OrgAiPolicyPage';
-import { PresetsGalleryPage } from './presets/PresetsGalleryPage';
-import { ChatPage } from './chat/ChatPage';
-import { ConversationInboxPage } from './inbox/ConversationInboxPage';
-import { WebhooksPage } from './integrations/WebhooksPage';
-import { AuditLogPage } from './audit/AuditLogPage';
-import { RetentionSettingsPage } from './retention/RetentionSettingsPage';
-import { PublicSharedConversationPage } from './public/PublicSharedConversationPage';
-import { OrgMembersPage } from './org/OrgMembersPage';
-import { OrgApiKeysPage } from './org/OrgApiKeysPage';
-import { OrgBrandingPage } from './org/OrgBrandingPage';
-import { OrgAnalyticsRouteWrapper } from './org/OrgAnalyticsRouteWrapper';
+
+// Eagerly loaded auth pages for faster initial interaction
+import { LoginPage } from './auth/LoginPage';
+import { SignupPage } from './auth/SignupPage';
+
+// Lazy loaded pages to reduce initial bundle size
+const KnowledgeBaseRouteWrapper = lazy(() => import('./knowledge/KnowledgeBaseRouteWrapper').then(module => ({ default: module.KnowledgeBaseRouteWrapper })));
+const OrgAiPolicyPage = lazy(() => import('./org/OrgAiPolicyPage').then(module => ({ default: module.OrgAiPolicyPage })));
+const PresetsGalleryPage = lazy(() => import('./presets/PresetsGalleryPage').then(module => ({ default: module.PresetsGalleryPage })));
+const ChatPage = lazy(() => import('./chat/ChatPage').then(module => ({ default: module.ChatPage })));
+const ConversationInboxPage = lazy(() => import('./inbox/ConversationInboxPage').then(module => ({ default: module.ConversationInboxPage })));
+const WebhooksPage = lazy(() => import('./integrations/WebhooksPage').then(module => ({ default: module.WebhooksPage })));
+const AuditLogPage = lazy(() => import('./audit/AuditLogPage').then(module => ({ default: module.AuditLogPage })));
+const RetentionSettingsPage = lazy(() => import('./retention/RetentionSettingsPage').then(module => ({ default: module.RetentionSettingsPage })));
+const PublicSharedConversationPage = lazy(() => import('./public/PublicSharedConversationPage').then(module => ({ default: module.PublicSharedConversationPage })));
+const OrgMembersPage = lazy(() => import('./org/OrgMembersPage').then(module => ({ default: module.OrgMembersPage })));
+const OrgApiKeysPage = lazy(() => import('./org/OrgApiKeysPage').then(module => ({ default: module.OrgApiKeysPage })));
+const OrgBrandingPage = lazy(() => import('./org/OrgBrandingPage').then(module => ({ default: module.OrgBrandingPage })));
+const OrgAnalyticsRouteWrapper = lazy(() => import('./org/OrgAnalyticsRouteWrapper').then(module => ({ default: module.OrgAnalyticsRouteWrapper })));
+
 // Docs 41-50 pages
-import { OrgSafetySettingsPage } from './org/OrgSafetySettingsPage';
-import { OrgSafetyIncidentsPage } from './org/OrgSafetyIncidentsPage';
-import { PromptTemplatesPage } from './org/PromptTemplatesPage';
-import { ChatProfilesPage } from './org/ChatProfilesPage';
-import { OrgModelsSettingsPage } from './org/OrgModelsSettingsPage';
-import { PlaygroundPage } from './org/PlaygroundPage';
-import { ExperimentsPage } from './org/ExperimentsPage';
-import { OrgUsageDashboardPage } from './org/OrgUsageDashboardPage';
-import { OrgBillingPage } from './org/OrgBillingPage';
-import { OrgSsoSettingsPage } from './org/OrgSsoSettingsPage';
-import { OrgScimSettingsPage } from './org/OrgScimSettingsPage';
+const OrgSafetySettingsPage = lazy(() => import('./org/OrgSafetySettingsPage').then(module => ({ default: module.OrgSafetySettingsPage })));
+const OrgSafetyIncidentsPage = lazy(() => import('./org/OrgSafetyIncidentsPage').then(module => ({ default: module.OrgSafetyIncidentsPage })));
+const PromptTemplatesPage = lazy(() => import('./org/PromptTemplatesPage').then(module => ({ default: module.PromptTemplatesPage })));
+const ChatProfilesPage = lazy(() => import('./org/ChatProfilesPage').then(module => ({ default: module.ChatProfilesPage })));
+const OrgModelsSettingsPage = lazy(() => import('./org/OrgModelsSettingsPage').then(module => ({ default: module.OrgModelsSettingsPage })));
+const PlaygroundPage = lazy(() => import('./org/PlaygroundPage').then(module => ({ default: module.PlaygroundPage })));
+const ExperimentsPage = lazy(() => import('./org/ExperimentsPage').then(module => ({ default: module.ExperimentsPage })));
+const OrgUsageDashboardPage = lazy(() => import('./org/OrgUsageDashboardPage').then(module => ({ default: module.OrgUsageDashboardPage })));
+const OrgBillingPage = lazy(() => import('./org/OrgBillingPage').then(module => ({ default: module.OrgBillingPage })));
+const OrgSsoSettingsPage = lazy(() => import('./org/OrgSsoSettingsPage').then(module => ({ default: module.OrgSsoSettingsPage })));
+const OrgScimSettingsPage = lazy(() => import('./org/OrgScimSettingsPage').then(module => ({ default: module.OrgScimSettingsPage })));
+
+const PageLoader = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '400px' }}>
+    <CircularProgress />
+  </Box>
+);
 
 const router = createBrowserRouter([
   {
@@ -49,104 +61,104 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <ChatPage />,
+        element: <Suspense fallback={<PageLoader />}><ChatPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/knowledge',
-        element: <KnowledgeBaseRouteWrapper />,
+        element: <Suspense fallback={<PageLoader />}><KnowledgeBaseRouteWrapper /></Suspense>,
       },
       {
         path: 'orgs/:orgId/chat/:conversationId?',
-        element: <ChatPage />,
+        element: <Suspense fallback={<PageLoader />}><ChatPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/ai-policy',
-        element: <OrgAiPolicyPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgAiPolicyPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/presets',
-        element: <PresetsGalleryPage />,
+        element: <Suspense fallback={<PageLoader />}><PresetsGalleryPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/inbox',
-        element: <ConversationInboxPage />,
+        element: <Suspense fallback={<PageLoader />}><ConversationInboxPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/webhooks',
-        element: <WebhooksPage />,
+        element: <Suspense fallback={<PageLoader />}><WebhooksPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/audit-log',
-        element: <AuditLogPage />,
+        element: <Suspense fallback={<PageLoader />}><AuditLogPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/retention',
-        element: <RetentionSettingsPage />,
+        element: <Suspense fallback={<PageLoader />}><RetentionSettingsPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/members',
-        element: <OrgMembersPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgMembersPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/api-keys',
-        element: <OrgApiKeysPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgApiKeysPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/branding',
-        element: <OrgBrandingPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgBrandingPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/analytics',
-        element: <OrgAnalyticsRouteWrapper />,
+        element: <Suspense fallback={<PageLoader />}><OrgAnalyticsRouteWrapper /></Suspense>,
       },
       // Docs 41-50: New feature routes
       {
         path: 'orgs/:orgId/settings/safety',
-        element: <OrgSafetySettingsPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgSafetySettingsPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/safety/incidents',
-        element: <OrgSafetyIncidentsPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgSafetyIncidentsPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/prompt-templates',
-        element: <PromptTemplatesPage />,
+        element: <Suspense fallback={<PageLoader />}><PromptTemplatesPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/chat-profiles',
-        element: <ChatProfilesPage />,
+        element: <Suspense fallback={<PageLoader />}><ChatProfilesPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/models',
-        element: <OrgModelsSettingsPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgModelsSettingsPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/playground',
-        element: <PlaygroundPage />,
+        element: <Suspense fallback={<PageLoader />}><PlaygroundPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/experiments',
-        element: <ExperimentsPage />,
+        element: <Suspense fallback={<PageLoader />}><ExperimentsPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/usage',
-        element: <OrgUsageDashboardPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgUsageDashboardPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/billing',
-        element: <OrgBillingPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgBillingPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/sso',
-        element: <OrgSsoSettingsPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgSsoSettingsPage /></Suspense>,
       },
       {
         path: 'orgs/:orgId/settings/scim',
-        element: <OrgScimSettingsPage />,
+        element: <Suspense fallback={<PageLoader />}><OrgScimSettingsPage /></Suspense>,
       },
       {
         path: 's/:slug',
-        element: <PublicSharedConversationPage />,
+        element: <Suspense fallback={<PageLoader />}><PublicSharedConversationPage /></Suspense>,
       },
     ],
   },
@@ -159,4 +171,3 @@ const router = createBrowserRouter([
 export const AppRouter: React.FC = () => {
   return <RouterProvider router={router} />;
 };
-
