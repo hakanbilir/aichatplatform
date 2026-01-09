@@ -573,8 +573,8 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
       },
     });
 
-    // TODO: Enqueue dataset ingest job when queue system is available
-    // await datasetIngestQueue.add('ingest', { orgId, datasetVersionId: parsedParams.data.versionId });
+    // Dataset ingest job is automatically picked up by worker-jobs via polling on 'PROCESSING' status
+    // No explicit queue push needed with current architecture.
 
     return reply.send(updatedVersion);
   });

@@ -73,6 +73,19 @@ setInterval(async () => {
   }
 }, 24 * 60 * 60 * 1000); // Every 24 hours
 
+// Process dataset ingest jobs every 10 seconds
+setInterval(async () => {
+  try {
+    const { processDatasetIngestBatch } = await import('./datasetIngestWorker');
+    const processed = await processDatasetIngestBatch(5);
+    if (processed > 0) {
+      console.log(`Processed ${processed} dataset ingest jobs`);
+    }
+  } catch (err) {
+    console.error('Error processing dataset ingestion:', err);
+  }
+}, 10000);
+
 // In later docs, this file will be expanded with additional queue consumers and scheduled jobs.
 // Gelecek dokümanlarda bu dosya ek kuyruk tüketicileri ve zamanlanmış işlerle genişletilecek.
 
