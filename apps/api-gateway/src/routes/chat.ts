@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Prisma types are available via workspace
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { JwtPayload } from '../auth/types';
 import {
   ConversationContext,
@@ -19,6 +19,7 @@ import { recordUsage } from '../usage/usageTracker';
 
 const sendMessageBodySchema = z.object({
   content: z.string().min(1).max(32000), // 32KB max per message
+  images: z.array(z.string()).optional(), // Base64 images for multimodal
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
@@ -81,7 +82,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -120,7 +121,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: images && images.length > 0 ? { images } : {},
       },
     });
 
@@ -132,7 +133,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(content, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -193,8 +194,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         role: 'ASSISTANT',
         content: response.message.content,
         meta: {
-          usage: (response.usage ?? null) as unknown as Prisma.InputJsonValue,
-          providerMeta: (response.providerMeta ?? null) as unknown as Prisma.InputJsonValue,
+          usage: (response.usage ?? null) as unknown as any,
+          providerMeta: (response.providerMeta ?? null) as unknown as any,
         },
       },
     });
@@ -244,7 +245,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -283,7 +284,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: images && images.length > 0 ? { images } : {},
       },
     });
 
@@ -293,7 +294,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(content, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -340,6 +341,14 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         if (event.type === 'token' && event.token) {
           outgoing.token = event.token;
           finalAssistantContent += event.token;
+        }
+
+        if (event.type === 'tool_call' && event.toolCall) {
+          outgoing.toolCall = event.toolCall;
+        }
+
+        if (event.type === 'tool_result' && event.toolResult) {
+          outgoing.toolResult = event.toolResult;
         }
 
         if (event.type === 'end') {

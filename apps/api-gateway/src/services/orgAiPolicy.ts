@@ -47,14 +47,14 @@ export async function upsertOrgAiPolicy(params: {
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as unknown as Prisma.InputJsonValue
+      config: (params.config ?? {}) as unknown as any
     },
     create: {
       orgId: params.orgId,
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as unknown as Prisma.InputJsonValue
+      config: (params.config ?? {}) as unknown as any
     }
   });
 

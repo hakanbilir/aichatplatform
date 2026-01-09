@@ -295,7 +295,13 @@ export async function* streamChatCompletionOrchestrated(
         continue;
       }
 
-      if (event.type === 'token' || event.type === 'end' || event.type === 'error') {
+      if (
+        event.type === 'token' ||
+        event.type === 'tool_call' ||
+        event.type === 'tool_result' ||
+        event.type === 'end' ||
+        event.type === 'error'
+      ) {
         if (event.type === 'end' || event.type === 'error') {
           endedOrErrored = true;
         }
@@ -344,10 +350,11 @@ export async function* streamChatCompletionOrchestrated(
  * Helper to create a user message from plain text.
  * Düz metinden bir kullanıcı mesajı oluşturmak için yardımcı.
  */
-export function createUserMessage(content: string): ChatMessage {
+export function createUserMessage(content: string, images?: string[]): ChatMessage {
   const msg: ChatMessage = {
     role: 'user' as ChatRole,
     content,
+    images,
   };
   return msg;
 }

@@ -29,6 +29,11 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   /**
+   * Optional list of base64-encoded images (for multimodal models).
+   * Opsiyonel base64 kodlu görsel listesi (multimodal modeller için).
+   */
+  images?: string[];
+  /**
    * Optional display name (e.g., function/tool name for tool role).
    * Opsiyonel görünen ad (ör. tool rolü için fonksiyon/tool adı).
    */
@@ -188,7 +193,7 @@ export interface ChatCompletionResponse {
 // Streaming Types
 // =========================
 
-export type ChatStreamEventType = 'start' | 'token' | 'end' | 'error';
+export type ChatStreamEventType = 'start' | 'token' | 'tool_call' | 'tool_result' | 'end' | 'error';
 
 /**
  * A single streaming event emitted during a chat completion.
@@ -201,6 +206,16 @@ export interface ChatStreamEvent {
    * `token` event'leri için, bu artımlı token içeriğidir.
    */
   token?: string;
+  /**
+   * For `tool_call` events, details about the tool being called.
+   * `tool_call` event'leri için, çağrılan tool hakkındaki detaylar.
+   */
+  toolCall?: ToolCall;
+  /**
+   * For `tool_result` events, the output of the tool execution.
+   * `tool_result` event'leri için, tool çalıştırmasının çıktısı.
+   */
+  toolResult?: ToolResult;
   /**
    * For `end` events, the final accumulated message (if available).
    * `end` event'leri için, son birikmiş mesaj (varsa).
