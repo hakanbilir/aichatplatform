@@ -34,6 +34,11 @@ export interface OrgAnalyticsUserUsageItem {
   chatTurns: number;
 }
 
+export interface OrgAnalyticsTimeSeriesItem {
+  date: string;
+  chatTurns: number;
+}
+
 export interface OrgAnalyticsResult {
   org: {
     id: string;
@@ -49,6 +54,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  timeSeries: OrgAnalyticsTimeSeriesItem[];
 }
 
 export async function fetchOrgAnalytics(

@@ -23,6 +23,11 @@ export interface OrgAnalyticsUserUsageItem {
   chatTurns: number;
 }
 
+export interface OrgAnalyticsTimeSeriesItem {
+  date: string;
+  chatTurns: number;
+}
+
 export interface OrgAnalyticsResult {
   org: {
     id: string;
@@ -38,6 +43,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  timeSeries: OrgAnalyticsTimeSeriesItem[];
 }
 
 export async function getOrgAnalytics(
@@ -91,12 +97,25 @@ export async function getOrgAnalytics(
   const byModelMap = new Map<string, number>();
   const byUserMap = new Map<string, number>();
   const byToolMap = new Map<string, number>();
+  const byDateMap = new Map<string, number>();
+
+  // Initialize all days in window with 0
+  for (let i = 0; i < windowDays; i++) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().split('T')[0];
+    byDateMap.set(key, 0);
+  }
 
   totals.chatTurns = assistantMessages.length;
 
   for (const msg of assistantMessages) {
     const model = msg.conversation?.model || 'default';
     byModelMap.set(model, (byModelMap.get(model) || 0) + 1);
+
+    const dateKey = msg.createdAt.toISOString().split('T')[0];
+    if (byDateMap.has(dateKey)) {
+      byDateMap.set(dateKey, (byDateMap.get(dateKey) || 0) + 1);
+    }
 
     // Tools: we expect meta.toolMessageId or meta.tools to indicate tool usage
     // Araçlar: tool kullanımını belirtmek için meta.toolMessageId veya meta.tools bekliyoruz
@@ -179,6 +198,10 @@ export async function getOrgAnalytics(
     .map(([userId, chatTurns]) => ({ userId, chatTurns }))
     .sort((a, b) => b.chatTurns - a.chatTurns);
 
+  const timeSeries: OrgAnalyticsTimeSeriesItem[] = Array.from(byDateMap.entries())
+    .map(([date, chatTurns]) => ({ date, chatTurns }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return {
     org,
     windowDays,
@@ -186,7 +209,8 @@ export async function getOrgAnalytics(
     totals,
     byModel,
     byTool,
-    byUser
+    byUser,
+    timeSeries
   };
 }
 
