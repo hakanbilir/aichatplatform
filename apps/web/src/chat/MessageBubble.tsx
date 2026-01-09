@@ -6,7 +6,11 @@ interface MessageBubbleProps {
   content: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
+// Optimization: Use React.memo to prevent unnecessary re-renders during streaming.
+// During text generation, the parent ChatView component re-renders frequently.
+// Memoizing this component ensures that bubbles for previously completed messages
+// do not re-render on every new token, significantly improving scroll performance.
+export const MessageBubble = React.memo(({ role, content }: MessageBubbleProps) => {
   const isUser = role === 'user';
   return (
     <Box
@@ -33,5 +37,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) =
       </Box>
     </Box>
   );
-};
+});
 
+MessageBubble.displayName = 'MessageBubble';
