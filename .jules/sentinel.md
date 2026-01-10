@@ -1,0 +1,4 @@
+## 2025-05-23 - Timing Attack via Invalid Dummy Hash
+**Vulnerability:** The application used an invalid bcrypt string (`$2a$10$dummyhashfordummyverificationpurposesonly`) for "dummy" password verification when a user was not found. This string was 48 characters long, whereas a valid bcrypt hash is 60 characters. `bcryptjs` quickly rejected the invalid hash (0.2ms), while verifying a valid hash took ~100ms.
+**Learning:** `bcrypt.compare` optimizes for invalid formats, returning immediately. This creates a significant timing side-channel that allows attackers to enumerate valid email addresses based on response time (100ms vs 0.2ms).
+**Prevention:** Always use a syntactically valid (length and structure) bcrypt hash for dummy verifications. Pre-calculate a valid hash during initialization or use a constant valid hash string.
