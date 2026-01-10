@@ -23,6 +23,11 @@ export interface OrgAnalyticsUserUsageItem {
   chatTurns: number;
 }
 
+export interface OrgAnalyticsDayUsageItem {
+  date: string;
+  chatTurns: number;
+}
+
 export interface OrgAnalyticsResult {
   org: {
     id: string;
@@ -38,6 +43,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  byDay: OrgAnalyticsDayUsageItem[];
 }
 
 export async function getOrgAnalytics(
@@ -91,6 +97,7 @@ export async function getOrgAnalytics(
   const byModelMap = new Map<string, number>();
   const byUserMap = new Map<string, number>();
   const byToolMap = new Map<string, number>();
+  const byDayMap = new Map<string, number>();
 
   totals.chatTurns = assistantMessages.length;
 
@@ -107,6 +114,10 @@ export async function getOrgAnalytics(
     } else {
       totals.chatTurnsWithoutTools += 1;
     }
+
+    // Daily buckets
+    const dayKey = msg.createdAt.toISOString().slice(0, 10); // YYYY-MM-DD
+    byDayMap.set(dayKey, (byDayMap.get(dayKey) || 0) + 1);
   }
 
   // Top tools by calls: we look at TOOL messages in this org
@@ -179,6 +190,10 @@ export async function getOrgAnalytics(
     .map(([userId, chatTurns]) => ({ userId, chatTurns }))
     .sort((a, b) => b.chatTurns - a.chatTurns);
 
+  const byDay: OrgAnalyticsDayUsageItem[] = Array.from(byDayMap.entries())
+    .map(([date, chatTurns]) => ({ date, chatTurns }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return {
     org,
     windowDays,
@@ -186,11 +201,7 @@ export async function getOrgAnalytics(
     totals,
     byModel,
     byTool,
-    byUser
+    byUser,
+    byDay
   };
 }
-
-
-
-
-

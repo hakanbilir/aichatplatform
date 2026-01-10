@@ -34,6 +34,11 @@ export interface OrgAnalyticsUserUsageItem {
   chatTurns: number;
 }
 
+export interface OrgAnalyticsDayUsageItem {
+  date: string;
+  chatTurns: number;
+}
+
 export interface OrgAnalyticsResult {
   org: {
     id: string;
@@ -49,6 +54,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  byDay: OrgAnalyticsDayUsageItem[];
 }
 
 export async function fetchOrgAnalytics(
@@ -69,8 +75,3 @@ export async function fetchOrgAnalytics(
     token
   );
 }
-
-
-
-
-

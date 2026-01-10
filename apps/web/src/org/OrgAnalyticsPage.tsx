@@ -45,26 +45,37 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
 
   const totals = data?.totals;
 
-  // Generate mock time-series data for chart (since API doesn't provide it)
-  // Grafik için sahte zaman serisi verisi oluştur (API sağlamadığı için)
+  // Use real time-series data from API
+  // API'den gelen gerçek zaman serisi verilerini kullan
   const timeSeriesData = useMemo(() => {
-    if (!data) return [];
-    const days = windowDays;
-    const baseValue = totals?.chatTurns || 0;
-    const dataPoints = [];
+    if (!data?.byDay) return [];
     
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const variance = (Math.random() - 0.5) * 0.3; // ±15% variance / ±%15 varyans
-      const value = Math.max(0, Math.round(baseValue / days * (1 + variance)));
-      dataPoints.push({
-        timestamp: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        chatTurns: value,
+    // Fill in missing dates with 0 values
+    // Eksik tarihleri 0 değerleriyle doldur
+    const filledData = [];
+    const endDate = new Date();
+    // Reset time part to ensure correct comparison
+    endDate.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - windowDays + 1);
+
+    // Create a map for quick lookup
+    const dataMap = new Map(data.byDay.map(item => [item.date, item.chatTurns]));
+
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      const val = dataMap.get(dateStr) || 0;
+
+      filledData.push({
+        timestamp: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        chatTurns: val,
+        rawDate: dateStr // Keep raw date if needed for sorting/debugging
       });
     }
-    return dataPoints;
-  }, [data, windowDays, totals?.chatTurns]);
+
+    return filledData;
+  }, [data, windowDays]);
 
   // Prepare data grid columns / Veri ızgarası sütunlarını hazırla
   const modelColumns = [
@@ -230,7 +241,7 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
           </DashboardLayout>
 
           {/* Time series chart / Zaman serisi grafiği */}
-          {timeSeriesData.length > 0 && (
+          {timeSeriesData.length > 0 ? (
             <Panel
               title={t('chatTurnsOverTime') || 'Chat Turns Over Time'}
               subtitle={t('chatTurnsPerDay') || 'Daily chat turns for the selected period'}
@@ -244,6 +255,18 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
                 xAxisLabel={t('date') || 'Date'}
                 yAxisLabel={t('chatTurns') || 'Chat Turns'}
                 formatYAxis={(value) => value.toLocaleString()}
+              />
+            </Panel>
+          ) : (
+            <Panel
+              title={t('chatTurnsOverTime') || 'Chat Turns Over Time'}
+              subtitle={t('chatTurnsPerDay') || 'Daily chat turns for the selected period'}
+              collapsible
+              defaultExpanded
+            >
+              <EmptyState
+                message={t('noDataInWindow')}
+                description={t('noChatActivity') || 'No chat activity found in this period'}
               />
             </Panel>
           )}
@@ -347,8 +370,3 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
     </Box>
   );
 };
-
-
-
-
-
