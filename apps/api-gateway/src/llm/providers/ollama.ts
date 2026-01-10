@@ -4,7 +4,8 @@ import {
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatCompletionChunk,
-  LlmChatProvider
+  LlmChatProvider,
+  ChatMessage
 } from '../types';
 
 interface OllamaConfig {
@@ -12,8 +13,9 @@ interface OllamaConfig {
 }
 
 interface OllamaChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  images?: string[];
 }
 
 export class OllamaChatProvider implements LlmChatProvider {
@@ -23,10 +25,14 @@ export class OllamaChatProvider implements LlmChatProvider {
     this.baseUrl = config.baseUrl.replace(/\/$/, '');
   }
 
-  private mapMessages(messages: ChatCompletionRequest['messages']): OllamaChatMessage[] {
+  private mapMessages(messages: ChatMessage[]): OllamaChatMessage[] {
     return messages
-      .filter((m) => m.role === 'system' || m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content }));
+      .filter((m) => m.role === 'system' || m.role === 'user' || m.role === 'assistant' || m.role === 'tool')
+      .map((m) => ({
+        role: m.role as 'system' | 'user' | 'assistant' | 'tool',
+        content: m.content,
+        images: m.images
+      }));
   }
 
   async complete(req: ChatCompletionRequest): Promise<ChatCompletionResponse> {
@@ -66,7 +72,7 @@ export class OllamaChatProvider implements LlmChatProvider {
         }
       : undefined;
 
-    return { content, usage }; // toolCalls omitted for now
+    return { content, usage }; // toolCalls omitted for now as basic Ollama usage doesn't standardize them yet
   }
 
   async *stream(req: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {

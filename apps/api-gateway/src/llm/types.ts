@@ -2,16 +2,17 @@
 
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
+export interface ChatToolCall {
+  id?: string;
+  name: string;
+  arguments: string; // JSON-encoded
+}
+
 export interface ChatMessage {
   role: ChatRole;
   content: string;
-  // Future: tool call data, images, etc.
-}
-
-export interface ChatToolCall {
-  id: string;
-  name: string;
-  arguments: string; // JSON-encoded
+  images?: string[];
+  toolCalls?: ChatToolCall[];
 }
 
 export interface ChatCompletionRequest {

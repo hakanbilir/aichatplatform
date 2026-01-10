@@ -7,6 +7,7 @@ export interface SendMessageResponse {
     role: string;
     content: string;
     createdAt: string;
+    images?: string[];
   };
   assistantMessage: {
     id: string;
@@ -24,7 +25,14 @@ export interface SendMessageResponse {
 export async function sendMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    images?: string[];
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number
+  },
 ): Promise<SendMessageResponse> {
   return apiRequest<SendMessageResponse>(
     `/conversations/${conversationId}/messages`,
@@ -44,7 +52,9 @@ export type StreamEvent =
       message: { role: string; content: string };
       usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
     }
-  | { type: 'error'; error: string };
+  | { type: 'error'; error: string }
+  | { type: 'tool_call'; toolCall: { id: string; name: string; arguments: string } }
+  | { type: 'tool_result'; toolResult: { toolName: string; data: unknown; error?: string } };
 
 /**
  * Streaming chat helper using fetch + ReadableStream.
@@ -55,7 +65,14 @@ export type StreamEvent =
 export async function streamMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    images?: string[];
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number
+  },
   onEvent: (event: StreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
@@ -109,4 +126,3 @@ export async function streamMessage(
     }
   }
 }
-

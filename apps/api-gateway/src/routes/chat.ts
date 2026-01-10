@@ -19,6 +19,7 @@ import { recordUsage } from '../usage/usageTracker';
 
 const sendMessageBodySchema = z.object({
   content: z.string().min(1).max(32000), // 32KB max per message
+  images: z.array(z.string().max(5_242_880)).max(5).optional(), // Base64 images, max 5MB each, max 5 images
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
@@ -45,6 +46,7 @@ function buildConversationContext(conversation: any): ConversationContext {
     role: mapDbRoleToChatRole(m.role),
     content: m.content,
     createdAt: m.createdAt.toISOString(),
+    images: m.meta?.images as string[] | undefined,
   }));
 
   const ctx: ConversationContext = {
@@ -81,7 +83,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -120,7 +122,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: { images },
       },
     });
 
@@ -133,6 +135,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
     const context = buildConversationContext(conversationWithNewMessage);
     const userMessage = createUserMessage(content);
+    if (images) userMessage.images = images;
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -193,8 +196,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         role: 'ASSISTANT',
         content: response.message.content,
         meta: {
-          usage: (response.usage ?? null) as unknown as Prisma.InputJsonValue,
-          providerMeta: (response.providerMeta ?? null) as unknown as Prisma.InputJsonValue,
+          usage: (response.usage ?? null) as any,
+          providerMeta: (response.providerMeta ?? null) as any,
         },
       },
     });
@@ -244,7 +247,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -283,7 +286,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: { images },
       },
     });
 
@@ -294,6 +297,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
     const context = buildConversationContext(conversationWithNewMessage);
     const userMessage = createUserMessage(content);
+    if (images) userMessage.images = images;
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -358,6 +362,11 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
         if (event.type === 'error' && event.error) {
           outgoing.error = event.error;
+        }
+
+        // Forward tool_call events
+        if (event.type === 'tool_call' && event.toolCall) {
+          outgoing.toolCall = event.toolCall;
         }
 
         sendEvent(outgoing as ChatStreamEvent);
@@ -435,4 +444,3 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     }
   });
 }
-
