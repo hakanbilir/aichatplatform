@@ -15,6 +15,7 @@ import { ChatMessage, ChatRole, ChatStreamEvent } from '@ai-chat/core-types';
 import { z } from 'zod';
 import { chatCompletionDurationSeconds, chatCompletionTokensTotal } from '../metrics';
 import { recordUsage } from '../usage/usageTracker';
+import { retrieveRelevantChunks } from '../services/knowledgeRetrieval';
 // import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard'; // Unused for now
 
 const sendMessageBodySchema = z.object({
@@ -62,6 +63,48 @@ function buildConversationContext(conversation: any): ConversationContext {
 export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   const orchestratorOptions: OrchestratorOptions = {
     maxContextTokens: 4000,
+  };
+
+  // Helper to retrieve and inject RAG context
+  const injectRagContext = async (
+    conversation: any,
+    content: string,
+    context: ConversationContext
+  ): Promise<void> => {
+    // Attempt to read kbConfig safely.
+    // If it's a JSON field, it might be returned as part of the object if we select all fields.
+    // We assume 'kbConfig' is available or part of 'config'/'settings'.
+    // Given the lack of strict type info here, we use optional chaining.
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const kbConfig = (conversation as any).kbConfig;
+
+    // Also check if there's a 'settings' or 'config' field that might contain it if not top-level
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settingsRag = (conversation as any).settings?.rag || (conversation as any).config?.rag;
+
+    const ragConfig = kbConfig?.rag || settingsRag;
+
+    if (ragConfig?.enabled && conversation.orgId) {
+      const { spaceId, maxChunks } = ragConfig;
+      try {
+        const chunks = await retrieveRelevantChunks({
+          orgId: conversation.orgId,
+          spaceId: spaceId || undefined,
+          query: content,
+          limit: maxChunks || 4
+        });
+
+        if (chunks.length > 0) {
+          const contextText = chunks.map(c => c.text).join('\n\n---\n\n');
+          const ragInstructions = `\n\nRelevant knowledge context:\n${contextText}\n\nUse the above context to answer the user's question if relevant.`;
+
+          context.customInstructions = (context.customInstructions || '') + ragInstructions;
+        }
+      } catch (err) {
+        console.warn('Failed to retrieve RAG context', err);
+      }
+    }
   };
 
   // Non-streaming message send
@@ -132,6 +175,10 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
+
+    // Inject RAG context
+    await injectRagContext(conversation, content, context);
+
     const userMessage = createUserMessage(content);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
@@ -293,6 +340,10 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
+
+    // Inject RAG context
+    await injectRagContext(conversation, content, context);
+
     const userMessage = createUserMessage(content);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
@@ -435,4 +486,3 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     }
   });
 }
-
