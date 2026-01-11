@@ -23,6 +23,11 @@ export interface OrgAnalyticsUserUsageItem {
   chatTurns: number;
 }
 
+export interface OrgAnalyticsDayUsageItem {
+  date: string;
+  chatTurns: number;
+}
+
 export interface OrgAnalyticsResult {
   org: {
     id: string;
@@ -38,6 +43,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  byDay: OrgAnalyticsDayUsageItem[];
 }
 
 export async function getOrgAnalytics(
@@ -91,6 +97,15 @@ export async function getOrgAnalytics(
   const byModelMap = new Map<string, number>();
   const byUserMap = new Map<string, number>();
   const byToolMap = new Map<string, number>();
+  const byDayMap = new Map<string, number>();
+
+  // Pre-fill days with 0
+  for (let i = 0; i < windowDays; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    byDayMap.set(key, 0);
+  }
 
   totals.chatTurns = assistantMessages.length;
 
@@ -106,6 +121,16 @@ export async function getOrgAnalytics(
       totals.chatTurnsWithTools += 1;
     } else {
       totals.chatTurnsWithoutTools += 1;
+    }
+
+    const dateKey = msg.createdAt.toISOString().slice(0, 10);
+    // Only update if within the window we pre-filled, or just set it.
+    // Pre-filling ensures we have 0s for empty days.
+    // But if dateKey is older (due to slight clock diffs in 'since' calc), we might miss it if we strictly check map.has
+    // But generally we should count it.
+    // If we want exact last X days relative to today:
+    if (byDayMap.has(dateKey)) {
+      byDayMap.set(dateKey, (byDayMap.get(dateKey) || 0) + 1);
     }
   }
 
@@ -179,6 +204,10 @@ export async function getOrgAnalytics(
     .map(([userId, chatTurns]) => ({ userId, chatTurns }))
     .sort((a, b) => b.chatTurns - a.chatTurns);
 
+  const byDay: OrgAnalyticsDayUsageItem[] = Array.from(byDayMap.entries())
+    .map(([date, chatTurns]) => ({ date, chatTurns }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return {
     org,
     windowDays,
@@ -186,7 +215,8 @@ export async function getOrgAnalytics(
     totals,
     byModel,
     byTool,
-    byUser
+    byUser,
+    byDay
   };
 }
 
