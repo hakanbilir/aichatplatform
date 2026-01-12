@@ -4,16 +4,17 @@ import { useTranslation } from 'react-i18next';
 import { MessageBubble } from './MessageBubble';
 
 interface ChatViewProps {
-  messages: Array<{ id: string; role: string; content: string }>;
+  messages: Array<{ id: string; role: string; content: string; images?: string[] }>;
   streamingAssistantText: string;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText }) => {
   const { t } = useTranslation('chat');
+  // Avoid mutating props directly, though map below creates new array, spread is safer
   const allMessages = [...messages];
 
   if (streamingAssistantText) {
-    allMessages.push({ id: 'streaming', role: 'assistant', content: streamingAssistantText });
+    allMessages.push({ id: 'streaming', role: 'assistant', content: streamingAssistantText, images: undefined });
   }
 
   if (allMessages.length === 0) {
@@ -39,7 +40,12 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
   return (
     <Box flex={1} overflow="auto" px={3} py={2}>
       {allMessages.map((m) => (
-        <MessageBubble key={m.id} role={m.role === 'USER' || m.role === 'user' ? 'user' : 'assistant'} content={m.content} />
+        <MessageBubble
+          key={m.id}
+          role={m.role === 'USER' || m.role === 'user' ? 'user' : 'assistant'}
+          content={m.content}
+          images={m.images}
+        />
       ))}
     </Box>
   );

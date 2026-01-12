@@ -4,9 +4,10 @@ import { Box, Typography } from '@mui/material';
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
   content: string;
+  images?: string[];
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content, images }) => {
   const isUser = role === 'user';
   return (
     <Box
@@ -27,6 +28,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) =
           boxShadow: isUser ? '0 14px 36px rgba(124,77,255,0.6)' : '0 10px 24px rgba(0,0,0,0.65)',
         }}
       >
+        {images && images.length > 0 && (
+          <Box mb={1} display="flex" flexWrap="wrap" gap={1}>
+            {images.map((img, idx) => (
+               <img
+                key={idx}
+                src={img}
+                alt="uploaded"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: 200,
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+              />
+            ))}
+          </Box>
+        )}
         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
           {content}
         </Typography>

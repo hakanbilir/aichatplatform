@@ -43,6 +43,16 @@ export interface ChatMessage {
    * Opsiyonel ISO zaman damgası.
    */
   createdAt?: string;
+  /**
+   * Optional images (base64 or URL).
+   * Opsiyonel görseller (base64 veya URL).
+   */
+  images?: string[];
+  /**
+   * Optional tool calls from the assistant.
+   * Asistandan gelen opsiyonel tool çağrıları.
+   */
+  toolCalls?: ToolCall[];
 }
 
 // =========================

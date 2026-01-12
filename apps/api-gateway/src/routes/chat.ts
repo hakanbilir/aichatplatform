@@ -18,7 +18,8 @@ import { recordUsage } from '../usage/usageTracker';
 // import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard'; // Unused for now
 
 const sendMessageBodySchema = z.object({
-  content: z.string().min(1).max(32000), // 32KB max per message
+  content: z.string().max(32000).optional(), // Optional to allow image-only messages
+  images: z.array(z.string()).optional(),
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
@@ -44,6 +45,7 @@ function buildConversationContext(conversation: any): ConversationContext {
     id: m.id,
     role: mapDbRoleToChatRole(m.role),
     content: m.content,
+    images: m.meta?.images as string[] | undefined,
     createdAt: m.createdAt.toISOString(),
   }));
 
@@ -81,7 +83,11 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
+
+    if ((!content || content.length === 0) && (!images || images.length === 0)) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: 'Content or images required' });
+    }
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -119,8 +125,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       data: {
         conversationId: conversation.id,
         role: 'USER',
-        content,
-        meta: {},
+        content: content || '',
+        meta: images ? { images } : {},
       },
     });
 
@@ -132,7 +138,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(content || '', images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -244,7 +250,11 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
+
+    if ((!content || content.length === 0) && (!images || images.length === 0)) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: 'Content or images required' });
+    }
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -282,8 +292,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       data: {
         conversationId: conversation.id,
         role: 'USER',
-        content,
-        meta: {},
+        content: content || '',
+        meta: images ? { images } : {},
       },
     });
 
@@ -293,7 +303,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(content || '', images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
