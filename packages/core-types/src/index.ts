@@ -29,6 +29,16 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   /**
+   * Optional list of base64-encoded images (or URLs if supported).
+   * Opsiyonel base64 kodlanmış görseller listesi (veya destekleniyorsa URL'ler).
+   */
+  images?: string[];
+  /**
+   * Optional list of tool calls requested by the model.
+   * Model tarafından istenen opsiyonel tool çağrıları listesi.
+   */
+  toolCalls?: ToolCall[];
+  /**
    * Optional display name (e.g., function/tool name for tool role).
    * Opsiyonel görünen ad (ör. tool rolü için fonksiyon/tool adı).
    */

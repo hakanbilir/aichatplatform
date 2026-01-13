@@ -19,6 +19,7 @@ import { recordUsage } from '../usage/usageTracker';
 
 const sendMessageBodySchema = z.object({
   content: z.string().min(1).max(32000), // 32KB max per message
+  images: z.array(z.string()).optional(),
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
@@ -81,7 +82,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -132,7 +133,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(content, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -244,7 +245,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -293,7 +294,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(content, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
