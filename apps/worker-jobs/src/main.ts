@@ -73,6 +73,31 @@ setInterval(async () => {
   }
 }, 24 * 60 * 60 * 1000); // Every 24 hours
 
-// In later docs, this file will be expanded with additional queue consumers and scheduled jobs.
-// Gelecek dokümanlarda bu dosya ek kuyruk tüketicileri ve zamanlanmış işlerle genişletilecek.
+// Dataset Ingestion Worker
+// Veri seti işleme çalışanı
+setInterval(async () => {
+  try {
+    const { processDatasetIngestionBatch } = await import('./datasetIngestionWorker');
+    const processed = await processDatasetIngestionBatch(5);
+    if (processed > 0) {
+      console.log(`Processed ${processed} dataset ingestion jobs`);
+    }
+  } catch (err) {
+    console.error('Error processing dataset ingestion:', err);
+  }
+}, 5000); // Check every 5 seconds
+
+// Training Run Worker
+// Eğitim çalıştırma çalışanı
+setInterval(async () => {
+  try {
+    const { processTrainingRunBatch } = await import('./trainingRunWorker');
+    const processed = await processTrainingRunBatch(5);
+    if (processed > 0) {
+      console.log(`Processed ${processed} training run updates`);
+    }
+  } catch (err) {
+    console.error('Error processing training runs:', err);
+  }
+}, 5000); // Check every 5 seconds
 
