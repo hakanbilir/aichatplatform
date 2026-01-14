@@ -92,7 +92,7 @@ async function buildServer() {
   setModerationProvider(new HeuristicModerationProvider());
 
   await app.register(cors, {
-    origin: true,
+    origin: config.CORS_ALLOWED_ORIGINS,
     credentials: true,
   });
 
