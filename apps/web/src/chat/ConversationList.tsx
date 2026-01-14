@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, List, ListItemButton, ListItemText, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { listConversations, ConversationListItem } from '../api/conversations';
@@ -11,6 +11,11 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
   const { token } = useAuth();
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedIdRef = useRef(selectedId);
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
   useEffect(() => {
     if (!token) return;
@@ -22,7 +27,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
         const resp = await listConversations(token);
         if (!cancelled) {
           setItems(resp.conversations);
-          if (!selectedId && resp.conversations.length > 0) {
+          if (!selectedIdRef.current && resp.conversations.length > 0) {
             setSelectedId(resp.conversations[0].id);
             const event = new CustomEvent('select-conversation', { detail: resp.conversations[0].id });
             window.dispatchEvent(event);
@@ -58,7 +63,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
       cancelled = true;
       window.removeEventListener('conversation-created', handler);
     };
-  }, [token, selectedId]);
+  }, [token, t]);
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
