@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -32,11 +32,11 @@ import {
   getConversationUsage,
   ConversationUsageSummary,
 } from '../api/conversations';
-import { streamMessage, StreamEvent } from '../api/chat';
 import { ChatView } from './ChatView';
 import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
+import { useChat } from '../hooks/useChat';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
@@ -57,8 +57,6 @@ export const ChatPage: React.FC = () => {
   const { token } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ConversationDetails | null>(null);
-  const [streamingText, setStreamingText] = useState('');
-  const [streaming, setStreaming] = useState(false);
 
   const [model, setModel] = useState<string>('llama3.1');
   const [temperature, setTemperature] = useState<number>(0.7);
@@ -75,13 +73,33 @@ export const ChatPage: React.FC = () => {
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
 
-  const abortRef = useRef<AbortController | null>(null);
-  
   const { user } = useAuth();
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
 
+  // Use the new useChat hook
+  const {
+     messages,
+     setMessages,
+     sendMessage,
+     stop,
+     reload,
+     streaming,
+     streamingText
+  } = useChat({
+    token,
+    conversationId,
+    model,
+    temperature,
+    topP,
+    onConversationUpdate: (conv) => {
+      setConversation(conv);
+    },
+    onUsageUpdate: (u) => {
+      setUsage(u);
+    }
+  });
+
   // Get model options with translations
-  // Çevirilerle model seçeneklerini al
   const MODEL_OPTIONS: { value: string; label: string }[] = [
     { value: 'llama3.1', label: t('models.llama3.1') },
     { value: 'llama3.1:8b', label: t('models.llama3.1:8b') },
@@ -89,7 +107,6 @@ export const ChatPage: React.FC = () => {
   ];
 
   // Listen for conversation selection/creation events from sidebar
-  // Sidebar'dan konuşma seçimi/oluşturma event'lerini dinle
   useEffect(() => {
     const handleSelect = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
@@ -134,23 +151,21 @@ export const ChatPage: React.FC = () => {
   }, [token]);
 
   // Load conversation details when id or auth changes
-  // ID veya auth değiştiğinde konuşma detaylarını yükle
   useEffect(() => {
     if (!token || !conversationId) {
       setConversation(null);
+      setMessages([]);
       return;
     }
 
     let cancelled = false;
 
     async function load() {
-      if (!token || !conversationId) return; // Type guard / Tip koruması
-      const currentToken = token; // Capture for closure / Kapanış için yakala
-      const currentConversationId = conversationId; // Capture for closure / Kapanış için yakala
+      if (!token || !conversationId) return;
       try {
         const [convResp, usageResp] = await Promise.all([
-          getConversation(currentToken, currentConversationId),
-          getConversationUsage(currentToken, currentConversationId).catch(() => null),
+          getConversation(token, conversationId),
+          getConversationUsage(token, conversationId).catch(() => null),
         ]);
         if (!cancelled) {
           const conv = convResp.conversation;
@@ -161,14 +176,26 @@ export const ChatPage: React.FC = () => {
           setModel(nextModel);
           setTemperature(nextTemp);
           setTopP(nextTopP);
-          setStreamingText('');
           setDirty(false);
+
+          // Initialize messages from conversation
+          setMessages(conv.messages.map((m: any) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            images: m.images,
+            createdAt: m.createdAt
+          })));
+
           if (usageResp) {
             setUsage(usageResp);
           }
         }
       } catch {
-        if (!cancelled) setConversation(null);
+        if (!cancelled) {
+            setConversation(null);
+            setMessages([]);
+        }
       }
     }
 
@@ -177,10 +204,9 @@ export const ChatPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [token, conversationId]);
+  }, [token, conversationId, setMessages]);
 
   // Auto-clear the "Saved" chip after some time
-  // Bir süre sonra "Kaydedildi" chip'ini otomatik temizle
   useEffect(() => {
     if (!savedAt) return;
     const timeout = window.setTimeout(() => {
@@ -188,101 +214,6 @@ export const ChatPage: React.FC = () => {
     }, 2000);
     return () => window.clearTimeout(timeout);
   }, [savedAt]);
-
-  const handleSend = async (content: string) => {
-    if (!token || !conversationId) return;
-
-    if (!conversation) {
-      return;
-    }
-
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
-
-    const localConversationId = conversationId;
-
-    // Optimistically append user message locally
-    // Kullanıcı mesajını yerel olarak iyimser bir şekilde ekle
-    const userMessage = {
-      id: `local-${Date.now()}`,
-      role: 'USER',
-      content,
-    };
-
-    setConversation((prev) =>
-      prev
-        ? {
-            ...prev,
-            messages: [...prev.messages, { ...userMessage, createdAt: new Date().toISOString() }],
-          }
-        : prev,
-    );
-
-    setStreamingText('');
-    setStreaming(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      await streamMessage(
-        token,
-        localConversationId,
-        {
-          content,
-          model,
-          temperature,
-          topP,
-        },
-        (event: StreamEvent) => {
-          if (event.type === 'token') {
-            setStreamingText((prev) => prev + event.token);
-          }
-
-          if (event.type === 'end' && event.message) {
-            setStreamingText('');
-            setConversation((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    messages: [
-                      ...prev.messages,
-                      {
-                        id: `assistant-${Date.now()}`,
-                        role: 'ASSISTANT',
-                        content: event.message.content,
-                        createdAt: new Date().toISOString(),
-                      },
-                    ],
-                  }
-                : prev,
-            );
-          }
-        },
-        controller.signal,
-      );
-    } finally {
-      setStreaming(false);
-    }
-
-    // Refresh from backend to align IDs and usage
-    // ID'leri ve kullanımı hizalamak için backend'den yenile
-    if (token && localConversationId) {
-      try {
-        const [convResp, usageResp] = await Promise.all([
-          getConversation(token, localConversationId),
-          getConversationUsage(token, localConversationId).catch(() => null),
-        ]);
-        setConversation(convResp.conversation);
-        if (usageResp) {
-          setUsage(usageResp);
-        }
-      } catch {
-        // ignore
-      }
-    }
-  };
 
   const handleSaveSettings = async () => {
     if (!token || !conversationId) return;
@@ -351,7 +282,6 @@ export const ChatPage: React.FC = () => {
   return (
     <Box display="flex" flexDirection="column" flex={1}>
       {/* Settings bar */}
-      {/* Ayarlar çubuğu */}
       <Box
         px={2}
         py={1}
@@ -469,8 +399,14 @@ export const ChatPage: React.FC = () => {
       </Box>
 
       {/* Chat view + input */}
-      {/* Chat görünümü + input */}
-      <ChatView messages={conversation?.messages ?? []} streamingAssistantText={streamingText} />
+      <ChatView
+         messages={messages}
+         streamingAssistantText={streamingText}
+         onStop={stop}
+         onRegenerate={reload}
+         isStreaming={streaming}
+      />
+
       <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
         <IconButton
           size="small"
@@ -481,9 +417,10 @@ export const ChatPage: React.FC = () => {
           <AutoAwesomeIcon fontSize="small" />
         </IconButton>
       </Box>
+
       <MessageInput
         disabled={!conversationId || streaming}
-        onSend={handleSend}
+        onSend={(content, images) => sendMessage(content, images)}
         value={messageInputValue}
         onChange={setMessageInputValue}
       />
