@@ -573,9 +573,6 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
       },
     });
 
-    // TODO: Enqueue dataset ingest job when queue system is available
-    // await datasetIngestQueue.add('ingest', { orgId, datasetVersionId: parsedParams.data.versionId });
-
     return reply.send(updatedVersion);
   });
 }
