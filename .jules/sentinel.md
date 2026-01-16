@@ -1,0 +1,4 @@
+## 2025-02-12 - [Bcrypt Timing Attack Prevention]
+**Vulnerability:** The authentication system attempted to prevent user enumeration by running a dummy password verification when a user wasn't found. However, the dummy hash used was a static string (`$2a$10$dummyhash...`) which is not a valid bcrypt hash structure. `bcryptjs` quickly identifies this invalid format and rejects it in ~0.05ms, whereas a valid comparison takes ~100ms.
+**Learning:** Security libraries often fail-fast on invalid inputs. A "dummy" operation must be indistinguishable from a real one, including data validity. If the input format is invalid, the library might skip the expensive computation entirely, defeating the timing protection.
+**Prevention:** Always use a syntactically valid, pre-calculated hash for dummy verifications. Ensure the dummy operation performs the exact same computational work as the real operation. Verify timing assumptions with micro-benchmarks.
