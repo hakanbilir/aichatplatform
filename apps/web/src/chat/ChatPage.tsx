@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -25,18 +25,15 @@ import { useAuth } from '../auth/AuthContext';
 import { usePromptTemplates } from '../prompts/usePromptTemplates';
 import { CreatePromptTemplateInput } from '../api/prompts';
 import {
-  ConversationDetails,
-  getConversation,
   createConversation,
   updateConversation,
-  getConversationUsage,
-  ConversationUsageSummary,
 } from '../api/conversations';
-import { streamMessage, StreamEvent } from '../api/chat';
 import { ChatView } from './ChatView';
 import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
+import { useConversation } from '../hooks/api/useConversation';
+import { useChat } from '../hooks/useChat';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
@@ -54,11 +51,10 @@ function clampTopP(value: number): number {
 
 export const ChatPage: React.FC = () => {
   const { t } = useTranslation('chat');
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<ConversationDetails | null>(null);
-  const [streamingText, setStreamingText] = useState('');
-  const [streaming, setStreaming] = useState(false);
+  const { conversation, usage, mutateConversation, mutateUsage } = useConversation(conversationId);
+  const { sendMessage, streaming, streamingText } = useChat();
 
   const [model, setModel] = useState<string>('llama3.1');
   const [temperature, setTemperature] = useState<number>(0.7);
@@ -66,7 +62,7 @@ export const ChatPage: React.FC = () => {
   const [dirty, setDirty] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [usage, setUsage] = useState<ConversationUsageSummary | null>(null);
+
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [toolsOpen, setToolsOpen] = useState<boolean>(false);
   const [promptLibraryOpen, setPromptLibraryOpen] = useState<boolean>(false);
@@ -74,10 +70,7 @@ export const ChatPage: React.FC = () => {
   const [messageInputValue, setMessageInputValue] = useState<string>('');
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
-
-  const abortRef = useRef<AbortController | null>(null);
   
-  const { user } = useAuth();
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
 
   // Get model options with translations
@@ -133,51 +126,18 @@ export const ChatPage: React.FC = () => {
     };
   }, [token]);
 
-  // Load conversation details when id or auth changes
-  // ID veya auth değiştiğinde konuşma detaylarını yükle
+  // Sync state with conversation data
   useEffect(() => {
-    if (!token || !conversationId) {
-      setConversation(null);
-      return;
+    if (conversation) {
+      const nextModel = conversation.model || 'llama3.1';
+      const nextTemp = clampTemperature(conversation.temperature ?? 0.7);
+      const nextTopP = clampTopP(conversation.topP ?? 1);
+      setModel(nextModel);
+      setTemperature(nextTemp);
+      setTopP(nextTopP);
+      setDirty(false);
     }
-
-    let cancelled = false;
-
-    async function load() {
-      if (!token || !conversationId) return; // Type guard / Tip koruması
-      const currentToken = token; // Capture for closure / Kapanış için yakala
-      const currentConversationId = conversationId; // Capture for closure / Kapanış için yakala
-      try {
-        const [convResp, usageResp] = await Promise.all([
-          getConversation(currentToken, currentConversationId),
-          getConversationUsage(currentToken, currentConversationId).catch(() => null),
-        ]);
-        if (!cancelled) {
-          const conv = convResp.conversation;
-          setConversation(conv);
-          const nextModel = conv.model || 'llama3.1';
-          const nextTemp = clampTemperature(conv.temperature ?? 0.7);
-          const nextTopP = clampTopP(conv.topP ?? 1);
-          setModel(nextModel);
-          setTemperature(nextTemp);
-          setTopP(nextTopP);
-          setStreamingText('');
-          setDirty(false);
-          if (usageResp) {
-            setUsage(usageResp);
-          }
-        }
-      } catch {
-        if (!cancelled) setConversation(null);
-      }
-    }
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token, conversationId]);
+  }, [conversation]);
 
   // Auto-clear the "Saved" chip after some time
   // Bir süre sonra "Kaydedildi" chip'ini otomatik temizle
@@ -190,98 +150,44 @@ export const ChatPage: React.FC = () => {
   }, [savedAt]);
 
   const handleSend = async (content: string) => {
-    if (!token || !conversationId) return;
+    if (!token || !conversationId || !conversation) return;
 
-    if (!conversation) {
-      return;
-    }
-
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
-
-    const localConversationId = conversationId;
-
-    // Optimistically append user message locally
-    // Kullanıcı mesajını yerel olarak iyimser bir şekilde ekle
+    // Optimistic update
     const userMessage = {
       id: `local-${Date.now()}`,
       role: 'USER',
       content,
+      createdAt: new Date().toISOString(),
     };
 
-    setConversation((prev) =>
-      prev
-        ? {
-            ...prev,
-            messages: [...prev.messages, { ...userMessage, createdAt: new Date().toISOString() }],
-          }
-        : prev,
-    );
+    // We can't easily mutate SWR data optimistically for complex objects unless we duplicate logic
+    // But we can mutate the conversation to include the new message temporarily
+    // Ideally SWR's mutate handles this, but here we just wait for stream updates
+    // For now, let's just rely on the stream callback updating or re-fetching
+    // Actually useChat doesn't update SWR cache. We should pass a callback or manual mutate.
 
-    setStreamingText('');
-    setStreaming(true);
+    // Let's do a quick optimistic update
+    await mutateConversation({
+      ...conversation,
+      messages: [...conversation.messages, userMessage],
+    }, { revalidate: false });
 
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      await streamMessage(
-        token,
-        localConversationId,
-        {
-          content,
-          model,
-          temperature,
-          topP,
+    await sendMessage(
+      conversationId,
+      content,
+      { model, temperature, topP },
+      {
+        onMessageEnd: () => {
+          // Revalidate to get the real message IDs and usage
+          mutateConversation();
+          mutateUsage();
         },
-        (event: StreamEvent) => {
-          if (event.type === 'token') {
-            setStreamingText((prev) => prev + event.token);
-          }
-
-          if (event.type === 'end' && event.message) {
-            setStreamingText('');
-            setConversation((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    messages: [
-                      ...prev.messages,
-                      {
-                        id: `assistant-${Date.now()}`,
-                        role: 'ASSISTANT',
-                        content: event.message.content,
-                        createdAt: new Date().toISOString(),
-                      },
-                    ],
-                  }
-                : prev,
-            );
-          }
-        },
-        controller.signal,
-      );
-    } finally {
-      setStreaming(false);
-    }
-
-    // Refresh from backend to align IDs and usage
-    // ID'leri ve kullanımı hizalamak için backend'den yenile
-    if (token && localConversationId) {
-      try {
-        const [convResp, usageResp] = await Promise.all([
-          getConversation(token, localConversationId),
-          getConversationUsage(token, localConversationId).catch(() => null),
-        ]);
-        setConversation(convResp.conversation);
-        if (usageResp) {
-          setUsage(usageResp);
+        onError: () => {
+          // Revert or show error
+          mutateConversation();
         }
-      } catch {
-        // ignore
       }
-    }
+    );
   };
 
   const handleSaveSettings = async () => {
@@ -294,16 +200,10 @@ export const ChatPage: React.FC = () => {
         temperature,
         topP,
       });
-      setConversation((prev) =>
-        prev
-          ? {
-              ...prev,
-              model: resp.conversation.model,
-              temperature: resp.conversation.temperature,
-              topP: resp.conversation.topP,
-            }
-          : prev,
-      );
+      mutateConversation((prev) =>
+        prev ? { ...prev, ...resp.conversation } : prev
+      , { revalidate: false });
+
       setDirty(false);
       setSavedAt(Date.now());
     } finally {
@@ -470,7 +370,10 @@ export const ChatPage: React.FC = () => {
 
       {/* Chat view + input */}
       {/* Chat görünümü + input */}
-      <ChatView messages={conversation?.messages ?? []} streamingAssistantText={streamingText} />
+      <ChatView
+        messages={conversation?.messages ?? []}
+        streamingAssistantText={streamingText}
+      />
       <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
         <IconButton
           size="small"
