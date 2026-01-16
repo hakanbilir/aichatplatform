@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Box, Typography } from '@mui/material';
 
 interface MessageBubbleProps {
@@ -6,7 +6,8 @@ interface MessageBubbleProps {
   content: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
+// Optimized with React.memo to prevent re-renders of history messages during streaming
+export const MessageBubble = memo(({ role, content }: MessageBubbleProps) => {
   const isUser = role === 'user';
   return (
     <Box
@@ -33,5 +34,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) =
       </Box>
     </Box>
   );
-};
+});
 
+MessageBubble.displayName = 'MessageBubble';
