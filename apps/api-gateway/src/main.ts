@@ -91,8 +91,11 @@ async function buildServer() {
   // Moderation provider'ı başlat (41.md)
   setModerationProvider(new HeuristicModerationProvider());
 
+  // Configure CORS with allowed origins
+  // CORS'u izin verilen originlerle yapılandır
+  const allowedOrigins = config.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim());
   await app.register(cors, {
-    origin: true,
+    origin: allowedOrigins,
     credentials: true,
   });
 

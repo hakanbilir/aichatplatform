@@ -131,6 +131,10 @@ const baseSchema = z.object({
     .default('60000')
     .transform((val) => Number(val)),
 
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .default('http://localhost:3000,http://localhost:5173'),
+
   // Telemetry
   PROMETHEUS_METRICS_PORT: z
     .string()
