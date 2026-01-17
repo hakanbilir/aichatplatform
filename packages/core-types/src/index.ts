@@ -34,6 +34,16 @@ export interface ChatMessage {
    */
   name?: string;
   /**
+   * Optional images (base64 or URL).
+   * Opsiyonel görseller (base64 veya URL).
+   */
+  images?: string[];
+  /**
+   * Optional tool calls made by the assistant.
+   * Asistan tarafından yapılan opsiyonel tool çağrıları.
+   */
+  toolCalls?: ToolCall[];
+  /**
    * Metadata for internal use (e.g., references, tool call info, debug info).
    * Dahili kullanım için metadata (ör. referanslar, tool çağrı bilgisi, debug bilgisi).
    */

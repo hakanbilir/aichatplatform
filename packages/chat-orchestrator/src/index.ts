@@ -344,10 +344,11 @@ export async function* streamChatCompletionOrchestrated(
  * Helper to create a user message from plain text.
  * Düz metinden bir kullanıcı mesajı oluşturmak için yardımcı.
  */
-export function createUserMessage(content: string): ChatMessage {
+export function createUserMessage(content: string, images?: string[]): ChatMessage {
   const msg: ChatMessage = {
     role: 'user' as ChatRole,
     content,
+    images,
   };
   return msg;
 }

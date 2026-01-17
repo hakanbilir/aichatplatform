@@ -19,12 +19,26 @@ const OLLAMA_BASE_URL = config.OLLAMA_BASE_URL;
 
 interface OllamaChatRequestBody {
   model: string;
-  messages: { role: string; content: string }[];
+  messages: {
+    role: string;
+    content: string;
+    images?: string[];
+    tool_calls?: OllamaToolCall[];
+  }[];
   stream?: boolean;
   options?: {
     temperature?: number;
     num_predict?: number;
     top_p?: number;
+  };
+}
+
+interface OllamaToolCall {
+  function: {
+    name: string;
+    arguments: {
+      [key: string]: any;
+    };
   };
 }
 
@@ -34,6 +48,7 @@ interface OllamaChatStreamChunk {
   message?: {
     role: string;
     content: string;
+    tool_calls?: OllamaToolCall[];
   };
   done: boolean;
   // Usage fields may be present on final chunk
@@ -51,6 +66,7 @@ interface OllamaChatResponse {
   message: {
     role: string;
     content: string;
+    tool_calls?: OllamaToolCall[];
   };
   done: boolean;
   total_duration?: number;
@@ -80,11 +96,38 @@ interface OllamaTagsResponse {
 // Yardımcı mapper'lar
 // =========================
 
-function mapMessagesToOllama(messages: ChatMessage[]): { role: string; content: string }[] {
-  return messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+function mapMessagesToOllama(messages: ChatMessage[]): {
+  role: string;
+  content: string;
+  images?: string[];
+  tool_calls?: OllamaToolCall[];
+}[] {
+  return messages.map((m) => {
+    const msg: {
+      role: string;
+      content: string;
+      images?: string[];
+      tool_calls?: OllamaToolCall[];
+    } = {
+      role: m.role,
+      content: m.content,
+    };
+
+    if (m.images && m.images.length > 0) {
+      msg.images = m.images;
+    }
+
+    if (m.toolCalls && m.toolCalls.length > 0) {
+      msg.tool_calls = m.toolCalls.map((tc) => ({
+        function: {
+          name: tc.toolName,
+          arguments: JSON.parse(tc.argsJson),
+        },
+      }));
+    }
+
+    return msg;
+  });
 }
 
 function buildUsageFromChunk(chunk: OllamaChatResponse | OllamaChatStreamChunk): TokenUsage | undefined {
@@ -185,6 +228,10 @@ export async function createChatCompletion(
   const message: ChatMessage = {
     role: json.message.role as ChatMessage['role'],
     content: json.message.content,
+    toolCalls: json.message.tool_calls?.map((tc) => ({
+      toolName: tc.function.name,
+      argsJson: JSON.stringify(tc.function.arguments),
+    })),
   };
 
   const usage = buildUsageFromChunk(json);
@@ -251,6 +298,7 @@ export async function* streamChatCompletion(
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
   let finalContent = '';
+  let finalToolCalls: any[] = [];
   let lastChunk: OllamaChatStreamChunk | null = null;
 
   try {
@@ -283,19 +331,34 @@ export async function* streamChatCompletion(
 
         lastChunk = chunk;
 
-        if (chunk.message && chunk.message.content) {
-          const token = chunk.message.content;
-          finalContent += token;
-          yield {
-            type: 'token',
-            token,
-          };
+        if (chunk.message) {
+           if (chunk.message.content) {
+             const token = chunk.message.content;
+             finalContent += token;
+             yield {
+               type: 'token',
+               token,
+             };
+           }
+           if (chunk.message.tool_calls) {
+             // For streaming, we might receive tool calls in chunks or all at once?
+             // Ollama stream usually sends them at the end or as a separate message.
+             // If we get them, we accumulate or store them.
+             // Assuming they come as full objects in the stream (Ollama behavior varies)
+             // But usually it's array of tool calls.
+             // We'll append or merge? Ollama sends complete tool calls usually.
+             finalToolCalls = [...finalToolCalls, ...chunk.message.tool_calls];
+           }
         }
 
         if (chunk.done) {
           const finalMessage: ChatMessage = {
             role: 'assistant',
             content: finalContent,
+            toolCalls: finalToolCalls.length > 0 ? finalToolCalls.map(tc => ({
+              toolName: tc.function.name,
+              argsJson: JSON.stringify(tc.function.arguments),
+            })) : undefined,
           };
 
           const usage = buildUsageFromChunk(chunk);
@@ -313,10 +376,14 @@ export async function* streamChatCompletion(
 
     // If stream ended without a `done` flag, still emit an end event.
     // Stream `done` bayrağı olmadan sona ererse, yine de bir end event'i yayınla.
-    if (finalContent.length > 0) {
+    if (finalContent.length > 0 || finalToolCalls.length > 0) {
       const finalMessage: ChatMessage = {
         role: 'assistant',
         content: finalContent,
+        toolCalls: finalToolCalls.length > 0 ? finalToolCalls.map(tc => ({
+          toolName: tc.function.name,
+          argsJson: JSON.stringify(tc.function.arguments),
+        })) : undefined,
       };
 
       const usage = lastChunk ? buildUsageFromChunk(lastChunk) : undefined;

@@ -18,11 +18,16 @@ import { recordUsage } from '../usage/usageTracker';
 // import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard'; // Unused for now
 
 const sendMessageBodySchema = z.object({
-  content: z.string().min(1).max(32000), // 32KB max per message
+  content: z.string().max(32000).optional(),
+  images: z.array(z.string().max(5_000_000)).max(5).optional(), // Max 5 images, max 5MB each (approx base64 length)
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
   maxTokens: z.number().int().positive().optional(),
+  role: z.enum(['user', 'tool']).optional(),
+  name: z.string().optional(),
+}).refine(data => data.content || (data.images && data.images.length > 0), {
+  message: "Content or images must be provided",
 });
 
 function mapDbRoleToChatRole(dbRole: string): ChatRole {
@@ -81,7 +86,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens, role, name } = parseBody.data;
+    const safeContent = content || '';
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -113,14 +119,21 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
     }
 
-    // Persist user message immediately
-    // Kullanıcı mesajını hemen kalıcı hale getir
+    // Determine role and meta
+    // Rol ve meta'yı belirle
+    const dbRole = role === 'tool' ? 'TOOL' : 'USER';
+    const meta: any = {};
+    if (images && images.length > 0) meta.images = images;
+    if (name) meta.name = name; // Storing name in meta if DB doesn't support it directly on Message
+
+    // Persist user/tool message immediately
+    // Kullanıcı/araç mesajını hemen kalıcı hale getir
     const userMessageRecord = await prisma.message.create({
       data: {
         conversationId: conversation.id,
-        role: 'USER',
-        content,
-        meta: {},
+        role: dbRole,
+        content: safeContent,
+        meta,
       },
     });
 
@@ -132,7 +145,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(safeContent, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -193,8 +206,9 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         role: 'ASSISTANT',
         content: response.message.content,
         meta: {
-          usage: (response.usage ?? null) as unknown as Prisma.InputJsonValue,
-          providerMeta: (response.providerMeta ?? null) as unknown as Prisma.InputJsonValue,
+          usage: (response.usage ?? null) as any,
+          providerMeta: (response.providerMeta ?? null) as any,
+          toolCalls: response.message.toolCalls,
         },
       },
     });
@@ -221,6 +235,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         id: assistantMessageRecord.id,
         role: assistantMessageRecord.role,
         content: assistantMessageRecord.content,
+        toolCalls: response.message.toolCalls,
         createdAt: assistantMessageRecord.createdAt,
       },
       usage: response.usage,
@@ -244,7 +259,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens, role, name } = parseBody.data;
+    const safeContent = content || '';
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -276,14 +292,21 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
     }
 
-    // Persist user message immediately
-    // Kullanıcı mesajını hemen kalıcı hale getir
+    // Determine role and meta
+    // Rol ve meta'yı belirle
+    const dbRole = role === 'tool' ? 'TOOL' : 'USER';
+    const meta: any = {};
+    if (images && images.length > 0) meta.images = images;
+    if (name) meta.name = name;
+
+    // Persist user/tool message immediately
+    // Kullanıcı/araç mesajını hemen kalıcı hale getir
     const userMessageRecord = await prisma.message.create({
       data: {
         conversationId: conversation.id,
-        role: 'USER',
-        content,
-        meta: {},
+        role: dbRole,
+        content: safeContent,
+        meta,
       },
     });
 
@@ -293,7 +316,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const userMessage = createUserMessage(safeContent, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -321,6 +344,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
     let finalAssistantContent = '';
     let finalUsage: any = null;
+    let finalToolCalls: any[] | undefined = undefined;
 
     try {
       for await (const event of streamChatCompletionOrchestrated(
@@ -345,10 +369,12 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         if (event.type === 'end') {
           if (event.finalMessage) {
             finalAssistantContent = event.finalMessage.content;
+            finalToolCalls = event.finalMessage.toolCalls;
           }
           outgoing.message = {
             role: 'assistant',
             content: finalAssistantContent,
+            toolCalls: finalToolCalls,
           };
           if (event.usage) {
             outgoing.usage = event.usage;
@@ -395,9 +421,9 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         }
       }
 
-      // Persist assistant message if we have any content
-      // Herhangi bir içerik varsa asistan mesajını kalıcı hale getir
-      if (finalAssistantContent.length > 0) {
+      // Persist assistant message if we have any content or tool calls
+      // Herhangi bir içerik veya tool çağrısı varsa asistan mesajını kalıcı hale getir
+      if (finalAssistantContent.length > 0 || (finalToolCalls && finalToolCalls.length > 0)) {
         await prisma.message.create({
           data: {
             conversationId: conversation.id,
@@ -406,6 +432,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
             meta: {
               usage: finalUsage,
               providerMeta: null,
+              toolCalls: finalToolCalls,
             },
           },
         });
