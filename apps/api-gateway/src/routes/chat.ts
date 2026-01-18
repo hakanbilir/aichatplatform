@@ -15,6 +15,9 @@ import { ChatMessage, ChatRole, ChatStreamEvent } from '@ai-chat/core-types';
 import { z } from 'zod';
 import { chatCompletionDurationSeconds, chatCompletionTokensTotal } from '../metrics';
 import { recordUsage } from '../usage/usageTracker';
+import { retrieveRelevantChunks } from '../services/knowledgeRetrieval';
+import { listToolsForContext } from '../services/toolEngine';
+import { ToolContext } from '../tools/types';
 // import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard'; // Unused for now
 
 const sendMessageBodySchema = z.object({
@@ -57,6 +60,57 @@ function buildConversationContext(conversation: any): ConversationContext {
   };
 
   return ctx;
+}
+
+async function prepareDetailedContext(
+  conversation: any,
+  userId: string,
+  content: string,
+  logger: any,
+): Promise<{ ragSystemMessage?: string; tools?: any[] }> {
+  let ragSystemMessage: string | undefined;
+  let tools: any[] | undefined;
+
+  // RAG Logic
+  const kbConfig = (conversation.kbConfig as any) || {};
+  if (kbConfig.rag?.enabled && conversation.orgId) {
+    try {
+      const chunks = await retrieveRelevantChunks({
+        orgId: conversation.orgId,
+        spaceId: kbConfig.rag.spaceId ?? null,
+        query: content,
+        limit: kbConfig.rag.maxChunks ?? 4,
+      });
+
+      if (chunks.length > 0) {
+        const ragContextText = chunks.map((c) => c.text).join('\n\n');
+        ragSystemMessage =
+          'You have access to the following knowledge base context. Use it to answer the user question. ' +
+          'If the context does not contain the answer, say so explicitly.\n\n' +
+          ragContextText;
+      }
+    } catch (err) {
+      logger.warn({ err }, 'RAG retrieval failed');
+    }
+  }
+
+  // Tools Logic
+  if (conversation.toolsEnabled && conversation.orgId) {
+    const toolCtx: ToolContext = {
+      userId,
+      orgId: conversation.orgId,
+      conversationId: conversation.id,
+    };
+    const availableTools = await listToolsForContext(toolCtx);
+    tools = availableTools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.argsSchema,
+      enabled: true,
+    }));
+  }
+
+  return { ragSystemMessage, tools };
 }
 
 export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
@@ -134,6 +188,12 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     const context = buildConversationContext(conversationWithNewMessage);
     const userMessage = createUserMessage(content);
 
+    const { ragSystemMessage, tools } = await prepareDetailedContext(conversation, payload.userId, content, request.log);
+
+    if (ragSystemMessage) {
+      context.systemPrompt = context.systemPrompt ? `${context.systemPrompt}\n\n${ragSystemMessage}` : ragSystemMessage;
+    }
+
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
     const endTimer = chatCompletionDurationSeconds.startTimer({
@@ -150,6 +210,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         temperature: temperature ?? conversation.temperature ?? 0.7,
         topP: topP ?? conversation.topP ?? 1,
         maxTokens,
+        tools,
       },
     );
 
@@ -295,6 +356,12 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     const context = buildConversationContext(conversationWithNewMessage);
     const userMessage = createUserMessage(content);
 
+    const { ragSystemMessage, tools } = await prepareDetailedContext(conversation, payload.userId, content, request.log);
+
+    if (ragSystemMessage) {
+      context.systemPrompt = context.systemPrompt ? `${context.systemPrompt}\n\n${ragSystemMessage}` : ragSystemMessage;
+    }
+
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
     const endTimer = chatCompletionDurationSeconds.startTimer({
@@ -332,6 +399,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
           temperature: temperature ?? conversation.temperature ?? 0.7,
           topP: topP ?? conversation.topP ?? 1,
           maxTokens,
+          tools,
           signal: abortController.signal,
         },
       )) {

@@ -32,8 +32,8 @@ import {
   getConversationUsage,
   ConversationUsageSummary,
 } from '../api/conversations';
-import { streamMessage, StreamEvent } from '../api/chat';
 import { ChatView } from './ChatView';
+import { useChat } from '../hooks/useChat';
 import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
@@ -56,9 +56,6 @@ export const ChatPage: React.FC = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<ConversationDetails | null>(null);
-  const [streamingText, setStreamingText] = useState('');
-  const [streaming, setStreaming] = useState(false);
 
   const [model, setModel] = useState<string>('llama3.1');
   const [temperature, setTemperature] = useState<number>(0.7);
@@ -75,7 +72,28 @@ export const ChatPage: React.FC = () => {
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
 
-  const abortRef = useRef<AbortController | null>(null);
+  const {
+    conversation,
+    streamingText,
+    isStreaming,
+    sendMessage,
+    loadConversation,
+    setConversation,
+  } = useChat({
+    onConversationUpdated: (conv) => {
+      // Sync settings if they differ from local dirty state?
+      // For now just update local state if not dirty or on initial load
+      if (!dirty) {
+        const nextModel = conv.model || 'llama3.1';
+        const nextTemp = clampTemperature(conv.temperature ?? 0.7);
+        const nextTopP = clampTopP(conv.topP ?? 1);
+        setModel(nextModel);
+        setTemperature(nextTemp);
+        setTopP(nextTopP);
+      }
+    },
+    onUsageUpdated: (u) => setUsage(u),
+  });
   
   const { user } = useAuth();
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
@@ -138,46 +156,12 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     if (!token || !conversationId) {
       setConversation(null);
+      setUsage(null);
       return;
     }
-
-    let cancelled = false;
-
-    async function load() {
-      if (!token || !conversationId) return; // Type guard / Tip koruması
-      const currentToken = token; // Capture for closure / Kapanış için yakala
-      const currentConversationId = conversationId; // Capture for closure / Kapanış için yakala
-      try {
-        const [convResp, usageResp] = await Promise.all([
-          getConversation(currentToken, currentConversationId),
-          getConversationUsage(currentToken, currentConversationId).catch(() => null),
-        ]);
-        if (!cancelled) {
-          const conv = convResp.conversation;
-          setConversation(conv);
-          const nextModel = conv.model || 'llama3.1';
-          const nextTemp = clampTemperature(conv.temperature ?? 0.7);
-          const nextTopP = clampTopP(conv.topP ?? 1);
-          setModel(nextModel);
-          setTemperature(nextTemp);
-          setTopP(nextTopP);
-          setStreamingText('');
-          setDirty(false);
-          if (usageResp) {
-            setUsage(usageResp);
-          }
-        }
-      } catch {
-        if (!cancelled) setConversation(null);
-      }
-    }
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token, conversationId]);
+    setDirty(false);
+    loadConversation(conversationId);
+  }, [token, conversationId, loadConversation, setConversation]);
 
   // Auto-clear the "Saved" chip after some time
   // Bir süre sonra "Kaydedildi" chip'ini otomatik temizle
@@ -190,98 +174,11 @@ export const ChatPage: React.FC = () => {
   }, [savedAt]);
 
   const handleSend = async (content: string) => {
-    if (!token || !conversationId) return;
-
-    if (!conversation) {
-      return;
-    }
-
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
-
-    const localConversationId = conversationId;
-
-    // Optimistically append user message locally
-    // Kullanıcı mesajını yerel olarak iyimser bir şekilde ekle
-    const userMessage = {
-      id: `local-${Date.now()}`,
-      role: 'USER',
-      content,
-    };
-
-    setConversation((prev) =>
-      prev
-        ? {
-            ...prev,
-            messages: [...prev.messages, { ...userMessage, createdAt: new Date().toISOString() }],
-          }
-        : prev,
-    );
-
-    setStreamingText('');
-    setStreaming(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      await streamMessage(
-        token,
-        localConversationId,
-        {
-          content,
-          model,
-          temperature,
-          topP,
-        },
-        (event: StreamEvent) => {
-          if (event.type === 'token') {
-            setStreamingText((prev) => prev + event.token);
-          }
-
-          if (event.type === 'end' && event.message) {
-            setStreamingText('');
-            setConversation((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    messages: [
-                      ...prev.messages,
-                      {
-                        id: `assistant-${Date.now()}`,
-                        role: 'ASSISTANT',
-                        content: event.message.content,
-                        createdAt: new Date().toISOString(),
-                      },
-                    ],
-                  }
-                : prev,
-            );
-          }
-        },
-        controller.signal,
-      );
-    } finally {
-      setStreaming(false);
-    }
-
-    // Refresh from backend to align IDs and usage
-    // ID'leri ve kullanımı hizalamak için backend'den yenile
-    if (token && localConversationId) {
-      try {
-        const [convResp, usageResp] = await Promise.all([
-          getConversation(token, localConversationId),
-          getConversationUsage(token, localConversationId).catch(() => null),
-        ]);
-        setConversation(convResp.conversation);
-        if (usageResp) {
-          setUsage(usageResp);
-        }
-      } catch {
-        // ignore
-      }
-    }
+    await sendMessage(content, {
+      model,
+      temperature,
+      topP,
+    });
   };
 
   const handleSaveSettings = async () => {
@@ -482,7 +379,7 @@ export const ChatPage: React.FC = () => {
         </IconButton>
       </Box>
       <MessageInput
-        disabled={!conversationId || streaming}
+        disabled={!conversationId || isStreaming}
         onSend={handleSend}
         value={messageInputValue}
         onChange={setMessageInputValue}
