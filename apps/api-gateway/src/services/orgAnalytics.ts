@@ -38,6 +38,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  byDay: { date: string; chatTurns: number }[];
 }
 
 export async function getOrgAnalytics(
@@ -91,12 +92,27 @@ export async function getOrgAnalytics(
   const byModelMap = new Map<string, number>();
   const byUserMap = new Map<string, number>();
   const byToolMap = new Map<string, number>();
+  const byDayMap = new Map<string, number>();
+
+  // Initialize all days in window with 0
+  // Penceredeki tüm günleri 0 ile başlat
+  for (let i = 0; i < windowDays; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    byDayMap.set(key, 0);
+  }
 
   totals.chatTurns = assistantMessages.length;
 
   for (const msg of assistantMessages) {
     const model = msg.conversation?.model || 'default';
     byModelMap.set(model, (byModelMap.get(model) || 0) + 1);
+
+    const dayKey = msg.createdAt.toISOString().split('T')[0];
+    if (byDayMap.has(dayKey)) {
+      byDayMap.set(dayKey, (byDayMap.get(dayKey) || 0) + 1);
+    }
 
     // Tools: we expect meta.toolMessageId or meta.tools to indicate tool usage
     // Araçlar: tool kullanımını belirtmek için meta.toolMessageId veya meta.tools bekliyoruz
@@ -108,6 +124,10 @@ export async function getOrgAnalytics(
       totals.chatTurnsWithoutTools += 1;
     }
   }
+
+  const byDay = Array.from(byDayMap.entries())
+    .map(([date, chatTurns]) => ({ date, chatTurns }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   // Top tools by calls: we look at TOOL messages in this org
   // En çok kullanılan araçlar: bu org'daki TOOL mesajlarına bakıyoruz
@@ -186,7 +206,8 @@ export async function getOrgAnalytics(
     totals,
     byModel,
     byTool,
-    byUser
+    byUser,
+    byDay
   };
 }
 

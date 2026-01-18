@@ -49,6 +49,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  byDay: { date: string; chatTurns: number }[];
 }
 
 export async function fetchOrgAnalytics(
