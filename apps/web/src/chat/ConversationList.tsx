@@ -22,6 +22,8 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
         const resp = await listConversations(token);
         if (!cancelled) {
           setItems(resp.conversations);
+          // Only auto-select if no conversation is currently selected.
+          // Note: selectedId is intentionally omitted from dependencies to prevent re-fetching on selection change.
           if (!selectedId && resp.conversations.length > 0) {
             setSelectedId(resp.conversations[0].id);
             const event = new CustomEvent('select-conversation', { detail: resp.conversations[0].id });
@@ -35,6 +37,13 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
 
     load();
 
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<string>).detail;
       if (!detail) return;
@@ -55,10 +64,9 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     window.addEventListener('conversation-created', handler);
 
     return () => {
-      cancelled = true;
       window.removeEventListener('conversation-created', handler);
     };
-  }, [token, selectedId]);
+  }, [t]);
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
