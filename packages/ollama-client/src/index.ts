@@ -19,7 +19,7 @@ const OLLAMA_BASE_URL = config.OLLAMA_BASE_URL;
 
 interface OllamaChatRequestBody {
   model: string;
-  messages: { role: string; content: string }[];
+  messages: { role: string; content: string; images?: string[] }[];
   stream?: boolean;
   options?: {
     temperature?: number;
@@ -80,11 +80,19 @@ interface OllamaTagsResponse {
 // Yardımcı mapper'lar
 // =========================
 
-function mapMessagesToOllama(messages: ChatMessage[]): { role: string; content: string }[] {
-  return messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+function mapMessagesToOllama(messages: ChatMessage[]): {
+  role: string;
+  content: string;
+  images?: string[];
+}[] {
+  return messages.map((m) => {
+    const images = (m.meta?.images as string[] | undefined) ?? undefined;
+    return {
+      role: m.role,
+      content: m.content,
+      images,
+    };
+  });
 }
 
 function buildUsageFromChunk(chunk: OllamaChatResponse | OllamaChatStreamChunk): TokenUsage | undefined {

@@ -32,7 +32,7 @@ import {
   getConversationUsage,
   ConversationUsageSummary,
 } from '../api/conversations';
-import { streamMessage, StreamEvent } from '../api/chat';
+import { useChat } from '../hooks/useChat';
 import { ChatView } from './ChatView';
 import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
@@ -57,8 +57,6 @@ export const ChatPage: React.FC = () => {
   const { token } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ConversationDetails | null>(null);
-  const [streamingText, setStreamingText] = useState('');
-  const [streaming, setStreaming] = useState(false);
 
   const [model, setModel] = useState<string>('llama3.1');
   const [temperature, setTemperature] = useState<number>(0.7);
@@ -75,7 +73,18 @@ export const ChatPage: React.FC = () => {
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
 
-  const abortRef = useRef<AbortController | null>(null);
+  const {
+    streaming,
+    streamingText,
+    sendMessage,
+    regenerate,
+  } = useChat({
+    token,
+    conversationId,
+    conversation,
+    setConversation,
+    onUsageUpdate: setUsage,
+  });
   
   const { user } = useAuth();
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
@@ -161,7 +170,7 @@ export const ChatPage: React.FC = () => {
           setModel(nextModel);
           setTemperature(nextTemp);
           setTopP(nextTopP);
-          setStreamingText('');
+          // Streaming text is managed by useChat hook
           setDirty(false);
           if (usageResp) {
             setUsage(usageResp);
@@ -188,101 +197,6 @@ export const ChatPage: React.FC = () => {
     }, 2000);
     return () => window.clearTimeout(timeout);
   }, [savedAt]);
-
-  const handleSend = async (content: string) => {
-    if (!token || !conversationId) return;
-
-    if (!conversation) {
-      return;
-    }
-
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
-
-    const localConversationId = conversationId;
-
-    // Optimistically append user message locally
-    // Kullanıcı mesajını yerel olarak iyimser bir şekilde ekle
-    const userMessage = {
-      id: `local-${Date.now()}`,
-      role: 'USER',
-      content,
-    };
-
-    setConversation((prev) =>
-      prev
-        ? {
-            ...prev,
-            messages: [...prev.messages, { ...userMessage, createdAt: new Date().toISOString() }],
-          }
-        : prev,
-    );
-
-    setStreamingText('');
-    setStreaming(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      await streamMessage(
-        token,
-        localConversationId,
-        {
-          content,
-          model,
-          temperature,
-          topP,
-        },
-        (event: StreamEvent) => {
-          if (event.type === 'token') {
-            setStreamingText((prev) => prev + event.token);
-          }
-
-          if (event.type === 'end' && event.message) {
-            setStreamingText('');
-            setConversation((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    messages: [
-                      ...prev.messages,
-                      {
-                        id: `assistant-${Date.now()}`,
-                        role: 'ASSISTANT',
-                        content: event.message.content,
-                        createdAt: new Date().toISOString(),
-                      },
-                    ],
-                  }
-                : prev,
-            );
-          }
-        },
-        controller.signal,
-      );
-    } finally {
-      setStreaming(false);
-    }
-
-    // Refresh from backend to align IDs and usage
-    // ID'leri ve kullanımı hizalamak için backend'den yenile
-    if (token && localConversationId) {
-      try {
-        const [convResp, usageResp] = await Promise.all([
-          getConversation(token, localConversationId),
-          getConversationUsage(token, localConversationId).catch(() => null),
-        ]);
-        setConversation(convResp.conversation);
-        if (usageResp) {
-          setUsage(usageResp);
-        }
-      } catch {
-        // ignore
-      }
-    }
-  };
 
   const handleSaveSettings = async () => {
     if (!token || !conversationId) return;
@@ -470,7 +384,11 @@ export const ChatPage: React.FC = () => {
 
       {/* Chat view + input */}
       {/* Chat görünümü + input */}
-      <ChatView messages={conversation?.messages ?? []} streamingAssistantText={streamingText} />
+      <ChatView
+        messages={conversation?.messages ?? []}
+        streamingAssistantText={streamingText}
+        onRegenerate={regenerate}
+      />
       <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
         <IconButton
           size="small"
@@ -483,7 +401,7 @@ export const ChatPage: React.FC = () => {
       </Box>
       <MessageInput
         disabled={!conversationId || streaming}
-        onSend={handleSend}
+        onSend={(content, images) => sendMessage(content, images, { model, temperature, topP })}
         value={messageInputValue}
         onChange={setMessageInputValue}
       />

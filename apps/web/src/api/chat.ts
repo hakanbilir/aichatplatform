@@ -24,7 +24,14 @@ export interface SendMessageResponse {
 export async function sendMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    images?: string[];
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+  },
 ): Promise<SendMessageResponse> {
   return apiRequest<SendMessageResponse>(
     `/conversations/${conversationId}/messages`,
@@ -55,7 +62,14 @@ export type StreamEvent =
 export async function streamMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    images?: string[];
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+  },
   onEvent: (event: StreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
@@ -110,3 +124,58 @@ export async function streamMessage(
   }
 }
 
+export async function regenerateMessage(
+  token: string,
+  conversationId: string,
+  onEvent: (event: StreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
+  const url = `${API_BASE_URL}/conversations/${conversationId}/regenerate`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({}),
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
+    onEvent({ type: 'error', error: `HTTP ${response.status} ${response.statusText}` });
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  onEvent({ type: 'start' });
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const jsonPart = trimmed.slice('data:'.length).trim();
+      if (!jsonPart) continue;
+
+      try {
+        const evt = JSON.parse(jsonPart) as StreamEvent;
+        onEvent(evt);
+      } catch (err) {
+        onEvent({ type: 'error', error: (err as Error).message });
+      }
+    }
+  }
+}

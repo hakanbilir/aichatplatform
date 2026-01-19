@@ -19,6 +19,7 @@ import { recordUsage } from '../usage/usageTracker';
 
 const sendMessageBodySchema = z.object({
   content: z.string().min(1).max(32000), // 32KB max per message
+  images: z.array(z.string()).optional(), // array of base64 strings
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
@@ -44,6 +45,7 @@ function buildConversationContext(conversation: any): ConversationContext {
     id: m.id,
     role: mapDbRoleToChatRole(m.role),
     content: m.content,
+    meta: m.meta as Record<string, unknown> | undefined,
     createdAt: m.createdAt.toISOString(),
   }));
 
@@ -81,7 +83,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -120,7 +122,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: images ? { images } : {},
       },
     });
 
@@ -133,6 +135,9 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
     const context = buildConversationContext(conversationWithNewMessage);
     const userMessage = createUserMessage(content);
+    if (images) {
+      userMessage.meta = { images };
+    }
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -193,8 +198,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         role: 'ASSISTANT',
         content: response.message.content,
         meta: {
-          usage: (response.usage ?? null) as unknown as Prisma.InputJsonValue,
-          providerMeta: (response.providerMeta ?? null) as unknown as Prisma.InputJsonValue,
+          usage: (response.usage ?? null) as any,
+          providerMeta: (response.providerMeta ?? null) as any,
         },
       },
     });
@@ -244,7 +249,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, images, model, temperature, topP, maxTokens } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -283,7 +288,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: images ? { images } : {},
       },
     });
 
@@ -294,6 +299,9 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
     const context = buildConversationContext(conversationWithNewMessage);
     const userMessage = createUserMessage(content);
+    if (images) {
+      userMessage.meta = { images };
+    }
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -431,6 +439,194 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       } catch {
         // Ignore if connection already closed
         // Bağlantı zaten kapatıldıysa yoksay
+      }
+    }
+  });
+
+  // Regenerate last response
+  // Son yanıtı yeniden oluştur
+  app.post('/conversations/:id/regenerate', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    const paramsSchema = z.object({ id: z.string().min(1) });
+    const parseParams = paramsSchema.safeParse(request.params);
+    if (!parseParams.success) {
+      return reply.code(400).send({ error: request.i18n.t('errors.invalidConversationId') });
+    }
+    const conversationId = parseParams.data.id;
+
+    const memberships = await prisma.orgMember.findMany({
+      where: { userId: payload.userId },
+      select: { orgId: true },
+    });
+    const orgIds = memberships.map((m: { orgId: string }) => m.orgId);
+
+    const orConditions: any[] = [{ userId: payload.userId }];
+    if (orgIds.length > 0) {
+      orConditions.push({ orgId: { in: orgIds } });
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        OR: orConditions,
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          take: 200,
+        },
+      },
+    });
+
+    if (!conversation) {
+      return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
+    }
+
+    // Find the last user message index
+    // Son kullanıcı mesajı indeksini bul
+    let lastUserIndex = -1;
+    for (let i = conversation.messages.length - 1; i >= 0; i--) {
+      if (conversation.messages[i].role === 'USER') {
+        lastUserIndex = i;
+        break;
+      }
+    }
+
+    if (lastUserIndex === -1) {
+      return reply.code(400).send({ error: request.i18n.t('errors.noUserMessageToRegenerate') });
+    }
+
+    // Messages to delete (everything after lastUserIndex)
+    // Silinecek mesajlar (lastUserIndex'ten sonraki her şey)
+    const messagesToDelete = conversation.messages.slice(lastUserIndex + 1);
+    if (messagesToDelete.length > 0) {
+      await prisma.message.deleteMany({
+        where: {
+          id: { in: messagesToDelete.map((m: { id: string }) => m.id) },
+        },
+      });
+    }
+
+    // Prepare context with messages up to lastUserIndex
+    // lastUserIndex'e kadar olan mesajlarla context hazırla
+    const messagesToKeep = conversation.messages.slice(0, lastUserIndex + 1);
+
+    // The last message is the user message we are responding to
+    // Son mesaj, yanıtladığımız kullanıcı mesajıdır
+    const lastUserMessageRecord = messagesToKeep[messagesToKeep.length - 1];
+
+    // Build context excluding the last user message (it will be passed as userMessage)
+    // Son kullanıcı mesajını hariç tutarak context oluştur (userMessage olarak geçirilecek)
+    const historyMessages = messagesToKeep.slice(0, -1);
+
+    const contextConv = {
+      ...conversation,
+      messages: historyMessages,
+    };
+    const context = buildConversationContext(contextConv);
+
+    const userMessage = createUserMessage(lastUserMessageRecord.content);
+    const meta = lastUserMessageRecord.meta as any;
+    if (meta && meta.images) {
+      userMessage.meta = { images: meta.images };
+    }
+
+    const chosenModel = conversation.model ?? 'llama3.1';
+
+    const endTimer = chatCompletionDurationSeconds.startTimer({
+      model: chosenModel,
+      streaming: 'true',
+    });
+
+    reply.raw.setHeader('Content-Type', 'text/event-stream');
+    reply.raw.setHeader('Cache-Control', 'no-cache');
+    reply.raw.setHeader('Connection', 'keep-alive');
+    reply.raw.flushHeaders?.();
+
+    const sendEvent = (event: unknown) => {
+      reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    const abortController = new AbortController();
+    request.raw.on('close', () => {
+      abortController.abort();
+    });
+
+    let finalAssistantContent = '';
+    let finalUsage: any = null;
+
+    try {
+      for await (const event of streamChatCompletionOrchestrated(
+        context,
+        userMessage,
+        orchestratorOptions,
+        {
+          model: chosenModel,
+          temperature: conversation.temperature ?? 0.7,
+          topP: conversation.topP ?? 1,
+          signal: abortController.signal,
+        },
+      )) {
+        const outgoing: any = { type: event.type };
+
+        if (event.type === 'token' && event.token) {
+          outgoing.token = event.token;
+          finalAssistantContent += event.token;
+        }
+
+        if (event.type === 'end') {
+          if (event.finalMessage) {
+            finalAssistantContent = event.finalMessage.content;
+          }
+          outgoing.message = {
+            role: 'assistant',
+            content: finalAssistantContent,
+          };
+          if (event.usage) {
+            outgoing.usage = event.usage;
+            finalUsage = event.usage;
+          }
+        }
+
+        if (event.type === 'error' && event.error) {
+          outgoing.error = event.error;
+        }
+
+        sendEvent(outgoing as ChatStreamEvent);
+      }
+
+      endTimer();
+
+      if (finalAssistantContent.length > 0) {
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'ASSISTANT',
+            content: finalAssistantContent,
+            meta: {
+              usage: finalUsage,
+              providerMeta: null,
+            },
+          },
+        });
+
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: {
+            updatedAt: new Date(),
+            lastActivityAt: new Date(),
+          },
+        });
+      }
+
+      reply.raw.end();
+    } catch (err) {
+      endTimer();
+      try {
+        sendEvent({ type: 'error', error: (err as Error).message });
+        reply.raw.end();
+      } catch {
+        // ignore
       }
     }
   });

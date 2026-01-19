@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { MessageBubble } from './MessageBubble';
 
 interface ChatViewProps {
-  messages: Array<{ id: string; role: string; content: string }>;
+  messages: Array<{ id: string; role: string; content: string; meta?: any }>;
   streamingAssistantText: string;
+  onRegenerate?: () => void;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, onRegenerate }) => {
   const { t } = useTranslation('chat');
   const allMessages = [...messages];
 
@@ -38,9 +39,19 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
 
   return (
     <Box flex={1} overflow="auto" px={3} py={2}>
-      {allMessages.map((m) => (
-        <MessageBubble key={m.id} role={m.role === 'USER' || m.role === 'user' ? 'user' : 'assistant'} content={m.content} />
-      ))}
+      {allMessages.map((m, index) => {
+        const isLast = index === allMessages.length - 1;
+        const isAssistant = m.role === 'ASSISTANT' || m.role === 'assistant';
+        return (
+          <MessageBubble
+            key={m.id}
+            role={m.role === 'USER' || m.role === 'user' ? 'user' : 'assistant'}
+            content={m.content}
+            meta={m.meta}
+            onRegenerate={isLast && isAssistant && !streamingAssistantText ? onRegenerate : undefined}
+          />
+        );
+      })}
     </Box>
   );
 };
