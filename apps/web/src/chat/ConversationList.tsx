@@ -1,64 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { Box, List, ListItemButton, ListItemText, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { listConversations, ConversationListItem } from '../api/conversations';
 import { useAuth } from '../auth/AuthContext';
+import { useConversations } from '../hooks/api/useConversations';
 
 interface ConversationListProps {}
 
 export const ConversationList: React.FC<ConversationListProps> = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
-  const [items, setItems] = useState<ConversationListItem[]>([]);
+  const { conversations, isLoading, mutate } = useConversations();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Auto-select first if none selected and loaded
+  // Yüklendiğinde ve hiçbiri seçili değilse ilkini otomatik seç
   useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-
-    async function load() {
-      if (!token) return; // Type guard / Tip koruması
-      try {
-        const resp = await listConversations(token);
-        if (!cancelled) {
-          setItems(resp.conversations);
-          if (!selectedId && resp.conversations.length > 0) {
-            setSelectedId(resp.conversations[0].id);
-            const event = new CustomEvent('select-conversation', { detail: resp.conversations[0].id });
-            window.dispatchEvent(event);
-          }
-        }
-      } catch {
-        // ignore errors
-      }
+    if (!selectedId && conversations.length > 0) {
+      const firstId = conversations[0].id;
+      setSelectedId(firstId);
+      window.dispatchEvent(new CustomEvent('select-conversation', { detail: firstId }));
     }
+  }, [conversations, selectedId]);
 
-    load();
-
+  // Handle new conversation creation from other components
+  // Diğer bileşenlerden yeni konuşma oluşturmayı ele al
+  useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<string>).detail;
       if (!detail) return;
-      setItems((prev) => [
-        {
-          id: detail,
-          title: t('sidebar.newConversation'),
-          model: 'llama3.1',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          orgId: null,
-        },
-        ...prev,
-      ]);
+
+      mutate();
       setSelectedId(detail);
     };
 
     window.addEventListener('conversation-created', handler);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('conversation-created', handler);
-    };
-  }, [token, selectedId]);
+    return () => window.removeEventListener('conversation-created', handler);
+  }, [mutate]);
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
@@ -70,7 +47,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     return null;
   }
 
-  if (items.length === 0) {
+  if (conversations.length === 0 && !isLoading) {
     return (
       <Box mt={2}>
         <Typography variant="body2" color="rgba(255,255,255,0.8)">
@@ -85,7 +62,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
 
   return (
     <List dense disablePadding>
-      {items.map((c) => (
+      {conversations.map((c) => (
         <ListItemButton
           key={c.id}
           selected={c.id === selectedId}
@@ -103,4 +80,3 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     </List>
   );
 };
-

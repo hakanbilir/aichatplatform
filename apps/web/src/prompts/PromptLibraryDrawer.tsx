@@ -25,7 +25,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
 import { PromptTemplate, PromptVariable } from '../api/prompts';
-import { usePromptTemplates } from './usePromptTemplates';
+import { usePrompts } from '../hooks/api/usePrompts';
 
 export interface PromptLibraryDrawerProps {
   orgId: string;
@@ -67,7 +67,7 @@ export const PromptLibraryDrawer: React.FC<PromptLibraryDrawerProps> = ({
   onNewTemplate
 }) => {
   const { t } = useTranslation(['prompts', 'common']);
-  const { templates, loading } = usePromptTemplates(orgId);
+  const { templates, isLoading: loading } = usePrompts(orgId);
   const [tab, setTab] = useState<'all' | 'mine' | 'org'>('all');
 
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
