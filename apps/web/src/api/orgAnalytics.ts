@@ -46,6 +46,7 @@ export interface OrgAnalyticsResult {
     chatTurnsWithTools: number;
     chatTurnsWithoutTools: number;
   };
+  byDay: { date: string; chatTurns: number }[];
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];

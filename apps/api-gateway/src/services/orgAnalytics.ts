@@ -35,6 +35,7 @@ export interface OrgAnalyticsResult {
     chatTurnsWithTools: number;
     chatTurnsWithoutTools: number;
   };
+  byDay: { date: string; chatTurns: number }[];
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
@@ -91,12 +92,17 @@ export async function getOrgAnalytics(
   const byModelMap = new Map<string, number>();
   const byUserMap = new Map<string, number>();
   const byToolMap = new Map<string, number>();
+  const byDayMap = new Map<string, number>();
 
   totals.chatTurns = assistantMessages.length;
 
   for (const msg of assistantMessages) {
     const model = msg.conversation?.model || 'default';
     byModelMap.set(model, (byModelMap.get(model) || 0) + 1);
+
+    // Daily stats
+    const dayKey = msg.createdAt.toISOString().slice(0, 10);
+    byDayMap.set(dayKey, (byDayMap.get(dayKey) || 0) + 1);
 
     // Tools: we expect meta.toolMessageId or meta.tools to indicate tool usage
     // Araçlar: tool kullanımını belirtmek için meta.toolMessageId veya meta.tools bekliyoruz
@@ -179,11 +185,16 @@ export async function getOrgAnalytics(
     .map(([userId, chatTurns]) => ({ userId, chatTurns }))
     .sort((a, b) => b.chatTurns - a.chatTurns);
 
+  const byDay = Array.from(byDayMap.entries())
+    .map(([date, chatTurns]) => ({ date, chatTurns }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return {
     org,
     windowDays,
     quota,
     totals,
+    byDay,
     byModel,
     byTool,
     byUser
