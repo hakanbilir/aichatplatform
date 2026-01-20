@@ -1,0 +1,4 @@
+## 2024-05-22 - [Timing Attack in Auth Flow]
+**Vulnerability:** The dummy hash used for preventing user enumeration was syntactically invalid (incorrect length for bcrypt). This caused `bcrypt.compare` to reject it almost instantly (< 5ms), whereas a valid password comparison takes ~100ms. This timing difference allowed an attacker to determine if a user exists in the system (User Enumeration).
+**Learning:** Security libraries often fail fast on invalid inputs. Simply providing a random string as a "dummy hash" is not enough; it must be a validly formatted hash to mimic the computational work of a real verification.
+**Prevention:** Always use a pre-calculated, valid hash (with the same cost factor as production hashes) for dummy verifications. Verify the timing characteristics of the dummy path against the valid path.
