@@ -1,13 +1,17 @@
 // apps/web/src/chat/ConversationSettingsDrawer.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Button,
   Divider,
   Drawer,
+  FormControl,
   FormControlLabel,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Slider,
   Switch,
   TextField,
@@ -24,6 +28,7 @@ import {
 } from '../api/conversationSettings';
 import { ConversationRagSettingsPanel } from './ConversationRagSettings';
 import { useParams } from 'react-router-dom';
+import { useModels } from '../hooks/useModels';
 
 export interface ConversationSettingsDrawerProps {
   open: boolean;
@@ -59,6 +64,24 @@ export const ConversationSettingsDrawer: React.FC<ConversationSettingsDrawerProp
   const [codeExecution, setCodeExecution] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
   const [structuredTools, setStructuredTools] = useState(false);
+
+  const { models } = useModels(orgId);
+
+  // Prepare model options
+  const modelOptions = useMemo(() => {
+    if (models.length > 0) {
+      return models.map(m => ({
+        value: m.modelName,
+        label: m.displayName || m.modelName
+      }));
+    }
+    // Fallback
+    return [
+      { value: 'llama3.1', label: t('models.llama3.1', { defaultValue: 'Llama 3.1' }) },
+      { value: 'llama3.1:8b', label: t('models.llama3.1:8b', { defaultValue: 'Llama 3.1 8B' }) },
+      { value: 'qwen2.5-coder', label: t('models.qwen2.5-coder', { defaultValue: 'Qwen 2.5 Coder' }) },
+    ];
+  }, [models, t]);
 
   useEffect(() => {
     if (!open || !conversationId || !token) {
@@ -169,14 +192,21 @@ export const ConversationSettingsDrawer: React.FC<ConversationSettingsDrawerProp
                 <Typography variant="subtitle2" gutterBottom>
                   {t('settings.model')}
                 </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t('settings.modelKey')}
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  helperText={t('settings.modelKeyHelper')}
-                />
+                <FormControl fullWidth size="small">
+                  <InputLabel id="drawer-model-select-label">{t('settings.modelKey')}</InputLabel>
+                  <Select
+                    labelId="drawer-model-select-label"
+                    label={t('settings.modelKey')}
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                  >
+                    {modelOptions.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
 
               {/* Temperature */}
@@ -277,4 +307,3 @@ export const ConversationSettingsDrawer: React.FC<ConversationSettingsDrawerProp
     </Drawer>
   );
 };
-

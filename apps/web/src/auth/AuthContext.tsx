@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { AuthUser, AuthResponse, MeResponse } from '../api/auth';
+import type { AuthUser, AuthResponse, MeResponse, OrganizationSummary } from '../api/auth';
 import { getMe } from '../api/auth';
 
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
+  activeOrg: OrganizationSummary | null;
   loading: boolean;
 }
 
@@ -23,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return window.localStorage.getItem(STORAGE_KEY);
   });
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [activeOrg, setActiveOrg] = useState<OrganizationSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async function load() {
       if (!token) {
         setUser(null);
+        setActiveOrg(null);
         setLoading(false);
         return;
       }
@@ -39,10 +42,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const me: MeResponse = await getMe(token);
         if (!cancelled) {
           setUser(me.user);
+          setActiveOrg(me.activeOrg);
         }
       } catch {
         if (!cancelled) {
           setUser(null);
+          setActiveOrg(null);
           setToken(null);
           if (typeof window !== 'undefined') {
             window.localStorage.removeItem(STORAGE_KEY);
@@ -65,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setAuthFromResponse = (resp: AuthResponse) => {
     setToken(resp.token);
     setUser(resp.user);
+    setActiveOrg(resp.activeOrg);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(STORAGE_KEY, resp.token);
     }
@@ -73,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setToken(null);
     setUser(null);
+    setActiveOrg(null);
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(STORAGE_KEY);
     }
@@ -83,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         token,
         user,
+        activeOrg,
         loading,
         setAuthFromResponse,
         logout,
@@ -100,4 +108,3 @@ export function useAuth(): AuthContextValue {
   }
   return ctx;
 }
-
