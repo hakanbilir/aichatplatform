@@ -1,8 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Box, List, ListItemButton, ListItemText, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { listConversations, ConversationListItem } from '../api/conversations';
 import { useAuth } from '../auth/AuthContext';
+
+interface ConversationItemProps {
+  conversation: ConversationListItem;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}
+
+const ConversationItem = React.memo(({ conversation, selected, onSelect }: ConversationItemProps) => {
+  const { t } = useTranslation('chat');
+
+  return (
+    <ListItemButton
+      selected={selected}
+      onClick={() => onSelect(conversation.id)}
+      sx={{ borderRadius: 2, mb: 0.5 }}
+    >
+      <ListItemText
+        primary={conversation.title || t('sidebar.untitled')}
+        secondary={new Date(conversation.updatedAt).toLocaleTimeString()}
+        primaryTypographyProps={{ noWrap: true, fontSize: 13 }}
+        secondaryTypographyProps={{ noWrap: true, fontSize: 11 }}
+      />
+    </ListItemButton>
+  );
+});
+
+ConversationItem.displayName = 'ConversationItem';
 
 interface ConversationListProps {}
 
@@ -58,13 +85,13 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
       cancelled = true;
       window.removeEventListener('conversation-created', handler);
     };
-  }, [token, selectedId]);
+  }, [token, selectedId, t]); // Added t dependency to satisfy linter if strict
 
-  const handleSelect = (id: string) => {
+  const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
     const event = new CustomEvent('select-conversation', { detail: id });
     window.dispatchEvent(event);
-  };
+  }, []);
 
   if (!token) {
     return null;
@@ -86,21 +113,13 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
   return (
     <List dense disablePadding>
       {items.map((c) => (
-        <ListItemButton
+        <ConversationItem
           key={c.id}
+          conversation={c}
           selected={c.id === selectedId}
-          onClick={() => handleSelect(c.id)}
-          sx={{ borderRadius: 2, mb: 0.5 }}
-        >
-          <ListItemText
-            primary={c.title || t('sidebar.untitled')}
-            secondary={new Date(c.updatedAt).toLocaleTimeString()}
-            primaryTypographyProps={{ noWrap: true, fontSize: 13 }}
-            secondaryTypographyProps={{ noWrap: true, fontSize: 11 }}
-          />
-        </ListItemButton>
+          onSelect={handleSelect}
+        />
       ))}
     </List>
   );
 };
-
