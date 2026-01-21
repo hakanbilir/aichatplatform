@@ -32,21 +32,6 @@ async function securityPlugin(app: FastifyInstance) {
     hook: 'onRequest',
   });
 
-  // Stricter rate limiting for auth endpoints
-  // Auth endpoint'leri için daha sıkı rate limiting
-  app.register(fastifyRateLimit, {
-    max: 10,
-    timeWindow: '1 minute',
-    prefix: '/auth',
-  });
-
-  // Stricter rate limiting for chat endpoints
-  // Chat endpoint'leri için daha sıkı rate limiting
-  app.register(fastifyRateLimit, {
-    max: 60,
-    timeWindow: '1 minute',
-    prefix: '/conversations',
-  });
 }
 
 export default fp(securityPlugin);
