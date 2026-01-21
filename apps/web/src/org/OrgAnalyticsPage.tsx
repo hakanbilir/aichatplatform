@@ -45,26 +45,35 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
 
   const totals = data?.totals;
 
-  // Generate mock time-series data for chart (since API doesn't provide it)
-  // Grafik için sahte zaman serisi verisi oluştur (API sağlamadığı için)
+  // Process real time-series data from API
+  // API'den gelen gerçek zaman serisi verilerini işle
   const timeSeriesData = useMemo(() => {
     if (!data) return [];
     const days = windowDays;
-    const baseValue = totals?.chatTurns || 0;
+
+    // Create a map of existing data points for quick lookup
+    const dataMap = new Map<string, number>();
+    if (data.byDay) {
+      data.byDay.forEach(item => {
+        dataMap.set(item.date, item.chatTurns);
+      });
+    }
+
     const dataPoints = [];
     
+    // Fill in all days in the window, using 0 for missing days
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const variance = (Math.random() - 0.5) * 0.3; // ±15% variance / ±%15 varyans
-      const value = Math.max(0, Math.round(baseValue / days * (1 + variance)));
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+
       dataPoints.push({
         timestamp: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        chatTurns: value,
+        chatTurns: dataMap.get(dateStr) || 0,
       });
     }
     return dataPoints;
-  }, [data, windowDays, totals?.chatTurns]);
+  }, [data, windowDays]);
 
   // Prepare data grid columns / Veri ızgarası sütunlarını hazırla
   const modelColumns = [
