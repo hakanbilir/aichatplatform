@@ -45,26 +45,27 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
 
   const totals = data?.totals;
 
-  // Generate mock time-series data for chart (since API doesn't provide it)
-  // Grafik için sahte zaman serisi verisi oluştur (API sağlamadığı için)
+  // Prepare time-series data for chart
+  // Grafik için zaman serisi verisini hazırla
   const timeSeriesData = useMemo(() => {
     if (!data) return [];
     const days = windowDays;
-    const baseValue = totals?.chatTurns || 0;
+    const byDayMap = new Map(data.byDay.map((item) => [item.date, item.chatTurns]));
     const dataPoints = [];
     
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const variance = (Math.random() - 0.5) * 0.3; // ±15% variance / ±%15 varyans
-      const value = Math.max(0, Math.round(baseValue / days * (1 + variance)));
+      const dateStr = date.toISOString().slice(0, 10);
+      const value = byDayMap.get(dateStr) || 0;
+
       dataPoints.push({
         timestamp: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         chatTurns: value,
       });
     }
     return dataPoints;
-  }, [data, windowDays, totals?.chatTurns]);
+  }, [data, windowDays]);
 
   // Prepare data grid columns / Veri ızgarası sütunlarını hazırla
   const modelColumns = [
