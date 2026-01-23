@@ -1,0 +1,86 @@
+:root {
+  --glass-blur: 30px;
+  --glass-saturation: 200%;
+  --bento-gap: 24px;
+  --bento-radius: 28px;
+
+  --color-primary: #7C4DFF;
+  --color-secondary: #00E5FF;
+
+  /* Specular highlight variable, updated by JS */
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --mouse-dist: 0;
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--bento-gap);
+  padding: var(--bento-gap);
+}
+
+.refractive-glass {
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-clip: padding-box;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border-radius: var(--bento-radius);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Kinetic Typography */
+.kinetic-text {
+  font-family: 'Inter', system-ui, sans-serif; /* Assuming Inter or variable font support */
+  font-variation-settings: 'wght' var(--mouse-dist, 400);
+  transition: font-variation-settings 0.2s ease;
+}
+
+/* Eco Mode overrides */
+body.eco-mode .refractive-glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: #101322; /* Solid fallback */
+  border-radius: 0; /* Simpler shape? Or keep radius but remove transparency */
+  border-radius: var(--bento-radius);
+}
+
+body.eco-mode * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Specular Highlight Button */
+.specular-button {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: white;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.specular-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at var(--mouse-x) var(--mouse-y),
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.specular-button:hover::before {
+  opacity: 1;
+}

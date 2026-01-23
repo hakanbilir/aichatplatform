@@ -14,6 +14,10 @@ dist/
 *.tsbuildinfo
 **/*.tsbuildinfo
 
+# Next.js
+.next/
+**/.next/
+
 # Environment variables
 .env
 .env.local
@@ -43,6 +47,9 @@ yarn-error.log*
 # Testing
 coverage/
 .nyc_output/
+**/verification/
+**/verify_ux.py
+**/generate-a11y-manifest.js
 
 # Temporary files
 *.tmp

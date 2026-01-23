@@ -23,6 +23,15 @@ export const Shell: React.FC = () => {
         transition: 'background 300ms ease',
       }}
     >
+      {/* Global Refraction SVG Definition */}
+      <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
+        <defs>
+          <filter id="refraction-warp">
+            <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="2" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
       <TopBar />
       <Box
         sx={{

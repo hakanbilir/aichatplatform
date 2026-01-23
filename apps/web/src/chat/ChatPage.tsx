@@ -37,6 +37,10 @@ import { ChatView } from './ChatView';
 import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
+import { BentoGrid } from '../components/Bento/BentoGrid';
+import { BentoCard } from '../components/Bento/BentoCard';
+import { KineticTypography } from '../components/KineticTypography';
+import { SpecularButton } from '../components/SpecularButton';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
@@ -349,24 +353,23 @@ export const ChatPage: React.FC = () => {
         : t('settings.creativity.creative');
 
   return (
-    <Box display="flex" flexDirection="column" flex={1}>
+    <BentoGrid sx={{ gridTemplateColumns: '1fr', gridTemplateRows: 'auto 1fr', height: '100%', p: 3, boxSizing: 'border-box' }}>
       {/* Settings bar */}
       {/* Ayarlar çubuğu */}
-      <Box
-        px={2}
-        py={1}
+      <BentoCard
+        className="settings-card"
         sx={{
           display: 'flex',
           alignItems: 'center',
           gap: 2,
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: 'radial-gradient(circle at top left, rgba(124,77,255,0.16), transparent 55%)',
+          p: 2,
+          zIndex: 10
         }}
       >
         <Box flex={1} minWidth={0}>
-          <Typography variant="subtitle2" noWrap>
+          <KineticTypography variant="h6" noWrap>
             {currentTitle}
-          </Typography>
+          </KineticTypography>
           <Typography variant="caption" color="text.secondary">
             {t('settings.modelPerConversation')}
           </Typography>
@@ -450,6 +453,7 @@ export const ChatPage: React.FC = () => {
                 color={dirty ? 'primary' : 'default'}
                 onClick={handleSaveSettings}
                 disabled={!dirty || saving || !conversationId}
+                data-ai-action="save-settings"
               >
                 <SaveIcon fontSize="small" />
               </IconButton>
@@ -466,27 +470,29 @@ export const ChatPage: React.FC = () => {
             />
           )}
         </Box>
-      </Box>
+      </BentoCard>
 
       {/* Chat view + input */}
       {/* Chat görünümü + input */}
-      <ChatView messages={conversation?.messages ?? []} streamingAssistantText={streamingText} />
-      <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
-        <IconButton
-          size="small"
-          onClick={() => setPromptLibraryOpen(true)}
-          sx={{ opacity: 0.7 }}
-          title={t('settings.promptLibrary')}
-        >
-          <AutoAwesomeIcon fontSize="small" />
-        </IconButton>
-      </Box>
-      <MessageInput
-        disabled={!conversationId || streaming}
-        onSend={handleSend}
-        value={messageInputValue}
-        onChange={setMessageInputValue}
-      />
+      <BentoCard sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', p: 0 }}>
+        <ChatView messages={conversation?.messages ?? []} streamingAssistantText={streamingText} />
+        <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
+          <SpecularButton
+            size="small"
+            onClick={() => setPromptLibraryOpen(true)}
+            sx={{ opacity: 0.7, minWidth: '40px' }}
+            title={t('settings.promptLibrary')}
+          >
+            <AutoAwesomeIcon fontSize="small" />
+          </SpecularButton>
+        </Box>
+        <MessageInput
+          disabled={!conversationId || streaming}
+          onSend={handleSend}
+          value={messageInputValue}
+          onChange={setMessageInputValue}
+        />
+      </BentoCard>
 
       {/* Settings drawer */}
       <ConversationSettingsDrawer
@@ -557,6 +563,6 @@ export const ChatPage: React.FC = () => {
           basePublicUrl={window.location.origin}
         />
       )}
-    </Box>
+    </BentoGrid>
   );
 };

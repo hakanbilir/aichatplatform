@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { LoginPage } from './auth/LoginPage';
 import { SignupPage } from './auth/SignupPage';
@@ -7,7 +7,8 @@ import { Shell } from './layout/Shell';
 import { KnowledgeBaseRouteWrapper } from './knowledge/KnowledgeBaseRouteWrapper';
 import { OrgAiPolicyPage } from './org/OrgAiPolicyPage';
 import { PresetsGalleryPage } from './presets/PresetsGalleryPage';
-import { ChatPage } from './chat/ChatPage';
+// Lazy load ChatPage
+// import { ChatPage } from './chat/ChatPage';
 import { ConversationInboxPage } from './inbox/ConversationInboxPage';
 import { WebhooksPage } from './integrations/WebhooksPage';
 import { AuditLogPage } from './audit/AuditLogPage';
@@ -16,8 +17,8 @@ import { PublicSharedConversationPage } from './public/PublicSharedConversationP
 import { OrgMembersPage } from './org/OrgMembersPage';
 import { OrgApiKeysPage } from './org/OrgApiKeysPage';
 import { OrgBrandingPage } from './org/OrgBrandingPage';
-import { OrgAnalyticsRouteWrapper } from './org/OrgAnalyticsRouteWrapper';
-// Docs 41-50 pages
+// Lazy load OrgAnalyticsRouteWrapper
+// import { OrgAnalyticsRouteWrapper } from './org/OrgAnalyticsRouteWrapper';
 import { OrgSafetySettingsPage } from './org/OrgSafetySettingsPage';
 import { OrgSafetyIncidentsPage } from './org/OrgSafetyIncidentsPage';
 import { PromptTemplatesPage } from './org/PromptTemplatesPage';
@@ -29,6 +30,15 @@ import { OrgUsageDashboardPage } from './org/OrgUsageDashboardPage';
 import { OrgBillingPage } from './org/OrgBillingPage';
 import { OrgSsoSettingsPage } from './org/OrgSsoSettingsPage';
 import { OrgScimSettingsPage } from './org/OrgScimSettingsPage';
+
+const ChatPage = React.lazy(() => import('./chat/ChatPage').then(module => ({ default: module.ChatPage })));
+const OrgAnalyticsRouteWrapper = React.lazy(() => import('./org/OrgAnalyticsRouteWrapper').then(module => ({ default: module.OrgAnalyticsRouteWrapper })));
+
+const LoadingFallback = () => (
+  <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>
+    Loading...
+  </div>
+);
 
 const router = createBrowserRouter([
   {
@@ -49,7 +59,11 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <ChatPage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ChatPage />
+          </Suspense>
+        ),
       },
       {
         path: 'orgs/:orgId/knowledge',
@@ -57,7 +71,11 @@ const router = createBrowserRouter([
       },
       {
         path: 'orgs/:orgId/chat/:conversationId?',
-        element: <ChatPage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ChatPage />
+          </Suspense>
+        ),
       },
       {
         path: 'orgs/:orgId/settings/ai-policy',
@@ -97,9 +115,12 @@ const router = createBrowserRouter([
       },
       {
         path: 'orgs/:orgId/analytics',
-        element: <OrgAnalyticsRouteWrapper />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <OrgAnalyticsRouteWrapper />
+          </Suspense>
+        ),
       },
-      // Docs 41-50: New feature routes
       {
         path: 'orgs/:orgId/settings/safety',
         element: <OrgSafetySettingsPage />,
@@ -159,4 +180,3 @@ const router = createBrowserRouter([
 export const AppRouter: React.FC = () => {
   return <RouterProvider router={router} />;
 };
-

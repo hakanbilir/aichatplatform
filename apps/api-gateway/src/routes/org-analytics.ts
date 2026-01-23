@@ -200,6 +200,15 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
         totalTokens: stats.totalTokens,
       }));
 
+    // Calculate projection using worker thread (Backend Optimization)
+    let projectedUsage = 0;
+    try {
+      const { calculateProjectedUsage } = await import('../services/workerPool');
+      projectedUsage = await calculateProjectedUsage(byDay, 30);
+    } catch (e) {
+      request.log.error(e, 'Failed to calculate projected usage');
+    }
+
     const totals = {
       promptTokens: totalPromptTokens,
       completionTokens: totalCompletionTokens,
@@ -270,6 +279,7 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
       lastMessageAt: lastMessageAt ? lastMessageAt.toISOString() : null,
       byDay,
       byModel,
+      projectedUsage,
     });
   });
 
