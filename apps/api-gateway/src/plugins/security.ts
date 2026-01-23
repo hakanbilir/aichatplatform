@@ -25,33 +25,13 @@ async function securityPlugin(app: FastifyInstance) {
 
   // Global rate limiting
   // Global rate limiting
+  // Note: Route-specific overrides are handled via route config: { rateLimit: ... }
   await app.register(fastifyRateLimit, {
     max: config.RATE_LIMIT_MAX,
     timeWindow: config.RATE_LIMIT_TIME_WINDOW_MS,
     allowList: ['127.0.0.1', '::1'], // Allow localhost
     hook: 'onRequest',
   });
-
-  // Stricter rate limiting for auth endpoints
-  // Auth endpoint'leri için daha sıkı rate limiting
-  app.register(fastifyRateLimit, {
-    max: 10,
-    timeWindow: '1 minute',
-    prefix: '/auth',
-  });
-
-  // Stricter rate limiting for chat endpoints
-  // Chat endpoint'leri için daha sıkı rate limiting
-  app.register(fastifyRateLimit, {
-    max: 60,
-    timeWindow: '1 minute',
-    prefix: '/conversations',
-  });
 }
 
 export default fp(securityPlugin);
-
-
-
-
-
