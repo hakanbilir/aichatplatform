@@ -122,6 +122,10 @@ const baseSchema = z.object({
       }
       return parsed;
     }),
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .default('http://localhost:3000,http://localhost:5173')
+    .transform((val) => val.split(',').map((o) => o.trim()).filter(Boolean)),
   RATE_LIMIT_MAX: z
     .string()
     .default('100')
