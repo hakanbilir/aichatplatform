@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { useEcoMode } from '../EcoModeContext';
 
 // Reusable panel/card container with header, actions, and collapsible support
 // Başlık, eylemler ve daraltılabilir destekle yeniden kullanılabilir panel/kart konteyneri
@@ -45,6 +46,7 @@ export const Panel: React.FC<PanelProps> = ({
   headerSx,
 }) => {
   const theme = useTheme();
+  const { isEcoMode } = useEcoMode();
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const handleToggle = () => {
@@ -53,13 +55,21 @@ export const Panel: React.FC<PanelProps> = ({
     }
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isEcoMode) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   return (
     <Card
+      className={!isEcoMode ? 'glass-panel' : ''}
+      onMouseMove={handleMouseMove}
       sx={{
-        borderRadius: 3,
-        backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        // Theme2026 overrides handled by CSS class, but we keep transitions and hover for non-glass or mix
         transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           transform: 'translateY(-2px)',
@@ -72,7 +82,7 @@ export const Panel: React.FC<PanelProps> = ({
         title={
           <Box display="flex" alignItems="center" justifyContent="space-between">
             <Box flex={1} minWidth={0}>
-              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
+              <Typography variant="h6" className="kinetic-text" sx={{ fontWeight: 600, fontSize: '1rem' }}>
                 {title}
               </Typography>
               {subtitle && (
@@ -91,6 +101,7 @@ export const Panel: React.FC<PanelProps> = ({
                 <IconButton
                   size="small"
                   onClick={handleToggle}
+                  data-ai-action="toggle-panel"
                   sx={{
                     color: 'text.secondary',
                     transition: 'transform 200ms ease',

@@ -4,9 +4,11 @@ import { Outlet } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { SideNav } from './SideNav';
 import { useIsMobile } from '../utils/responsive';
+import { useEcoMode } from '../components/EcoModeContext';
 
 export const Shell: React.FC = () => {
   const isMobile = useIsMobile();
+  const { isEcoMode } = useEcoMode();
 
   const handleCreateConversation = () => {
     const event = new CustomEvent('create-conversation');
@@ -15,7 +17,7 @@ export const Shell: React.FC = () => {
 
   return (
     <Box
-      className="gradient-shell"
+      className={`gradient-shell ${!isEcoMode ? 'glass-shell' : ''}`}
       sx={{
         minHeight: '100vh',
         display: 'flex',
@@ -23,6 +25,16 @@ export const Shell: React.FC = () => {
         transition: 'background 300ms ease',
       }}
     >
+      {!isEcoMode && (
+        <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
+          <defs>
+            <filter id="refraction">
+              <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" result="ripple" />
+              <feDisplacementMap in="SourceGraphic" in2="ripple" scale="5" />
+            </filter>
+          </defs>
+        </svg>
+      )}
       <TopBar />
       <Box
         sx={{

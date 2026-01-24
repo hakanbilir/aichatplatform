@@ -6,8 +6,10 @@ import { AuthProvider } from './auth/AuthContext';
 import { AppRouter } from './router';
 import { useOrgBranding } from './hooks/useOrgBranding';
 import { useFavicon } from './hooks/useFavicon';
+import { EcoModeProvider } from './components/EcoModeContext';
 import './styles/gradients.css';
 import './styles/animations.css';
+import './styles/theme2026.css';
 
 // AppShell component that provides dynamic org theme (47.md)
 // Dinamik org teması sağlayan AppShell bileşeni (47.md)
@@ -30,11 +32,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppShell>
-        <AppRouter />
-      </AppShell>
-    </AuthProvider>
+    <EcoModeProvider>
+      <AuthProvider>
+        <AppShell>
+          <AppRouter />
+        </AppShell>
+      </AuthProvider>
+    </EcoModeProvider>
   );
 };
 

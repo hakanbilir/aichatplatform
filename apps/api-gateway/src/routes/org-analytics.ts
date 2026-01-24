@@ -273,8 +273,8 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
     });
   });
 
-  // Enhanced analytics endpoint with detailed breakdowns
-  // Detaylı dökümlerle gelişmiş analitik endpoint'i
+  // Enhanced analytics endpoint with detailed breakdowns using SSE
+  // SSE kullanan detaylı dökümlerle gelişmiş analitik endpoint'i
   app.get('/orgs/:orgId/analytics', { preHandler: [app.authenticate] }, async (request, reply) => {
     const payload = request.user as JwtPayload;
     const orgId = (request.params as any).orgId as string;
@@ -300,13 +300,28 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
       'analytics:view'
     );
 
-    const { getOrgAnalytics } = await import('../services/orgAnalytics');
-    const result = await getOrgAnalytics({
-      orgId,
-      windowDays: parsedQuery.data.windowDays
-    });
+    // Set headers for SSE
+    reply.raw.setHeader('Content-Type', 'text/event-stream');
+    reply.raw.setHeader('Cache-Control', 'no-cache');
+    reply.raw.setHeader('Connection', 'keep-alive');
+    reply.raw.flushHeaders?.();
 
-    return reply.send(result);
+    try {
+      const { getOrgAnalytics } = await import('../services/orgAnalytics');
+
+      // Calculate analytics in worker thread
+      const result = await getOrgAnalytics({
+        orgId,
+        windowDays: parsedQuery.data.windowDays
+      });
+
+      // Stream the result as a data event
+      reply.raw.write(`data: ${JSON.stringify(result)}\n\n`);
+    } catch (error) {
+      reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
+    } finally {
+      reply.raw.end();
+    }
   });
 }
 

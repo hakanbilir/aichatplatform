@@ -8,6 +8,7 @@ import metricsPlugin from './plugins/metrics';
 import securityPlugin from './plugins/security';
 import i18nMiddleware from './i18n/middleware';
 import authRoutes from './routes/auth';
+import aiContextRoutes from './routes/aiContext';
 import orgRoutes from './routes/orgs';
 import conversationsRoutes from './routes/conversations';
 import chatRoutes from './routes/chat';
@@ -134,6 +135,7 @@ async function buildServer() {
   // Routes
   // Route'lar
   await app.register(authRoutes);
+  await app.register(aiContextRoutes);
   await app.register(orgRoutes);
   await app.register(conversationsRoutes);
   await app.register(chatRoutes);
