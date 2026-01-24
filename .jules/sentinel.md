@@ -1,0 +1,4 @@
+## 2026-01-24 - [Broken Timing Attack Protection]
+**Vulnerability:** The authentication logic attempted to prevent user enumeration using a dummy password verification for non-existent users. However, the `dummyHash` used (`$2a$10$dummyhashfordummyverificationpurposesonly`) was not a valid bcrypt hash. This caused `bcrypt.compare` to reject it almost instantly (~0.05ms) compared to a valid comparison (~140ms), effectively re-enabling timing attacks.
+**Learning:** Security mechanisms like timing protections must be tested with realistic data. Using an invalid format string as a "dummy" value can bypass the expensive computation we rely on for delay.
+**Prevention:** Always use valid, pre-generated hashes for dummy verification. Verify timing protection with micro-benchmarks during implementation.
