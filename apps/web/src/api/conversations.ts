@@ -40,6 +40,7 @@ export interface ConversationDetails {
     role: string;
     content: string;
     createdAt: string;
+    meta?: any;
   }>;
 }
 

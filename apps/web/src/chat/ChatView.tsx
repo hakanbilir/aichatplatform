@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { MessageBubble } from './MessageBubble';
 
 interface ChatViewProps {
-  messages: Array<{ id: string; role: string; content: string }>;
+  messages: Array<{ id: string; role: string; content: string; meta?: any }>;
   streamingAssistantText: string;
 }
 
@@ -39,7 +39,12 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
   return (
     <Box flex={1} overflow="auto" px={3} py={2}>
       {allMessages.map((m) => (
-        <MessageBubble key={m.id} role={m.role === 'USER' || m.role === 'user' ? 'user' : 'assistant'} content={m.content} />
+        <MessageBubble
+          key={m.id}
+          role={m.role === 'USER' || m.role === 'user' ? 'user' : 'assistant'}
+          content={m.content}
+          meta={m.meta}
+        />
       ))}
     </Box>
   );

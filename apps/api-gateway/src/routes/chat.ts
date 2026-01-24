@@ -23,6 +23,11 @@ const sendMessageBodySchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
   maxTokens: z.number().int().positive().optional(),
+  attachments: z.array(z.object({
+    type: z.string(),
+    content: z.string(),
+    name: z.string().optional(),
+  })).optional(),
 });
 
 function mapDbRoleToChatRole(dbRole: string): ChatRole {
@@ -81,7 +86,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, model, temperature, topP, maxTokens, attachments } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -120,7 +125,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: attachments ? { attachments } : {},
       },
     });
 
@@ -244,7 +249,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, model, temperature, topP, maxTokens, attachments } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -283,7 +288,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: attachments ? { attachments } : {},
       },
     });
 
