@@ -6,7 +6,8 @@ interface MessageBubbleProps {
   content: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
+// ⚡ Bolt: Memoized to prevent re-renders of existing messages when new tokens stream in
+export const MessageBubble = React.memo(({ role, content }: MessageBubbleProps) => {
   const isUser = role === 'user';
   return (
     <Box
@@ -33,5 +34,4 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) =
       </Box>
     </Box>
   );
-};
-
+});
