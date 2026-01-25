@@ -23,6 +23,11 @@ export interface OrgAnalyticsUserUsageItem {
   chatTurns: number;
 }
 
+export interface OrgAnalyticsDayUsageItem {
+  date: string;
+  chatTurns: number;
+}
+
 export interface OrgAnalyticsResult {
   org: {
     id: string;
@@ -38,6 +43,7 @@ export interface OrgAnalyticsResult {
   byModel: OrgAnalyticsModelUsageItem[];
   byTool: OrgAnalyticsToolUsageItem[];
   byUser: OrgAnalyticsUserUsageItem[];
+  byDay: OrgAnalyticsDayUsageItem[];
 }
 
 export async function getOrgAnalytics(
@@ -91,12 +97,30 @@ export async function getOrgAnalytics(
   const byModelMap = new Map<string, number>();
   const byUserMap = new Map<string, number>();
   const byToolMap = new Map<string, number>();
+  const byDayMap = new Map<string, number>();
+
+  // Pre-fill days in window
+  for (let i = 0; i < windowDays; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    byDayMap.set(key, 0);
+  }
 
   totals.chatTurns = assistantMessages.length;
 
   for (const msg of assistantMessages) {
     const model = msg.conversation?.model || 'default';
     byModelMap.set(model, (byModelMap.get(model) || 0) + 1);
+
+    // Day bucket
+    const dayKey = msg.createdAt.toISOString().split('T')[0];
+    if (byDayMap.has(dayKey)) {
+      byDayMap.set(dayKey, (byDayMap.get(dayKey) || 0) + 1);
+    } else {
+      // Should effectively be covered by pre-fill unless timezone drift or slight window mismatch
+      byDayMap.set(dayKey, (byDayMap.get(dayKey) || 0) + 1);
+    }
 
     // Tools: we expect meta.toolMessageId or meta.tools to indicate tool usage
     // Araçlar: tool kullanımını belirtmek için meta.toolMessageId veya meta.tools bekliyoruz
@@ -179,6 +203,10 @@ export async function getOrgAnalytics(
     .map(([userId, chatTurns]) => ({ userId, chatTurns }))
     .sort((a, b) => b.chatTurns - a.chatTurns);
 
+  const byDay: OrgAnalyticsDayUsageItem[] = Array.from(byDayMap.entries())
+    .map(([date, chatTurns]) => ({ date, chatTurns }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
   return {
     org,
     windowDays,
@@ -186,7 +214,8 @@ export async function getOrgAnalytics(
     totals,
     byModel,
     byTool,
-    byUser
+    byUser,
+    byDay
   };
 }
 
