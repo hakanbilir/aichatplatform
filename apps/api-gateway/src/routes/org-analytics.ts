@@ -5,6 +5,8 @@ import { prisma } from '@ai-chat/db';
 import { JwtPayload } from '../auth/types';
 import { z } from 'zod';
 import { assertOrgPermission } from '../rbac/guards';
+import { Worker } from 'worker_threads';
+import path from 'path';
 
 const usageQuerySchema = z.object({
   days: z
@@ -307,6 +309,61 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
     });
 
     return reply.send(result);
+  });
+
+  app.get('/orgs/:id/usage/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    const paramsSchema = z.object({ id: z.string().min(1) });
+    const parseParams = paramsSchema.safeParse(request.params);
+    if (!parseParams.success) {
+      return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
+    }
+    const orgId = parseParams.data.id;
+
+    const parseQuery = usageQuerySchema.safeParse(request.query);
+    if (!parseQuery.success) {
+      return reply.code(400).send({ error: request.i18n.t('errors.invalidQueryParams'), details: parseQuery.error.format() });
+    }
+
+    const days = parseQuery.data.days;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'analytics:view',
+    );
+
+    reply.raw.setHeader('Content-Type', 'text/event-stream');
+    reply.raw.setHeader('Cache-Control', 'no-cache');
+    reply.raw.setHeader('Connection', 'keep-alive');
+    reply.raw.flushHeaders();
+
+    const isTs = __filename.endsWith('.ts');
+    // Adjust worker path based on execution environment (ts-node/bun vs compiled js)
+    const workerScript = path.join(__dirname, `../workers/analytics.worker.${isTs ? 'ts' : 'js'}`);
+
+    const worker = new Worker(workerScript, {
+      workerData: { orgId, days }
+    });
+
+    worker.on('message', (msg) => {
+      reply.raw.write(`data: ${JSON.stringify(msg)}\n\n`);
+      if (msg.type === 'result' || msg.type === 'error') {
+        reply.raw.end();
+        worker.terminate();
+      }
+    });
+
+    worker.on('error', (err) => {
+      reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+      reply.raw.end();
+      worker.terminate();
+    });
+
+    request.raw.on('close', () => {
+      worker.terminate();
+    });
   });
 }
 

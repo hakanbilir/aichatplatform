@@ -1,0 +1,56 @@
+:root {
+  /* Colors */
+  --glass-surface: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.4);
+
+  /* Effects */
+  --blur-amount: 30px;
+  --saturation-amount: 200%;
+  --refraction-filter: url(#refraction);
+
+  /* Grid */
+  --bento-gap: 24px;
+  --bento-radius: 28px;
+
+  /* Typography */
+  --font-variable: 'Inter Variable', sans-serif;
+
+  /* Mouse tracking variables (updated by JS) */
+  --mouse-x: 0px;
+  --mouse-y: 0px;
+  --mouse-dist: 0;
+}
+
+body.eco-mode {
+  --blur-amount: 0px;
+  --refraction-filter: none;
+}
+
+.liquid-glass {
+  background: var(--glass-surface);
+  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturation-amount));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--bento-radius);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
+  filter: var(--refraction-filter);
+  opacity: 0.5;
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--bento-gap);
+  padding: var(--bento-gap);
+}

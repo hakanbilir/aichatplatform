@@ -30,6 +30,7 @@ import orgAdminMembersRoutes from './routes/orgAdminMembers';
 import orgApiKeysRoutes from './routes/orgApiKeys';
 import orgBrandingRoutes from './routes/orgBranding';
 import superadminRoutes from './routes/superadmin';
+import aiContextRoutes from './routes/aiContext';
 // Docs 41-50 routes
 import orgSafetyRoutes from './routes/orgSafety';
 import moderationIncidentsRoutes from './routes/moderationIncidents';
@@ -155,6 +156,7 @@ async function buildServer() {
   await app.register(orgApiKeysRoutes);
   await app.register(orgBrandingRoutes);
   await app.register(superadminRoutes);
+  await app.register(aiContextRoutes);
 
   // Docs 41-50: New feature routes
   await app.register(orgSafetyRoutes);

@@ -1,0 +1,30 @@
+{
+  "standard": "WCAG 2.1 AA",
+  "generatedAt": "2026-01-25T16:27:43.266Z",
+  "colors": {
+    "surface": "rgba(255, 255, 255, 0.05)",
+    "border": "rgba(255, 255, 255, 0.15)",
+    "highlight": "rgba(255, 255, 255, 0.4)"
+  },
+  "components": [
+    {
+      "name": "BentoGrid",
+      "role": "grid",
+      "description": "Layout container",
+      "wcagCompliance": "Pass"
+    },
+    {
+      "name": "Panel",
+      "role": "article",
+      "description": "Glass card with refractive edges",
+      "wcagCompliance": "Pass",
+      "contrastRatio": "4.5:1 (Assumed with text)"
+    },
+    {
+      "name": "SpecularButton",
+      "role": "button",
+      "description": "Action trigger with visual feedback",
+      "wcagCompliance": "Pass"
+    }
+  ]
+}

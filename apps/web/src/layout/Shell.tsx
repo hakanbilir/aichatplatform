@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { SideNav } from './SideNav';
 import { useIsMobile } from '../utils/responsive';
+import { RefractionFilter } from '../components/ui/RefractionFilter';
 
 export const Shell: React.FC = () => {
   const isMobile = useIsMobile();
@@ -23,6 +24,7 @@ export const Shell: React.FC = () => {
         transition: 'background 300ms ease',
       }}
     >
+      <RefractionFilter />
       <TopBar />
       <Box
         sx={{

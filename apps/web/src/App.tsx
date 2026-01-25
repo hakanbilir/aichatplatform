@@ -6,6 +6,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { AppRouter } from './router';
 import { useOrgBranding } from './hooks/useOrgBranding';
 import { useFavicon } from './hooks/useFavicon';
+import { EcoModeProvider } from './components/providers/EcoModeContext';
 import './styles/gradients.css';
 import './styles/animations.css';
 
@@ -30,11 +31,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppShell>
-        <AppRouter />
-      </AppShell>
-    </AuthProvider>
+    <EcoModeProvider>
+      <AuthProvider>
+        <AppShell>
+          <AppRouter />
+        </AppShell>
+      </AuthProvider>
+    </EcoModeProvider>
   );
 };
 

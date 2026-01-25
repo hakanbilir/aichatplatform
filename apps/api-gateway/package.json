@@ -2,8 +2,12 @@
   "name": "api-gateway",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "dev": "bun run src/main.ts",
+    "dev": "bun run --watch src/main.ts",
+    "dev:node": "node --watch --loader tsx src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "bun run dist/main.js",
     "lint": "eslint src --ext .ts",
