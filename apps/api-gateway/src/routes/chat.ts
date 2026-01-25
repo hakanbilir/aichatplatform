@@ -23,6 +23,15 @@ const sendMessageBodySchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
   maxTokens: z.number().int().positive().optional(),
+  attachments: z
+    .array(
+      z.object({
+        name: z.string(),
+        type: z.string(),
+        data: z.string(), // Base64
+      }),
+    )
+    .optional(),
 });
 
 function mapDbRoleToChatRole(dbRole: string): ChatRole {
@@ -81,7 +90,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, model, temperature, topP, maxTokens, attachments } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -120,7 +129,9 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: {
+          attachments,
+        },
       },
     });
 
@@ -132,7 +143,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const images = attachments?.map((a) => a.data);
+    const userMessage = createUserMessage(content, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 
@@ -244,7 +256,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, model, temperature, topP, maxTokens, attachments } = parseBody.data;
 
     // Load conversation + messages, ensuring access rights
     // Konuşma + mesajları yükle, erişim haklarını sağlayarak
@@ -283,7 +295,9 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         role: 'USER',
         content,
-        meta: {},
+        meta: {
+          attachments,
+        },
       },
     });
 
@@ -293,7 +307,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
     };
 
     const context = buildConversationContext(conversationWithNewMessage);
-    const userMessage = createUserMessage(content);
+    const images = attachments?.map((a) => a.data);
+    const userMessage = createUserMessage(content, images);
 
     const chosenModel = model ?? conversation.model ?? 'llama3.1';
 

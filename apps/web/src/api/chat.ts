@@ -21,10 +21,23 @@ export interface SendMessageResponse {
   };
 }
 
+export interface Attachment {
+  name: string;
+  type: string;
+  data: string; // Base64
+}
+
 export async function sendMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+    attachments?: Attachment[];
+  },
 ): Promise<SendMessageResponse> {
   return apiRequest<SendMessageResponse>(
     `/conversations/${conversationId}/messages`,
@@ -55,7 +68,14 @@ export type StreamEvent =
 export async function streamMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+    attachments?: Attachment[];
+  },
   onEvent: (event: StreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {

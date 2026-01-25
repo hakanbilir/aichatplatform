@@ -5,16 +5,11 @@ import { MessageBubble } from './MessageBubble';
 
 interface ChatViewProps {
   messages: Array<{ id: string; role: string; content: string }>;
-  streamingAssistantText: string;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ messages }) => {
   const { t } = useTranslation('chat');
   const allMessages = [...messages];
-
-  if (streamingAssistantText) {
-    allMessages.push({ id: 'streaming', role: 'assistant', content: streamingAssistantText });
-  }
 
   if (allMessages.length === 0) {
     return (

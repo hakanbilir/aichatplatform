@@ -85,6 +85,7 @@ async function buildServer() {
   // Observability modülünden logger yapılandırmasını kullan
   const app = fastify({
     logger: loggerConfig,
+    bodyLimit: 50 * 1024 * 1024, // 50MB
   });
 
   // Initialize moderation provider (41.md)
