@@ -4,23 +4,7 @@ import { hashPassword, verifyPassword } from '../auth/password';
 import { JwtPayload } from '../auth/types';
 import { generateRefreshToken, verifyRefreshToken, revokeRefreshToken } from '../auth/refreshToken';
 import { writeAuditLog } from '../services/audit';
-import { z } from 'zod';
-
-const signupBodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1),
-  orgName: z.string().min(1).optional(),
-});
-
-const loginBodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-const refreshTokenBodySchema = z.object({
-  refreshToken: z.string().min(1),
-});
+import { signupBodySchema, loginBodySchema, refreshTokenBodySchema } from './authSchemas';
 
 export default async function authRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   app.post('/api/v1/auth/signup', async (request, reply) => {
