@@ -4,7 +4,8 @@
     "description": "Herhangi bir şey sorun. Yanıtlar Ollama arka ucunuzdan akış halinde gelir."
   },
   "messageInput": {
-    "placeholder": "Mesaj gönder…"
+    "placeholder": "Mesaj gönder…",
+    "tooltip": "Mesaj gönder"
   },
   "models": {
     "llama3.1": "llama3.1 (genel)",
