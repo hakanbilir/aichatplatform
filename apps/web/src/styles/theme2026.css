@@ -1,0 +1,91 @@
+:root {
+  --bento-gap: 24px;
+  --bento-radius: 28px;
+  --glass-blur: 30px;
+  --glass-saturate: 200%;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --highlight-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Eco Mode override handled by class/attribute on body or root */
+body[data-eco-mode="true"] {
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
+  --glass-bg: rgba(255, 255, 255, 0.9); /* Fallback to solid/opaque in eco mode */
+}
+
+/* Dark mode handling if applicable, but we assume "Liquid Glass" is usually dark or light transparent */
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--bento-gap);
+}
+
+.glass-panel {
+  border-radius: var(--bento-radius);
+  border: var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  background-clip: padding-box;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Apply refraction filter for edge warping */
+  filter: url(#refraction);
+}
+
+body[data-eco-mode="true"] .glass-panel {
+  filter: none;
+}
+
+.glass-panel-content {
+  position: relative;
+  z-index: 2;
+}
+
+/* Edge warping simulation using box-shadow or border-image could be fallback,
+   but we will rely on SVG filter in the component */
+
+.kinetic-text {
+  font-variation-settings: 'wght' var(--weight, 400);
+  transition: font-variation-settings 0.2s ease;
+}
+
+.specular-btn {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  /* Use CSS variables for mouse position */
+  --x: 0px;
+  --y: 0px;
+}
+
+.specular-btn::before {
+  content: '';
+  position: absolute;
+  top: var(--y);
+  left: var(--x);
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, var(--highlight-color) 0%, transparent 60%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 1;
+}
+
+.specular-btn:hover::before {
+  opacity: 1;
+}
+
+.specular-btn-content {
+  position: relative;
+  z-index: 2;
+}

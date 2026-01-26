@@ -126,4 +126,58 @@ export default async function usageAnalyticsRoutes(
       return reply.send({ topUsers: result });
     }
   );
+
+  app.get('/orgs/:orgId/analytics/usage/stream', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const orgId = (req.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:analytics:read'
+    );
+
+    // Set headers for SSE
+    reply.raw.setHeader('Content-Type', 'text/event-stream');
+    reply.raw.setHeader('Cache-Control', 'no-cache');
+    reply.raw.setHeader('Connection', 'keep-alive');
+
+    const send = (data: any) => {
+      reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Send initial data immediately
+    const now = new Date();
+    const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // last 30 days
+
+    try {
+      const rows = await prisma.orgDailyUsage.findMany({
+        where: {
+          orgId,
+          date: {
+            gte: defaultFrom,
+            lte: now
+          }
+        },
+        orderBy: { date: 'asc' }
+      });
+
+      send({ type: 'initial', usage: rows });
+    } catch (error) {
+       // Log error or ignore for stream
+    }
+
+    // Simulate live updates every 5 seconds
+    const interval = setInterval(() => {
+      send({ type: 'heartbeat', timestamp: new Date().toISOString() });
+    }, 5000);
+
+    req.raw.on('close', () => {
+      clearInterval(interval);
+      reply.raw.end();
+    });
+
+    // Prevent Fastify from closing the response
+    return new Promise(() => {});
+  });
 }

@@ -1,6 +1,6 @@
 // apps/web/src/api/usageAnalytics.ts
 
-import { apiRequest } from './client';
+import { apiRequest, API_BASE_URL } from './client';
 
 export interface OrgDailyUsageDto {
   id: string;
@@ -55,6 +55,56 @@ export async function fetchUsageAnalytics(
     { method: 'GET' },
     token
   );
+}
+
+export function subscribeToUsageAnalytics(
+  token: string,
+  orgId: string,
+  onData: (data: any) => void
+): () => void {
+  const url = `${API_BASE_URL}/orgs/${orgId}/analytics/usage/stream`;
+  const controller = new AbortController();
+
+  fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: controller.signal
+  }).then(async (response) => {
+    if (!response.body) return;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+           const trimmed = line.trim();
+           if (trimmed.startsWith('data: ')) {
+             try {
+                const json = JSON.parse(trimmed.substring(6));
+                onData(json);
+             } catch (e) {
+                console.error('Failed to parse SSE JSON', e);
+             }
+           }
+        }
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Stream error', error);
+      }
+    }
+  }).catch((err) => {
+     if (err.name !== 'AbortError') console.error('Stream fetch error', err);
+  });
+
+  return () => controller.abort();
 }
 
 export async function fetchTopUsers(
