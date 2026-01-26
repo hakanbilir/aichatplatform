@@ -234,7 +234,8 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
       } else {
         // User enumeration prevention: Always perform password verification with dummy hash
         // This ensures consistent timing regardless of user existence
-        const dummyHash = '$2a$10$dummyhashfordummyverificationpurposesonly';
+        // Using a pre-calculated valid hash to ensure constant-time verification
+        const dummyHash = '$2b$10$jtL3Qawh5tbjehjJyAc3PeXftlzlUsYzAXIkxE0AoYDtI1d9DRfri';
         await verifyPassword(password, dummyHash);
         return reply.code(401).send({ error: request.i18n.t('errors.invalidCredentials') });
       }
