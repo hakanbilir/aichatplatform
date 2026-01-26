@@ -58,7 +58,26 @@ export default async function usageAnalyticsRoutes(
       orderBy: { date: 'asc' }
     });
 
-    return reply.send({ usage: rows });
+    const totals = {
+      requestCount: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      estimatedCostMicros: 0,
+    };
+
+    for (const row of rows) {
+      totals.requestCount += row.requestCount;
+      totals.inputTokens += row.inputTokens;
+      totals.outputTokens += row.outputTokens;
+      totals.estimatedCostMicros += row.estimatedCostMicros;
+    }
+
+    const period = {
+      startDate: fromDate.toISOString(),
+      endDate: toDate.toISOString(),
+    };
+
+    return reply.send({ usage: rows, totals, period });
   });
 
   app.get(
