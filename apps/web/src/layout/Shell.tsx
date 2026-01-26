@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { SideNav } from './SideNav';
+import { LoadingState } from '../components/dashboard/LoadingState';
 import { useIsMobile } from '../utils/responsive';
 
 export const Shell: React.FC = () => {
@@ -56,7 +57,15 @@ export const Shell: React.FC = () => {
             transition: 'margin 300ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
-          <Outlet />
+          <Suspense
+            fallback={
+              <LoadingState
+                sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            }
+          >
+            <Outlet />
+          </Suspense>
         </Box>
       </Box>
     </Box>
