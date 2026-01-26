@@ -13,11 +13,13 @@ import {
   IconButton,
   TextField,
   Tooltip,
-  Typography
+  Typography,
+  InputAdornment
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import LinkIcon from '@mui/icons-material/Link';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../auth/AuthContext';
 import { createShareLink } from '../api/sharing';
 
@@ -41,6 +43,7 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
 
   const [expiresInDays, setExpiresInDays] = useState('7');
   const [passphrase, setPassphrase] = useState('');
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [anonymize, setAnonymize] = useState(true);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -102,10 +105,25 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
             <TextField
               label={t('share.passphrase')}
               size="small"
-              type="password"
+              type={showPassphrase ? 'text' : 'password'}
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
               helperText={t('share.passphraseHelper')}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle passphrase visibility"
+                      onClick={() => setShowPassphrase(!showPassphrase)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassphrase ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <FormControlLabel
               control={

@@ -11,10 +11,13 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
-  Typography
+  Typography,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
 import {
   PublicSharedConversation,
@@ -30,6 +33,7 @@ export const PublicSharedConversationPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [passphraseDialogOpen, setPassphraseDialogOpen] = useState(false);
   const [passphrase, setPassphrase] = useState('');
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [needsPassphrase, setNeedsPassphrase] = useState(false);
 
   useEffect(() => {
@@ -184,7 +188,7 @@ export const PublicSharedConversationPage: React.FC = () => {
           <TextField
             autoFocus
             label={t('passphrase')}
-            type="password"
+            type={showPassphrase ? 'text' : 'password'}
             fullWidth
             value={passphrase}
             onChange={(e) => setPassphrase(e.target.value)}
@@ -194,6 +198,20 @@ export const PublicSharedConversationPage: React.FC = () => {
               }
             }}
             sx={{ mt: 1 }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle passphrase visibility"
+                    onClick={() => setShowPassphrase(!showPassphrase)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                  >
+                    {showPassphrase ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           {error && (
             <Typography variant="body2" color="error" sx={{ mt: 1 }}>
