@@ -1,0 +1,76 @@
+:root {
+  --glass-blur: 30px;
+  --glass-saturation: 200%;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --bento-gap: 24px;
+  --bento-radius: 28px;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --mouse-dist: 400;
+}
+
+.kinetic-glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: var(--glass-border);
+  border-radius: var(--bento-radius);
+  background-clip: padding-box;
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--bento-gap);
+}
+
+.specular-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.specular-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at var(--mouse-x) var(--mouse-y),
+    rgba(255, 255, 255, 0.3),
+    transparent 120px
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.specular-button:hover::before {
+  opacity: 1;
+}
+
+.kinetic-typography {
+  font-variation-settings: 'wght' var(--mouse-dist);
+  transition: font-variation-settings 0.1s ease-out;
+}
+
+/* Eco Mode override */
+[data-eco-mode="true"] {
+  --glass-blur: 0px;
+  --glass-saturation: 100%;
+  --glass-bg: rgba(30, 30, 30, 0.95);
+}
+
+[data-eco-mode="true"] .kinetic-glass-panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-eco-mode="true"] * {
+  transition: none !important;
+  animation: none !important;
+}

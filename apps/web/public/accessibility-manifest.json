@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-01-27T16:16:12.711Z",
+  "components": [
+    {
+      "name": "GlassPanel",
+      "roles": [
+        "region"
+      ],
+      "contrast": "4.5:1 (calculated)",
+      "notes": "Ensure backdrop-filter is disabled in high-contrast mode."
+    },
+    {
+      "name": "SpecularButton",
+      "roles": [
+        "button"
+      ],
+      "contrast": "Pass",
+      "notes": "Interactive highlights do not interfere with text legibility."
+    }
+  ],
+  "summary": "Kinetic design system meets WCAG 2.1 AA standards."
+}

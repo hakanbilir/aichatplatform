@@ -5,6 +5,8 @@ import { prisma } from '@ai-chat/db';
 import { JwtPayload } from '../auth/types';
 import { z } from 'zod';
 import { assertOrgPermission } from '../rbac/guards';
+import { Worker } from 'worker_threads';
+import { join } from 'path';
 
 const usageQuerySchema = z.object({
   days: z
@@ -271,6 +273,87 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
       byDay,
       byModel,
     });
+  });
+
+  // SSE Streaming Analytics Endpoint using Worker Thread
+  app.get('/orgs/:orgId/analytics/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+    // orgId is in params but Fastify types it loosely
+    const orgId = (request.params as any).orgId as string;
+
+    const querySchema = z.object({
+      windowDays: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined))
+        .refine((val) => !val || !Number.isNaN(val), {
+          message: 'windowDays must be a number'
+        })
+    });
+
+    const parsedQuery = querySchema.safeParse(request.query);
+    if (!parsedQuery.success) {
+      return reply.code(400).send({ error: request.i18n.t('errors.invalidQueryParams'), details: parsedQuery.error.format() });
+    }
+
+    const windowDays = parsedQuery.data.windowDays || 30;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'analytics:view'
+    );
+
+    // Fetch data (IO)
+    const now = new Date();
+    const from = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
+
+    const messages = await prisma.message.findMany({
+      where: {
+        role: 'ASSISTANT',
+        createdAt: { gte: from },
+        conversation: { orgId },
+      },
+      select: {
+        meta: true,
+        createdAt: true,
+        conversation: {
+          select: { model: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+
+    // Notify client of processing
+    reply.raw.write(`event: status\ndata: "processing"\n\n`);
+
+    // Determine worker path (handle both .ts and .js)
+    const workerExt = __filename.endsWith('.ts') ? '.ts' : '.js';
+    const workerPath = join(__dirname, '../analytics.worker' + workerExt);
+
+    const worker = new Worker(workerPath, {
+      workerData: { messages }
+    });
+
+    worker.on('message', (result) => {
+      reply.raw.write(`data: ${JSON.stringify(result)}\n\n`);
+      reply.raw.end();
+    });
+
+    worker.on('error', (err) => {
+        request.log.error(err, 'Worker error');
+        reply.raw.write(`event: error\ndata: ${JSON.stringify({error: err.message})}\n\n`);
+        reply.raw.end();
+    });
+
+    return new Promise(() => {}); // Prevent immediate closure
   });
 
   // Enhanced analytics endpoint with detailed breakdowns

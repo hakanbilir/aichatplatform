@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run src/main.ts",
+    "dev:node": "npx tsx --watch src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "bun run dist/main.js",
     "lint": "eslint src --ext .ts",
