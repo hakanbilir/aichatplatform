@@ -574,6 +574,74 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
     });
   });
 
+  // Delete a message
+  // Bir mesajı sil
+  app.delete('/conversations/:id/messages/:messageId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    const paramsSchema = z.object({
+      id: z.string().min(1),
+      messageId: z.string().min(1),
+    });
+    const parseParams = paramsSchema.safeParse(request.params);
+    if (!parseParams.success) {
+      return reply.code(400).send({ error: request.i18n.t('errors.invalidParams') });
+    }
+    const { id: conversationId, messageId } = parseParams.data;
+
+    const orgIds = await getUserOrgIds(payload.userId);
+    const orConditions: any[] = [{ userId: payload.userId }];
+    if (orgIds.length > 0) {
+      orConditions.push({ orgId: { in: orgIds } });
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        OR: orConditions,
+      },
+      select: {
+        id: true,
+        orgId: true,
+      },
+    });
+
+    if (!conversation) {
+      return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
+    }
+
+    // Verify access
+    if (conversation.orgId) {
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        conversation.orgId,
+        'conversation:chat'
+      );
+    }
+
+    const message = await prisma.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId: conversation.id,
+      },
+    });
+
+    if (!message) {
+      return reply.code(404).send({ error: request.i18n.t('errors.messageNotFound') });
+    }
+
+    await prisma.message.delete({
+      where: { id: messageId },
+    });
+
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { updatedAt: new Date() },
+    });
+
+    return reply.send({ success: true });
+  });
+
   // Usage summary for a conversation (aggregated from assistant messages)
   // Bir konuşma için kullanım özeti (asistan mesajlarından toplanır)
   app.get('/conversations/:id/usage', { preHandler: [app.authenticate] }, async (request, reply) => {

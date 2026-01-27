@@ -91,6 +91,16 @@ export async function updateConversation(
   );
 }
 
+export async function deleteMessage(token: string, conversationId: string, messageId: string): Promise<void> {
+  return apiRequest<void>(
+    `/conversations/${conversationId}/messages/${messageId}`,
+    {
+      method: 'DELETE',
+    },
+    token,
+  );
+}
+
 export interface ConversationUsageTotals {
   promptTokens: number;
   completionTokens: number;
