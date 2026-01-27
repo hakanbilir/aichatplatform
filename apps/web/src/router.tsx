@@ -1,49 +1,62 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { LoginPage } from './auth/LoginPage';
-import { SignupPage } from './auth/SignupPage';
 import { RequireAuth } from './auth/RequireAuth';
-import { Shell } from './layout/Shell';
-import { KnowledgeBaseRouteWrapper } from './knowledge/KnowledgeBaseRouteWrapper';
-import { OrgAiPolicyPage } from './org/OrgAiPolicyPage';
-import { PresetsGalleryPage } from './presets/PresetsGalleryPage';
-import { ChatPage } from './chat/ChatPage';
-import { ConversationInboxPage } from './inbox/ConversationInboxPage';
-import { WebhooksPage } from './integrations/WebhooksPage';
-import { AuditLogPage } from './audit/AuditLogPage';
-import { RetentionSettingsPage } from './retention/RetentionSettingsPage';
-import { PublicSharedConversationPage } from './public/PublicSharedConversationPage';
-import { OrgMembersPage } from './org/OrgMembersPage';
-import { OrgApiKeysPage } from './org/OrgApiKeysPage';
-import { OrgBrandingPage } from './org/OrgBrandingPage';
-import { OrgAnalyticsRouteWrapper } from './org/OrgAnalyticsRouteWrapper';
+import { LoadingState } from './components/dashboard/LoadingState';
+
+// Lazy load components
+const LoginPage = lazy(() => import('./auth/LoginPage').then(m => ({ default: m.LoginPage })));
+const SignupPage = lazy(() => import('./auth/SignupPage').then(m => ({ default: m.SignupPage })));
+const Shell = lazy(() => import('./layout/Shell').then(m => ({ default: m.Shell })));
+const KnowledgeBaseRouteWrapper = lazy(() => import('./knowledge/KnowledgeBaseRouteWrapper').then(m => ({ default: m.KnowledgeBaseRouteWrapper })));
+const OrgAiPolicyPage = lazy(() => import('./org/OrgAiPolicyPage').then(m => ({ default: m.OrgAiPolicyPage })));
+const PresetsGalleryPage = lazy(() => import('./presets/PresetsGalleryPage').then(m => ({ default: m.PresetsGalleryPage })));
+const ChatPage = lazy(() => import('./chat/ChatPage').then(m => ({ default: m.ChatPage })));
+const ConversationInboxPage = lazy(() => import('./inbox/ConversationInboxPage').then(m => ({ default: m.ConversationInboxPage })));
+const WebhooksPage = lazy(() => import('./integrations/WebhooksPage').then(m => ({ default: m.WebhooksPage })));
+const AuditLogPage = lazy(() => import('./audit/AuditLogPage').then(m => ({ default: m.AuditLogPage })));
+const RetentionSettingsPage = lazy(() => import('./retention/RetentionSettingsPage').then(m => ({ default: m.RetentionSettingsPage })));
+const PublicSharedConversationPage = lazy(() => import('./public/PublicSharedConversationPage').then(m => ({ default: m.PublicSharedConversationPage })));
+const OrgMembersPage = lazy(() => import('./org/OrgMembersPage').then(m => ({ default: m.OrgMembersPage })));
+const OrgApiKeysPage = lazy(() => import('./org/OrgApiKeysPage').then(m => ({ default: m.OrgApiKeysPage })));
+const OrgBrandingPage = lazy(() => import('./org/OrgBrandingPage').then(m => ({ default: m.OrgBrandingPage })));
+const OrgAnalyticsRouteWrapper = lazy(() => import('./org/OrgAnalyticsRouteWrapper').then(m => ({ default: m.OrgAnalyticsRouteWrapper })));
 // Docs 41-50 pages
-import { OrgSafetySettingsPage } from './org/OrgSafetySettingsPage';
-import { OrgSafetyIncidentsPage } from './org/OrgSafetyIncidentsPage';
-import { PromptTemplatesPage } from './org/PromptTemplatesPage';
-import { ChatProfilesPage } from './org/ChatProfilesPage';
-import { OrgModelsSettingsPage } from './org/OrgModelsSettingsPage';
-import { PlaygroundPage } from './org/PlaygroundPage';
-import { ExperimentsPage } from './org/ExperimentsPage';
-import { OrgUsageDashboardPage } from './org/OrgUsageDashboardPage';
-import { OrgBillingPage } from './org/OrgBillingPage';
-import { OrgSsoSettingsPage } from './org/OrgSsoSettingsPage';
-import { OrgScimSettingsPage } from './org/OrgScimSettingsPage';
+const OrgSafetySettingsPage = lazy(() => import('./org/OrgSafetySettingsPage').then(m => ({ default: m.OrgSafetySettingsPage })));
+const OrgSafetyIncidentsPage = lazy(() => import('./org/OrgSafetyIncidentsPage').then(m => ({ default: m.OrgSafetyIncidentsPage })));
+const PromptTemplatesPage = lazy(() => import('./org/PromptTemplatesPage').then(m => ({ default: m.PromptTemplatesPage })));
+const ChatProfilesPage = lazy(() => import('./org/ChatProfilesPage').then(m => ({ default: m.ChatProfilesPage })));
+const OrgModelsSettingsPage = lazy(() => import('./org/OrgModelsSettingsPage').then(m => ({ default: m.OrgModelsSettingsPage })));
+const PlaygroundPage = lazy(() => import('./org/PlaygroundPage').then(m => ({ default: m.PlaygroundPage })));
+const ExperimentsPage = lazy(() => import('./org/ExperimentsPage').then(m => ({ default: m.ExperimentsPage })));
+const OrgUsageDashboardPage = lazy(() => import('./org/OrgUsageDashboardPage').then(m => ({ default: m.OrgUsageDashboardPage })));
+const OrgBillingPage = lazy(() => import('./org/OrgBillingPage').then(m => ({ default: m.OrgBillingPage })));
+const OrgSsoSettingsPage = lazy(() => import('./org/OrgSsoSettingsPage').then(m => ({ default: m.OrgSsoSettingsPage })));
+const OrgScimSettingsPage = lazy(() => import('./org/OrgScimSettingsPage').then(m => ({ default: m.OrgScimSettingsPage })));
 
 const router = createBrowserRouter([
   {
     path: '/auth/login',
-    element: <LoginPage />,
+    element: (
+      <Suspense fallback={<LoadingState fullWidth />}>
+        <LoginPage />
+      </Suspense>
+    ),
   },
   {
     path: '/auth/signup',
-    element: <SignupPage />,
+    element: (
+      <Suspense fallback={<LoadingState fullWidth />}>
+        <SignupPage />
+      </Suspense>
+    ),
   },
   {
     path: '/app',
     element: (
       <RequireAuth>
-        <Shell />
+        <Suspense fallback={<LoadingState fullWidth />}>
+          <Shell />
+        </Suspense>
       </RequireAuth>
     ),
     children: [
@@ -146,17 +159,24 @@ const router = createBrowserRouter([
       },
       {
         path: 's/:slug',
-        element: <PublicSharedConversationPage />,
+        element: (
+          <Suspense fallback={<LoadingState fullWidth />}>
+            <PublicSharedConversationPage />
+          </Suspense>
+        ),
       },
     ],
   },
   {
     path: '*',
-    element: <LoginPage />,
+    element: (
+      <Suspense fallback={<LoadingState fullWidth />}>
+        <LoginPage />
+      </Suspense>
+    ),
   },
 ]);
 
 export const AppRouter: React.FC = () => {
   return <RouterProvider router={router} />;
 };
-

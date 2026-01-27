@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { SideNav } from './SideNav';
 import { useIsMobile } from '../utils/responsive';
+import { LoadingState } from '../components/dashboard/LoadingState';
 
 export const Shell: React.FC = () => {
   const isMobile = useIsMobile();
@@ -56,7 +57,9 @@ export const Shell: React.FC = () => {
             transition: 'margin 300ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
-          <Outlet />
+          <Suspense fallback={<LoadingState fullWidth />}>
+            <Outlet />
+          </Suspense>
         </Box>
       </Box>
     </Box>
