@@ -100,6 +100,7 @@ const baseSchema = z.object({
   DEFAULT_MODEL: z.string().default('llama3.1'),
 
   // Auth & Security
+  CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters long'),
   JWT_EXPIRES_IN: z.string().default('1h'), // Short-lived access tokens
   REFRESH_TOKEN_TTL_DAYS: z
