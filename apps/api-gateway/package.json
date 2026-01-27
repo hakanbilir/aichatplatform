@@ -8,6 +8,7 @@
     "start": "bun run dist/main.js",
     "lint": "eslint src --ext .ts",
     "test": "echo \"no tests yet\"",
+    "test:security": "bun run test/verify-security.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {

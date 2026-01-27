@@ -85,6 +85,7 @@ async function buildServer() {
   // Observability modülünden logger yapılandırmasını kullan
   const app = fastify({
     logger: loggerConfig,
+    trustProxy: true, // Enable trustProxy to respect X-Forwarded-For headers (critical for rate limiting behind proxies)
   });
 
   // Initialize moderation provider (41.md)
