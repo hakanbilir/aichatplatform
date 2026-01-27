@@ -58,7 +58,8 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
       cancelled = true;
       window.removeEventListener('conversation-created', handler);
     };
-  }, [token, selectedId]);
+    // Optimization: Remove selectedId to prevent re-fetching list on selection change
+  }, [token]);
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
