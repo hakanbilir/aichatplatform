@@ -50,6 +50,10 @@
     "saving": "Saving…",
     "failedToLoad": "Failed to load conversation settings"
   },
+  "message": {
+    "copy": "Copy to clipboard",
+    "copied": "Copied!"
+  },
   "conversation": {
     "new": "New Conversation",
     "saved": "Saved",
