@@ -49,6 +49,7 @@ import orgScimConnectionsRoutes from './routes/orgScimConnections';
 import datasetsRoutes from './routes/datasets';
 import trainingRunsRoutes from './routes/training-runs';
 import baseModelsRoutes from './routes/base-models';
+import aiContextRoutes from './routes/ai-context';
 import { initLlmProviders } from './llm/router';
 import { setModerationProvider } from './safety/provider';
 import { HeuristicModerationProvider } from './safety/heuristicProvider';
@@ -176,6 +177,7 @@ async function buildServer() {
   await app.register(datasetsRoutes);
   await app.register(trainingRunsRoutes);
   await app.register(baseModelsRoutes);
+  await app.register(aiContextRoutes);
 
   // Initialize LLM providers
   initLlmProviders();

@@ -19,39 +19,75 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { fetchUsageAnalytics, fetchTopUsers, UsageAnalyticsResponse, TopUserDto } from '../api/usageAnalytics';
+import { fetchTopUsers, UsageAnalyticsResponse, TopUserDto } from '../api/usageAnalytics';
+import { API_BASE_URL } from '../api/client';
+import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 export const OrgUsageDashboardPage: React.FC = () => {
   const { orgId } = useParams();
   const { token } = useAuth();
+  const { isEcoMode } = useEcoMode();
 
   const [usage, setUsage] = useState<UsageAnalyticsResponse | null>(null);
   const [topUsers, setTopUsers] = useState<TopUserDto[]>([]);
   const [featureFilter, setFeatureFilter] = useState<string>('all');
 
-  const gradientBg =
-    'radial-gradient(circle at top left, rgba(34,197,94,0.18), transparent 55%), ' +
-    'radial-gradient(circle at bottom right, rgba(59,130,246,0.18), transparent 55%)';
-
-  const load = async () => {
+  useEffect(() => {
     if (!token || !orgId) return;
 
-    const [u, t] = await Promise.all([
-      fetchUsageAnalytics(token, orgId, {
-        feature: featureFilter === 'all' ? undefined : featureFilter
-      }),
-      fetchTopUsers(token, orgId, {
-        feature: featureFilter === 'all' ? undefined : featureFilter
-      })
-    ]);
+    // Fetch top users (static)
+    fetchTopUsers(token, orgId, {
+      feature: featureFilter === 'all' ? undefined : featureFilter
+    }).then(t => setTopUsers(t.topUsers));
 
-    setUsage(u);
-    setTopUsers(t.topUsers);
-  };
+    // Stream analytics (kinetic)
+    let active = true;
+    const fetchStream = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/orgs/${orgId}/analytics/stream`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (!response.body) return;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (active) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          // Keep the last partial chunk in buffer
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+               const jsonStr = line.substring(6);
+               if (jsonStr === '"processing"') continue;
+               try {
+                 const data = JSON.parse(jsonStr);
+                 // Check if it's the full analytics object
+                 if (data.totals) setUsage(data);
+               } catch (e) {
+                 console.error('Stream parse error', e);
+               }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Stream error', err);
+      }
+    };
+
+    fetchStream();
+
+    return () => {
+      active = false;
+    };
   }, [orgId, token, featureFilter]);
 
   const formatCost = (micros: number) => {
@@ -64,9 +100,8 @@ export const OrgUsageDashboardPage: React.FC = () => {
         p: 2,
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
+        gap: 3,
         height: '100%',
-        backgroundImage: gradientBg,
         backgroundColor: 'background.default'
       }}
     >
@@ -74,7 +109,7 @@ export const OrgUsageDashboardPage: React.FC = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <AutoAwesomeIcon fontSize="small" />
           <Box>
-            <Typography variant="h6">Usage & cost dashboard</Typography>
+            <KineticTypography variant="h4" component="h1">Usage & cost dashboard</KineticTypography>
             <Typography variant="caption" color="text.secondary">
               Track token usage and estimated costs across your organization.
             </Typography>
@@ -96,45 +131,45 @@ export const OrgUsageDashboardPage: React.FC = () => {
       </Box>
 
       {usage && (
-        <Box display="flex" gap={2}>
-          <Card sx={{ borderRadius: 3, flex: 1 }}>
+        <BentoGrid>
+          <GlassPanel refractive={!isEcoMode}>
             <CardContent>
               <Typography variant="subtitle2" gutterBottom>
                 Total requests
               </Typography>
-              <Typography variant="h4">{usage.totals.requestCount.toLocaleString()}</Typography>
+              <KineticTypography variant="h3">{usage.totals.requestCount.toLocaleString()}</KineticTypography>
             </CardContent>
-          </Card>
-          <Card sx={{ borderRadius: 3, flex: 1 }}>
+          </GlassPanel>
+          <GlassPanel refractive={!isEcoMode}>
             <CardContent>
               <Typography variant="subtitle2" gutterBottom>
                 Total tokens
               </Typography>
-              <Typography variant="h4">
+              <KineticTypography variant="h3">
                 {(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()}
-              </Typography>
+              </KineticTypography>
               <Typography variant="caption" color="text.secondary">
                 {usage.totals.inputTokens.toLocaleString()} in ·{' '}
                 {usage.totals.outputTokens.toLocaleString()} out
               </Typography>
             </CardContent>
-          </Card>
-          <Card sx={{ borderRadius: 3, flex: 1 }}>
+          </GlassPanel>
+          <GlassPanel refractive={!isEcoMode}>
             <CardContent>
               <Typography variant="subtitle2" gutterBottom>
                 Estimated cost
               </Typography>
-              <Typography variant="h4">{formatCost(usage.totals.estimatedCostMicros)}</Typography>
+              <KineticTypography variant="h3">{formatCost(usage.totals.estimatedCostMicros)}</KineticTypography>
             </CardContent>
-          </Card>
-        </Box>
+          </GlassPanel>
+        </BentoGrid>
       )}
 
-      <Card sx={{ borderRadius: 3, flex: 1 }}>
+      <GlassPanel refractive={!isEcoMode} sx={{ flex: 1 }}>
         <CardContent>
-          <Typography variant="subtitle2" gutterBottom>
+          <KineticTypography variant="h5" gutterBottom>
             Top users
-          </Typography>
+          </KineticTypography>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -169,7 +204,7 @@ export const OrgUsageDashboardPage: React.FC = () => {
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
+      </GlassPanel>
     </Box>
   );
 };
