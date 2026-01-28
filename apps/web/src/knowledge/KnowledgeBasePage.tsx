@@ -17,13 +17,16 @@ import {
   Snackbar,
   Alert,
   TextField,
-  Typography
+  Typography,
+  Tooltip
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
 import { useParams } from 'react-router-dom';
 import { useKnowledgeSpaces } from './useKnowledgeSpaces';
 import { useKnowledgeSearch } from './useKnowledgeSearch';
@@ -47,6 +50,7 @@ export const KnowledgeBasePage: React.FC = () => {
   const [ingestText, setIngestText] = useState('');
   const [ingestSpaceId, setIngestSpaceId] = useState<string | undefined>(undefined);
   const [ingesting, setIngesting] = useState(false);
+  const [copiedChunkId, setCopiedChunkId] = useState<string | null>(null);
 
   // Snackbar state / Snackbar durumu
   const [snackbar, setSnackbar] = useState<{
@@ -100,6 +104,18 @@ export const KnowledgeBasePage: React.FC = () => {
       });
     } finally {
       setIngesting(false);
+    }
+  };
+
+  const handleCopyChunk = async (text: string, chunkId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedChunkId(chunkId);
+      setTimeout(() => {
+        setCopiedChunkId(null);
+      }, 2000);
+    } catch (err) {
+      // Ignore
     }
   };
 
@@ -293,9 +309,19 @@ export const KnowledgeBasePage: React.FC = () => {
                             <Typography variant="caption" color="text.secondary">
                               Score: {chunk.score.toFixed(3)}
                             </Typography>
-                            <IconButton size="small">
-                              {/* Placeholder for future actions (e.g. open full doc, pin, etc.) */}
-                            </IconButton>
+                            <Tooltip title={copiedChunkId === chunk.chunkId ? t('copied', { ns: 'common' }) : t('copy', { ns: 'common' }) || 'Copy content'}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleCopyChunk(chunk.text, chunk.chunkId)}
+                                color={copiedChunkId === chunk.chunkId ? 'success' : 'default'}
+                              >
+                                {copiedChunkId === chunk.chunkId ? (
+                                  <CheckIcon fontSize="small" />
+                                ) : (
+                                  <ContentCopyIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </Tooltip>
                           </Box>
                           <Typography
                             variant="body2"

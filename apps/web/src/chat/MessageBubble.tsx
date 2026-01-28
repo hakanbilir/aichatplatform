@@ -1,5 +1,7 @@
-import React from 'react';
-import { Box, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
@@ -9,12 +11,27 @@ interface MessageBubbleProps {
 // Optimized with React.memo to prevent re-renders of list items during streaming
 const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content }) => {
   const isUser = role === 'user';
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // ignore
+    }
+  };
+
   return (
     <Box
       display="flex"
       justifyContent={isUser ? 'flex-end' : 'flex-start'}
       mb={1.2}
-      className="micro-fade-in"
+      className="micro-fade-in group"
+      sx={{
+        '&:hover .copy-btn': { opacity: 1 },
+      }}
     >
       <Box
         sx={{
@@ -32,6 +49,23 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content })
           {content}
         </Typography>
       </Box>
+      {!isUser && (
+        <Box
+          className="copy-btn"
+          sx={{
+            opacity: 0,
+            alignSelf: 'center',
+            ml: 1,
+            transition: 'opacity 0.2s',
+          }}
+        >
+          <Tooltip title={copied ? 'Copied' : 'Copy'}>
+            <IconButton size="small" onClick={handleCopy} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              {copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
     </Box>
   );
 };
