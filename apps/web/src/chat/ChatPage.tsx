@@ -10,6 +10,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Button,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
@@ -31,6 +32,7 @@ import {
   updateConversation,
   getConversationUsage,
   ConversationUsageSummary,
+  deleteMessage,
 } from '../api/conversations';
 import { streamMessage, StreamEvent } from '../api/chat';
 import { ChatView } from './ChatView';
@@ -189,6 +191,14 @@ export const ChatPage: React.FC = () => {
     return () => window.clearTimeout(timeout);
   }, [savedAt]);
 
+  const handleStop = () => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setStreaming(false);
+  };
+
   const handleSend = async (content: string) => {
     if (!token || !conversationId) return;
 
@@ -264,6 +274,7 @@ export const ChatPage: React.FC = () => {
       );
     } finally {
       setStreaming(false);
+      abortRef.current = null;
     }
 
     // Refresh from backend to align IDs and usage
@@ -281,6 +292,52 @@ export const ChatPage: React.FC = () => {
       } catch {
         // ignore
       }
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!token || !conversationId || !conversation) return;
+
+    // Find last assistant message
+    const messages = conversation.messages;
+    const lastMsgIndex = messages.length - 1;
+    if (lastMsgIndex < 0) return;
+
+    const lastMsg = messages[lastMsgIndex];
+    if (lastMsg.role !== 'ASSISTANT' && lastMsg.role !== 'assistant') return;
+
+    // Find preceding user message
+    const userMsgIndex = lastMsgIndex - 1;
+    if (userMsgIndex < 0) return;
+
+    const userMsg = messages[userMsgIndex];
+
+    // Optimistically update UI
+    const newMessages = messages.slice(0, userMsgIndex);
+    setConversation({
+      ...conversation,
+      messages: newMessages
+    });
+
+    try {
+      // Delete assistant message
+      if (!lastMsg.id.startsWith('assistant-')) {
+          await deleteMessage(token, conversationId, lastMsg.id);
+      }
+
+      // Delete user message
+      if (!userMsg.id.startsWith('local-')) {
+          await deleteMessage(token, conversationId, userMsg.id);
+      }
+
+      // Resend
+      await handleSend(userMsg.content);
+
+    } catch (err) {
+      console.error("Failed to regenerate", err);
+      // Reload conversation to be safe
+       const convResp = await getConversation(token, conversationId);
+       setConversation(convResp.conversation);
     }
   };
 
@@ -471,6 +528,35 @@ export const ChatPage: React.FC = () => {
       {/* Chat view + input */}
       {/* Chat görünümü + input */}
       <ChatView messages={conversation?.messages ?? []} streamingAssistantText={streamingText} />
+
+      {/* Regenerate Button */}
+      {!streaming && conversation?.messages && conversation.messages.length > 0 &&
+       (conversation.messages[conversation.messages.length - 1].role === 'ASSISTANT' ||
+        conversation.messages[conversation.messages.length - 1].role === 'assistant') && (
+        <Box display="flex" justifyContent="center" pb={1}>
+           <Button
+             startIcon={<RestartAltIcon />}
+             size="small"
+             variant="outlined"
+             onClick={handleRegenerate}
+             sx={{
+               borderRadius: 4,
+               textTransform: 'none',
+               fontSize: '0.8rem',
+               borderColor: 'rgba(255,255,255,0.12)',
+               color: 'text.secondary',
+               '&:hover': {
+                 borderColor: 'primary.main',
+                 color: 'primary.main',
+                 bgcolor: 'rgba(124,77,255,0.04)'
+               }
+             }}
+           >
+             {t('chat.regenerate', 'Regenerate response')}
+           </Button>
+        </Box>
+      )}
+
       <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
         <IconButton
           size="small"
@@ -483,6 +569,8 @@ export const ChatPage: React.FC = () => {
       </Box>
       <MessageInput
         disabled={!conversationId || streaming}
+        isStreaming={streaming}
+        onStop={handleStop}
         onSend={handleSend}
         value={messageInputValue}
         onChange={setMessageInputValue}

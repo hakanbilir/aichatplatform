@@ -2,15 +2,25 @@ import React, { useState } from 'react';
 import { Box, IconButton, TextField, CircularProgress, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SendIcon from '@mui/icons-material/Send';
+import StopIcon from '@mui/icons-material/Stop';
 
 interface MessageInputProps {
   disabled?: boolean;
   onSend: (content: string) => void;
   value?: string; // Controlled value for prompt insertion
   onChange?: (value: string) => void; // For controlled mode
+  isStreaming?: boolean;
+  onStop?: () => void;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, value: controlledValue, onChange }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({
+  disabled,
+  onSend,
+  value: controlledValue,
+  onChange,
+  isStreaming = false,
+  onStop
+}) => {
   const { t } = useTranslation('chat');
   const [internalValue, setInternalValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -25,10 +35,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
   };
 
   const hasContent = value.trim().length > 0;
-  const isSendDisabled = disabled || submitting || !hasContent;
+  // If streaming, send button becomes stop button, so it is not disabled unless onStop is missing
+  // If not streaming, check disabled/submitting/content
+  const isActionDisabled = isStreaming
+    ? !onStop
+    : (disabled || submitting || !hasContent);
 
   const handleSend = async () => {
-    if (isSendDisabled) return;
+    if (isActionDisabled) return;
     const content = value;
     setSubmitting(true);
     try {
@@ -39,8 +53,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
     }
   };
 
+  const handleStop = () => {
+    if (onStop) onStop();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       void handleSend();
     }
@@ -59,25 +77,28 @@ export const MessageInput: React.FC<MessageInputProps> = ({ disabled, onSend, va
           setValue(newValue);
         }}
         onKeyDown={handleKeyDown}
-        disabled={disabled}
+        disabled={disabled && !isStreaming}
         variant="outlined"
         size="small"
       />
-      <Tooltip title={t('messageInput.send')}>
+      <Tooltip title={isStreaming ? t('messageInput.stop', 'Stop generating') : t('messageInput.send')}>
         <span>
           <IconButton
-            color="primary"
-            disabled={isSendDisabled}
-            onClick={handleSend}
-            aria-label={t('messageInput.send')}
+            color={isStreaming ? "error" : "primary"}
+            disabled={isActionDisabled}
+            onClick={isStreaming ? handleStop : handleSend}
+            aria-label={isStreaming ? t('messageInput.stop', 'Stop generating') : t('messageInput.send')}
             sx={{
               width: 40,
               height: 40,
               borderRadius: '50%',
-              bgcolor: 'rgba(255,255,255,0.06)',
+              bgcolor: isStreaming ? 'rgba(244,67,54,0.1)' : 'rgba(255,255,255,0.06)',
+              '&:hover': {
+                 bgcolor: isStreaming ? 'rgba(244,67,54,0.2)' : undefined,
+              }
             }}
           >
-            {submitting ? <CircularProgress size={20} /> : <SendIcon />}
+            {isStreaming ? <StopIcon /> : (submitting ? <CircularProgress size={20} /> : <SendIcon />)}
           </IconButton>
         </span>
       </Tooltip>
