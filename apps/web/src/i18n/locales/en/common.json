@@ -34,6 +34,7 @@
   "success": "Success",
   "warning": "Warning",
   "info": "Info",
-  "workspace": "Workspace"
+  "workspace": "Workspace",
+  "copy": "Copy",
+  "copied": "Copied"
 }
-
