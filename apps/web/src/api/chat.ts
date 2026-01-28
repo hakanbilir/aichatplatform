@@ -24,7 +24,14 @@ export interface SendMessageResponse {
 export async function sendMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+    images?: string[];
+  },
 ): Promise<SendMessageResponse> {
   return apiRequest<SendMessageResponse>(
     `/conversations/${conversationId}/messages`,
@@ -55,7 +62,14 @@ export type StreamEvent =
 export async function streamMessage(
   token: string,
   conversationId: string,
-  data: { content: string; model?: string; temperature?: number; topP?: number; maxTokens?: number },
+  data: {
+    content: string;
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+    images?: string[];
+  },
   onEvent: (event: StreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
