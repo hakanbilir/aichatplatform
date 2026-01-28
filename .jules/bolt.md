@@ -5,3 +5,7 @@
 ## 2026-01-28 - Route Code Splitting
 **Learning:** Static imports of all page components in `router.tsx` cause a massive initial bundle size. Using `React.lazy` with `Suspense` significantly reduces initial load time.
 **Action:** Use `React.lazy` for all route components. For named exports, use the pattern: `lazy(() => import('./...').then(m => ({ default: m.Component })))`. Wrap `Outlet` in layout components with `Suspense` to preserve UI structure during navigation.
+
+## 2026-01-29 - N+1 Fetch in useEffect Dependencies
+**Learning:** Including state variables (like `selectedId`) that trigger updates in the same effect that fetches data causes unnecessary re-fetching (N+1 query equivalent) when the state changes.
+**Action:** Remove state variables that are not required for the fetch itself from the dependency array, or split the effect into "data fetching" (depends on criteria) and "reaction" (depends on state).
