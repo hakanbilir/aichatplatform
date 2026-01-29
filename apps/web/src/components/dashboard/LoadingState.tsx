@@ -31,7 +31,12 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
   if (skeleton) {
     return (
-      <Box sx={{ width: fullWidth ? '100%' : 'auto', ...sx }}>
+      <Box
+        role="status"
+        aria-busy="true"
+        aria-live="polite"
+        sx={{ width: fullWidth ? '100%' : 'auto', ...sx }}
+      >
         {skeletonVariant === 'text' ? (
           <>
             {Array.from({ length: skeletonLines }).map((_, index) => (
@@ -59,6 +64,8 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
   return (
     <Box
+      role="status"
+      aria-live="polite"
       sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -71,6 +78,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
     >
       <CircularProgress
         size={48}
+        aria-label={message || 'Loading'}
         sx={{
           color: theme.palette.primary.main,
           mb: message ? 2 : 0,
