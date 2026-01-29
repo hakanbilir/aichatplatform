@@ -9,3 +9,7 @@
 ## 2026-01-29 - N+1 Fetch in useEffect Dependencies
 **Learning:** Including state variables (like `selectedId`) that trigger updates in the same effect that fetches data causes unnecessary re-fetching (N+1 query equivalent) when the state changes.
 **Action:** Remove state variables that are not required for the fetch itself from the dependency array, or split the effect into "data fetching" (depends on criteria) and "reaction" (depends on state).
+
+## 2026-02-04 - List Selection Performance
+**Learning:** In lists where a single item is selected (e.g., navigation sidebars), storing `selectedId` in the parent component causes the entire list to re-render when selection changes.
+**Action:** Extract the list item into a `React.memo` component and ensure callback props (like `onSelect`) are stable using `useCallback`. This reduces re-renders from O(N) to O(1) (only the 2 changed items update).
