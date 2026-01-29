@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Typography,
   FormControl,
   InputLabel,
   Select,
@@ -10,7 +9,6 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Button,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
@@ -34,6 +32,11 @@ import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
 import { useChat } from '../hooks/useChat';
+import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
@@ -52,6 +55,7 @@ function clampTopP(value: number): number {
 export const ChatPage: React.FC = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
+  const { isEcoMode } = useEcoMode();
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Hook handles fetching, streaming, state
@@ -228,23 +232,22 @@ export const ChatPage: React.FC = () => {
         : t('settings.creativity.creative');
 
   return (
-    <Box display="flex" flexDirection="column" flex={1}>
+    <BentoGrid sx={{ height: '100%', gridTemplateColumns: '1fr', p: 2 }}>
       {/* Settings bar */}
-      <Box
-        px={2}
-        py={1}
+      <GlassPanel
+        refractive={!isEcoMode}
         sx={{
           display: 'flex',
           alignItems: 'center',
           gap: 2,
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: 'radial-gradient(circle at top left, rgba(124,77,255,0.16), transparent 55%)',
+          p: 1.5,
+          minHeight: 'auto'
         }}
       >
         <Box flex={1} minWidth={0}>
-          <Typography variant="subtitle2" noWrap>
+          <KineticTypography variant="subtitle2" noWrap>
             {currentTitle}
-          </Typography>
+          </KineticTypography>
           <Typography variant="caption" color="text.secondary">
             {t('settings.modelPerConversation')}
           </Typography>
@@ -344,57 +347,61 @@ export const ChatPage: React.FC = () => {
             />
           )}
         </Box>
-      </Box>
+      </GlassPanel>
 
       {/* Chat view */}
-      <ChatView messages={messages ?? []} streamingAssistantText={streamingText} />
+      <GlassPanel refractive={!isEcoMode} sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <ChatView messages={messages ?? []} streamingAssistantText={streamingText} />
 
-      {/* Regenerate Button */}
-      {!isStreaming && messages && messages.length > 0 &&
-       (messages[messages.length - 1].role === 'ASSISTANT' ||
-        messages[messages.length - 1].role === 'assistant') && (
-        <Box display="flex" justifyContent="center" pb={1}>
-           <Button
-             startIcon={<RestartAltIcon />}
-             size="small"
-             variant="outlined"
-             onClick={regenerate}
-             sx={{
-               borderRadius: 4,
-               textTransform: 'none',
-               fontSize: '0.8rem',
-               borderColor: 'rgba(255,255,255,0.12)',
-               color: 'text.secondary',
-               '&:hover': {
-                 borderColor: 'primary.main',
-                 color: 'primary.main',
-                 bgcolor: 'rgba(124,77,255,0.04)'
-               }
-             }}
-           >
-             {t('chat.regenerate', 'Regenerate response')}
-           </Button>
+        {/* Regenerate Button */}
+        {!isStreaming && messages && messages.length > 0 &&
+        (messages[messages.length - 1].role === 'ASSISTANT' ||
+          messages[messages.length - 1].role === 'assistant') && (
+          <Box display="flex" justifyContent="center" pb={1}>
+            <SpecularButton
+              startIcon={<RestartAltIcon />}
+              size="small"
+              variant="outlined"
+              onClick={regenerate}
+              data-ai-action="regenerate"
+              sx={{
+                borderRadius: 4,
+                borderColor: 'rgba(255,255,255,0.12)',
+                color: 'text.secondary',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  bgcolor: 'rgba(124,77,255,0.04)'
+                }
+              }}
+            >
+              {t('chat.regenerate', 'Regenerate response')}
+            </SpecularButton>
+          </Box>
+        )}
+      </GlassPanel>
+
+      {/* Input Area */}
+      <GlassPanel refractive={!isEcoMode} sx={{ p: 1 }}>
+        <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
+          <IconButton
+            size="small"
+            onClick={() => setPromptLibraryOpen(true)}
+            sx={{ opacity: 0.7 }}
+            title={t('settings.promptLibrary')}
+          >
+            <AutoAwesomeIcon fontSize="small" />
+          </IconButton>
         </Box>
-      )}
-
-      <Box display="flex" alignItems="center" gap={0.5} px={2} pb={0.5}>
-        <IconButton
-          size="small"
-          onClick={() => setPromptLibraryOpen(true)}
-          sx={{ opacity: 0.7 }}
-          title={t('settings.promptLibrary')}
-        >
-          <AutoAwesomeIcon fontSize="small" />
-        </IconButton>
-      </Box>
-      <MessageInput
-        disabled={!conversationId || isStreaming}
-        isStreaming={isStreaming}
-        onStop={stop}
-        onSend={handleSend}
-        value={messageInputValue}
-        onChange={setMessageInputValue}
-      />
+        <MessageInput
+          disabled={!conversationId || isStreaming}
+          isStreaming={isStreaming}
+          onStop={stop}
+          onSend={handleSend}
+          value={messageInputValue}
+          onChange={setMessageInputValue}
+        />
+      </GlassPanel>
 
       {/* Settings drawer */}
       <ConversationSettingsDrawer
@@ -465,6 +472,6 @@ export const ChatPage: React.FC = () => {
           basePublicUrl={window.location.origin}
         />
       )}
-    </Box>
+    </BentoGrid>
   );
 };

@@ -1,23 +1,272 @@
 {
-  "version": "1.0",
-  "timestamp": "2026-01-27T16:16:12.711Z",
-  "components": [
-    {
-      "name": "GlassPanel",
-      "roles": [
-        "region"
-      ],
-      "contrast": "4.5:1 (calculated)",
-      "notes": "Ensure backdrop-filter is disabled in high-contrast mode."
+  "generatedAt": "2026-01-29T16:38:55.371Z",
+  "standards": "WCAG 2.1 AAA",
+  "theme": "Kinetic Refraction 2026",
+  "components": {
+    "GlassPanel": {
+      "role": "region",
+      "contrastRatio": "4.5:1 (with blur)",
+      "ariaLabel": "dynamic"
     },
-    {
-      "name": "SpecularButton",
-      "roles": [
-        "button"
-      ],
-      "contrast": "Pass",
-      "notes": "Interactive highlights do not interfere with text legibility."
+    "SpecularButton": {
+      "role": "button",
+      "focusable": true,
+      "tabIndex": 0,
+      "contrastRatio": "7:1"
     }
-  ],
-  "summary": "Kinetic design system meets WCAG 2.1 AA standards."
+  },
+  "routes": {
+    "/auth/login": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "/auth/signup": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "/app": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/knowledge": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/chat/:conversationId?": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/ai-policy": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/presets": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/inbox": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/webhooks": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/audit-log": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/retention": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/members": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/api-keys": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/branding": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/analytics": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/safety": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/safety/incidents": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/prompt-templates": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/chat-profiles": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/models": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/playground": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/experiments": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/usage": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/billing": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/sso": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "orgs/:orgId/settings/scim": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "s/:slug": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    },
+    "*": {
+      "tabOrder": "Sequential",
+      "ariaLandmarks": [
+        "banner",
+        "main",
+        "contentinfo"
+      ],
+      "glassEffects": "Reduced in Eco-Mode"
+    }
+  }
 }

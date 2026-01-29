@@ -8,15 +8,18 @@ import {
   Avatar,
   TextField,
   InputAdornment,
+  Tooltip,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import EnergySavingsLeafIcon from '@mui/icons-material/EnergySavingsLeaf';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { useIsMobile } from '../utils/responsive';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 export const TopBar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -24,6 +27,7 @@ export const TopBar: React.FC = () => {
   const isMobile = useIsMobile();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isEcoMode, toggleEcoMode } = useEcoMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -183,6 +187,17 @@ export const TopBar: React.FC = () => {
           flex={isMobile ? '1 1 100%' : '0 0 auto'}
           justifyContent={isMobile ? 'space-between' : 'flex-end'}
         >
+          {/* Eco Mode Toggle */}
+          <Tooltip title={isEcoMode ? "Turn off Eco Mode" : "Turn on Eco Mode"}>
+            <IconButton
+              onClick={toggleEcoMode}
+              color={isEcoMode ? "success" : "inherit"}
+              size="small"
+            >
+              <EnergySavingsLeafIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
           <LanguageSwitcher />
           {user && !isMobile && (
             <>
@@ -242,4 +257,3 @@ export const TopBar: React.FC = () => {
     </AppBar>
   );
 };
-

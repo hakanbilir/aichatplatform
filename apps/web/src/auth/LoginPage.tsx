@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Box, Button, TextField, Typography, Paper, Link, IconButton, InputAdornment } from '@mui/material';
+import { Box, Button, TextField, Typography, Link, IconButton, InputAdornment } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { login } from '../api/auth';
 import { useAuth } from './AuthContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 export const LoginPage: React.FC = () => {
   const { setAuthFromResponse } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('auth');
+  const { isEcoMode } = useEcoMode();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,10 +55,13 @@ export const LoginPage: React.FC = () => {
       >
         <LanguageSwitcher />
       </Box>
-      <Paper className="micro-elevated" sx={{ p: 4, width: 380 }}>
-        <Typography variant="h5" gutterBottom>
+      <GlassPanel
+        refractive={!isEcoMode}
+        sx={{ p: 4, width: 380 }}
+      >
+        <KineticTypography variant="h5" gutterBottom component="h1">
           {t('login.title')}
-        </Typography>
+        </KineticTypography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
           {t('login.subtitle')}
         </Typography>
@@ -67,6 +74,8 @@ export const LoginPage: React.FC = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            variant="outlined"
+            sx={{ mb: 2 }}
           />
           <TextField
             label={t('login.password')}
@@ -96,7 +105,14 @@ export const LoginPage: React.FC = () => {
               {error}
             </Typography>
           )}
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3 }} disabled={loading}>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3 }}
+            disabled={loading}
+            data-ai-action="login"
+          >
             {loading ? t('login.signingIn') : t('login.signIn')}
           </Button>
         </Box>
@@ -108,8 +124,7 @@ export const LoginPage: React.FC = () => {
             </Link>
           </Typography>
         </Box>
-      </Paper>
+      </GlassPanel>
     </Box>
   );
 };
-
