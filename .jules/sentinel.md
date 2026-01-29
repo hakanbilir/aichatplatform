@@ -14,3 +14,8 @@
 **Vulnerability:** The application allowed users to sign up with weak passwords (e.g., "password", "12345678") because the Zod schema only enforced a minimum length of 8 characters. The password strength validation helper was only used for demo mode auto-created accounts, not for regular user signups.
 **Learning:** Having a validation helper function doesn't mean it's being used. Always verify that validation logic is applied to the public-facing route handlers. Zod schemas are a great place to enforce these rules centrally as they can be easily tested and reused.
 **Prevention:** Enforce password complexity (uppercase, lowercase, number, special char) directly in the Zod schema using `.regex()` or `.refine()`. Create explicit tests for password policy to ensure it doesn't degrade over time.
+
+## 2026-01-29 - Insecure CORS Configuration
+**Vulnerability:** API Gateway was configured with `origin: true` and `credentials: true`. This reflects the `Origin` header, allowing any website to make authenticated requests.
+**Learning:** `fastify-cors` with `origin: true` is convenient but dangerous when combined with credentials. It is equivalent to `Access-Control-Allow-Origin: *` but supports credentials (which `*` does not).
+**Prevention:** Always use an explicit allowlist for origins. Validate `origin` against a configured list (e.g., `CORS_ALLOWED_ORIGINS`).
