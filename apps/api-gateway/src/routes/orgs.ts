@@ -327,6 +327,12 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
       'member:update',
     );
 
+    // Verify member belongs to org (IDOR check)
+    const member = await prisma.orgMember.findUnique({ where: { id: memberId } });
+    if (!member || member.orgId !== orgId) {
+      return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
+    }
+
     const updated = await prisma.orgMember.update({
       where: { id: memberId },
       data: {
@@ -363,6 +369,12 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
       orgId,
       'member:remove',
     );
+
+    // Verify member belongs to org (IDOR check)
+    const member = await prisma.orgMember.findUnique({ where: { id: memberId } });
+    if (!member || member.orgId !== orgId) {
+      return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
+    }
 
     await prisma.orgMember.delete({ where: { id: memberId } });
 

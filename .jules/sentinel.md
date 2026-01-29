@@ -19,3 +19,8 @@
 **Vulnerability:** API Gateway was configured with `origin: true` and `credentials: true`. This reflects the `Origin` header, allowing any website to make authenticated requests.
 **Learning:** `fastify-cors` with `origin: true` is convenient but dangerous when combined with credentials. It is equivalent to `Access-Control-Allow-Origin: *` but supports credentials (which `*` does not).
 **Prevention:** Always use an explicit allowlist for origins. Validate `origin` against a configured list (e.g., `CORS_ALLOWED_ORIGINS`).
+
+## 2026-01-30 - IDOR in Organization Member Management
+**Vulnerability:** The API endpoints for updating (`PATCH`) and deleting (`DELETE`) organization members in `orgs.ts` relied solely on the `id` of the member resource. Although `assertOrgPermission` verified that the caller had administrative rights on the target organization, it did not verify that the member resource actually belonged to that organization. An attacker with admin rights on *any* organization could update or delete members of *any other* organization by guessing or obtaining their member ID (UUID).
+**Learning:** Checking permissions on the parent resource (Organization) is not sufficient when operating on child resources (Members) by their global ID. You must always verify the relationship between the parent and child resource.
+**Prevention:** Always verify ownership before performing updates or deletes. Use `findUnique` to fetch the record and check its `orgId` (or parent ID) against the authorized context before proceeding. Alternatively, include the parent ID in the `where` clause if the database schema and ORM support compound lookups easily.
