@@ -53,6 +53,30 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     defaultTemperature: 0.7,
     supportsTools: false,
   },
+  {
+    id: 'openai:gpt-4o',
+    provider: 'openai',
+    label: 'GPT-4o (OpenAI)',
+    providerModel: 'gpt-4o',
+    defaultTemperature: 0.7,
+    supportsTools: true,
+  },
+  {
+    id: 'openai:gpt-4o-mini',
+    provider: 'openai',
+    label: 'GPT-4o Mini (OpenAI)',
+    providerModel: 'gpt-4o-mini',
+    defaultTemperature: 0.7,
+    supportsTools: true,
+  },
+  {
+    id: 'openai:o1-preview',
+    provider: 'openai',
+    label: 'o1 Preview (Reasoning)',
+    providerModel: 'o1-preview',
+    defaultTemperature: 1.0,
+    supportsTools: true,
+  },
   // You can extend this registry with openai:*, local:* etc.
 ];
 

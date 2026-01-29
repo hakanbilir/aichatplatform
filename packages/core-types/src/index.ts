@@ -188,7 +188,7 @@ export interface ChatCompletionResponse {
 // Streaming Types
 // =========================
 
-export type ChatStreamEventType = 'start' | 'token' | 'end' | 'error';
+export type ChatStreamEventType = 'start' | 'token' | 'tool_start' | 'tool_end' | 'end' | 'error';
 
 /**
  * A single streaming event emitted during a chat completion.
@@ -201,6 +201,15 @@ export interface ChatStreamEvent {
    * `token` event'leri için, bu artımlı token içeriğidir.
    */
   token?: string;
+  /**
+   * For `tool_start` and `tool_end` events.
+   */
+  toolName?: string;
+  toolCallId?: string;
+  /**
+   * For `tool_end` events, the result of the tool execution.
+   */
+  toolResult?: unknown;
   /**
    * For `end` events, the final accumulated message (if available).
    * `end` event'leri için, son birikmiş mesaj (varsa).

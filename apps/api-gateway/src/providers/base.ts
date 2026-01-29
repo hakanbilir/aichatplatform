@@ -28,10 +28,17 @@ export interface ProviderChatResult {
   usage?: ProviderUsage;
 }
 
+import { ChatStreamEvent } from '@ai-chat/core-types';
+
 export interface ModelProvider {
   /**
    * Execute a single-turn chat completion with full history.
    */
   chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult>;
+
+  /**
+   * Execute a single-turn streaming chat completion.
+   */
+  chatStream?(messages: ProviderMessage[], options: ProviderChatOptions): AsyncGenerator<ChatStreamEvent, void, unknown>;
 }
 

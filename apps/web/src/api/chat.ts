@@ -46,9 +46,11 @@ export async function sendMessage(
 export type StreamEvent =
   | { type: 'start' }
   | { type: 'token'; token: string }
+  | { type: 'tool_start'; toolName: string; toolCallId?: string }
+  | { type: 'tool_end'; toolName: string; toolCallId?: string; toolResult?: unknown }
   | {
       type: 'end';
-      message: { role: string; content: string };
+      finalMessage?: { role: string; content: string };
       usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
     }
   | { type: 'error'; error: string };

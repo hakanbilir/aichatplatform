@@ -17,6 +17,7 @@ import { retrieveRelevantChunks } from './knowledgeRetrieval';
 import { getOrgAiPolicy } from './orgAiPolicy';
 import { emitEvent } from '../events/emitter';
 import { recordUsage } from '../usage/usageTracker';
+import { ChatStreamEvent } from '@ai-chat/core-types';
 
 export type ChatRole = 'SYSTEM' | 'USER' | 'ASSISTANT' | 'TOOL';
 
@@ -24,6 +25,12 @@ export interface RunConversationTurnInput {
   conversationId: string;
   userId: string;
   content: string; // latest user message content
+  overrides?: {
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+  };
 }
 
 export interface RunConversationTurnResult {
@@ -45,12 +52,7 @@ function parseToolEnvelopeCandidate(text: string): ToolCallEnvelope | null {
   }
 }
 
-export async function runConversationTurn(
-  input: RunConversationTurnInput,
-): Promise<RunConversationTurnResult> {
-  const { conversationId, userId, content } = input;
-  const startedAt = process.hrtime.bigint();
-
+async function prepareConversationContext(conversationId: string, userId: string, content: string, overrides?: RunConversationTurnInput['overrides']) {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: {
@@ -61,8 +63,8 @@ export async function runConversationTurn(
       systemPrompt: true,
       toolsEnabled: true,
       kbConfig: true,
-      chatProfileId: true, // Include ChatProfile ID (42.md)
-      metadata: true, // Include metadata for presetId (35.md)
+      chatProfileId: true,
+      metadata: true,
       chatProfile: {
         select: {
           id: true,
@@ -129,30 +131,19 @@ export async function runConversationTurn(
     },
   });
 
-  // If ChatProfile is present, use its model config (42.md)
-  // ChatProfile varsa, model yapılandırmasını kullan (42.md)
-  let effectiveModelId = resolveModelId(conversation.model);
-  let effectiveTemperature = typeof conversation.temperature === 'number'
+  let effectiveModelId = resolveModelId(overrides?.model ?? conversation.model);
+  let effectiveTemperature = overrides?.temperature ?? (typeof conversation.temperature === 'number'
     ? conversation.temperature
-    : undefined;
-  // These are assigned but not currently used in LLM calls - kept for future use
-  // @ts-ignore - intentionally unused, reserved for future use
-  let _effectiveTopP = undefined;
-  // @ts-ignore - intentionally unused, reserved for future use
-  let _effectiveMaxTokens: number | null | undefined = undefined;
-  void _effectiveTopP; // Suppress unused variable warning
-  void _effectiveMaxTokens; // Suppress unused variable warning
+    : undefined);
 
-  if (conversation.chatProfile) {
+  // If overrides are present, they take precedence over ChatProfile too?
+  // Usually explicit user overrides (if allowed) win.
+
+  if (conversation.chatProfile && !overrides?.model) {
     const profile = conversation.chatProfile;
     effectiveModelId = `${profile.modelProvider}:${profile.modelName}`;
     effectiveTemperature = profile.temperature;
-    _effectiveTopP = profile.topP;
-    _effectiveMaxTokens = profile.maxTokens;
-    void _effectiveTopP; // Suppress unused variable warning
-    void _effectiveMaxTokens; // Suppress unused variable warning
 
-    // Render system prompt from template if present (42.md)
     if (profile.systemTemplateId && profile.systemTemplateVersion && conversation.orgId) {
       const { renderSystemPromptFromProfile } = await import('../promptStudio/render');
       const rendered = await renderSystemPromptFromProfile(profile.id, {
@@ -161,22 +152,17 @@ export async function runConversationTurn(
         conversationId: conversation.id
       });
       if (rendered && !conversation.systemPrompt) {
-        // Only use rendered prompt if no custom system prompt exists
-        // Yalnızca özel sistem istemi yoksa işlenmiş istemi kullan
         (conversation as any).systemPrompt = rendered;
       }
     }
   }
 
   const modelConfig = getModelConfig(effectiveModelId);
-  const provider = getProviderForModel(modelConfig);
-
   const temperature = effectiveTemperature ?? modelConfig.defaultTemperature;
-
   const toolsEnabled = (conversation.toolsEnabled as any) || {};
   const structuredToolsEnabled = Boolean(toolsEnabled.structuredTools);
 
-  // RAG retrieval (if enabled)
+  // RAG retrieval
   let ragContextText: string | null = null;
   const kbConfig = (conversation.kbConfig as any) || {};
   if (kbConfig.rag?.enabled && conversation.orgId) {
@@ -185,27 +171,16 @@ export async function runConversationTurn(
       const chunks = await retrieveRelevantChunks({
         orgId: conversation.orgId,
         spaceId: kbConfig.rag.spaceId ?? null,
-        query: content, // The latest user message content
+        query: content,
         limit: maxChunks
       });
 
       if (chunks.length > 0) {
-        ragContextText = chunks
-          .map((c) => c.text)
-          .join('\n\n');
-
-        // Emit RAG usage event
+        ragContextText = chunks.map((c) => c.text).join('\n\n');
         await emitEvent({
           type: 'conversation.rag_used',
-          context: {
-            orgId: conversation.orgId!,
-            userId,
-            conversationId: conversation.id
-          },
-          metadata: {
-            spaceId: kbConfig.rag.spaceId ?? null,
-            chunkCount: chunks.length
-          }
+          context: { orgId: conversation.orgId!, userId, conversationId: conversation.id },
+          metadata: { spaceId: kbConfig.rag.spaceId ?? null, chunkCount: chunks.length }
         }).catch((err) => {
           logger.error({ err }, 'Failed to emit rag_used event');
         });
@@ -220,95 +195,48 @@ export async function runConversationTurn(
     }
   }
 
-  // Build base provider messages (history)
-  // System messages priority: Org AI Policy → Preset → Custom → RAG → History
   const baseMessages: ProviderMessage[] = [];
-
-  // 1. Org AI Policy system prompt (if present)
   if (conversation.orgId) {
     try {
       const policy = await getOrgAiPolicy(conversation.orgId);
       if (policy && policy.systemPrompt.trim()) {
-        baseMessages.push({
-          role: 'system',
-          content: policy.systemPrompt.trim()
-        });
+        baseMessages.push({ role: 'system', content: policy.systemPrompt.trim() });
       }
     } catch (err) {
-      logger.warn({
-        event: 'org.policy.load.error',
-        conversationId: conversation.id,
-        orgId: conversation.orgId,
-        error: (err as Error).message
-      }, 'Failed to load org AI policy, continuing without it');
+      logger.warn({ error: (err as Error).message }, 'Failed to load org AI policy');
     }
   }
 
-  // 2. Conversation preset system prompt (if present)
-  // Konuşma preset sistem istemi (varsa)
   const metadata = (conversation.metadata as Record<string, any>) || {};
   const presetId = metadata.presetId as string | undefined;
-  
   if (presetId && conversation.orgId) {
     try {
       const preset = await prisma.conversationPreset.findFirst({
-        where: {
-          id: presetId,
-          orgId: conversation.orgId
-        },
-        select: {
-          systemPrompt: true
-        }
+        where: { id: presetId, orgId: conversation.orgId },
+        select: { systemPrompt: true }
       });
-
       if (preset && preset.systemPrompt && preset.systemPrompt.trim()) {
-        baseMessages.push({
-          role: 'system',
-          content: preset.systemPrompt.trim()
-        });
+        baseMessages.push({ role: 'system', content: preset.systemPrompt.trim() });
       }
     } catch (err) {
-      logger.warn({
-        event: 'preset.load.error',
-        conversationId: conversation.id,
-        presetId,
-        orgId: conversation.orgId,
-        error: (err as Error).message
-      }, 'Failed to load preset system prompt, continuing without it');
+      logger.warn({ error: (err as Error).message }, 'Failed to load preset system prompt');
     }
   }
 
-  // 3. Conversation-specific system prompt (user-edited)
   if (conversation.systemPrompt && conversation.systemPrompt.trim()) {
-    baseMessages.push({
-      role: 'system',
-      content: conversation.systemPrompt.trim(),
-    });
+    baseMessages.push({ role: 'system', content: conversation.systemPrompt.trim() });
   }
 
-  // 4. RAG context system message (if enabled)
   if (ragContextText) {
     baseMessages.push({
       role: 'system',
-      content:
-        'You have access to the following knowledge base context. Use it to answer the user question. ' +
-        'If the context does not contain the answer, say so explicitly.\n\n' +
-        ragContextText
+      content: 'You have access to the following knowledge base context. Use it to answer the user question. If the context does not contain the answer, say so explicitly.\n\n' + ragContextText
     });
   }
 
   for (const msg of history) {
     const role = (msg.role as ChatRole) || 'USER';
-
-    if (role === 'SYSTEM') {
-      baseMessages.push({ role: 'system', content: msg.content });
-    } else if (role === 'USER') {
-      baseMessages.push({ role: 'user', content: msg.content });
-    } else if (role === 'ASSISTANT') {
-      baseMessages.push({ role: 'assistant', content: msg.content });
-    } else if (role === 'TOOL') {
-      baseMessages.push({ role: 'tool', content: msg.content });
-    }
+    baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: msg.content });
   }
 
   const ctx: ToolContext = {
@@ -317,203 +245,45 @@ export async function runConversationTurn(
     conversationId: conversation.id,
   };
 
-  // If structured tools are enabled, run a two-phase orchestration:
-  //   1) Ask the model if it wants to call tools.
-  //   2) If it returns a ToolCallEnvelope, execute tools and then ask again with tool results.
-
-  if (structuredToolsEnabled) {
-    const tools = await listToolsForContext(ctx);
-    const toolsPrompt = buildToolsSystemPrompt(tools);
-
-    const planningMessages: ProviderMessage[] = [{ role: 'system', content: toolsPrompt }, ...baseMessages];
-
-    const planResult = await provider.chat(planningMessages, {
-      model: modelConfig.providerModel,
-      temperature,
-      toolsEnabled,
-    });
-
-    const envelope = parseToolEnvelopeCandidate(planResult.content);
-
-    if (envelope && envelope.toolCalls.length > 0) {
-      // Emit tool_call event
-      if (conversation.orgId) {
-        await emitEvent({
-          type: 'conversation.tool_call',
-          context: {
-            orgId: conversation.orgId,
-            userId,
-            conversationId: conversation.id
-          },
-          metadata: {
-            toolNames: envelope.toolCalls.map((t) => t.tool),
-            modelId: conversation.model
-          }
-        }).catch((err) => {
-          logger.error({ err }, 'Failed to emit tool_call event');
-        });
-      }
-
-      // Execute tools
-      const toolResults = await executeToolEnvelope(envelope, ctx);
-
-      // Store tool result message
-      const toolMessage = await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          role: 'TOOL',
-          content: JSON.stringify(toolResults, null, 2),
-          meta: {
-            toolsEnvelope: envelope as unknown as Prisma.JsonValue,
-          },
-        },
-      });
-
-      // Ask model again with tool results appended
-      const messagesWithTools: ProviderMessage[] = [
-        ...baseMessages,
-        {
-          role: 'tool',
-          content:
-            'Tool results (JSON):\n' +
-            JSON.stringify({ toolResults }, null, 2) +
-            '\nUse this information to answer the user. Respond normally to the user now.',
-        },
-      ];
-
-      const finalResult = await provider.chat(messagesWithTools, {
-        model: modelConfig.providerModel,
-        temperature,
-        toolsEnabled,
-      });
-
-      const assistantMessage = await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          role: 'ASSISTANT',
-          content: finalResult.content,
-          meta: {
-            usage: (finalResult.usage || {}) as unknown as Prisma.JsonValue,
-            toolMessageId: toolMessage.id,
-          },
-        },
-      });
-
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: {
-          lastActivityAt: new Date(),
-        },
-      });
-
-      const diffNs = Number(process.hrtime.bigint() - startedAt);
-      const durationSec = diffNs / 1e9;
-
-      chatTurnDurationSeconds
-        .labels(modelConfig.id, conversation.orgId || 'none', 'true')
-        .observe(durationSec);
-
-      // Record usage for analytics (45.md)
-      // Analitik için kullanımı kaydet (45.md)
-      if (conversation.orgId && finalResult.usage) {
-        const modelParts = modelConfig.id.split(':');
-        const provider = modelParts[0] || 'ollama';
-        const modelName = modelParts.slice(1).join(':') || modelConfig.id;
-
-        await recordUsage({
-          orgId: conversation.orgId,
-          userId,
-          conversationId: conversation.id,
-          provider,
-          modelName,
-          feature: 'chat',
-          inputTokens: typeof finalResult.usage.promptTokens === 'number' ? finalResult.usage.promptTokens : 0,
-          outputTokens: typeof finalResult.usage.completionTokens === 'number' ? finalResult.usage.completionTokens : 0
-        }).catch((err) => {
-          logger.error({ err }, 'Failed to record usage');
-        });
-      }
-
-      logger.info(
-        {
-          event: 'chat.turn.completed',
-          conversationId: conversation.id,
-          orgId: conversation.orgId,
-          model: modelConfig.id,
-          temperature,
-          toolsEnabled,
-          structuredToolsEnabled: true,
-          assistantMessageId: assistantMessage.id,
-          toolsUsed: true,
-          toolResultsCount: toolResults.length,
-          toolNames: toolResults.map((r) => r.tool),
-          durationMs: Math.round(durationSec * 1000),
-        },
-        'Chat turn completed with tools',
-      );
-
-      // Dispatch webhook event if org context exists
-      if (conversation.orgId) {
-        await dispatchWebhookEvent({
-          type: 'chat.turn.completed',
-          orgId: conversation.orgId,
-          conversationId: conversation.id,
-          data: {
-            assistantMessageId: assistantMessage.id,
-            model: modelConfig.id,
-            toolsUsed: true,
-            toolResultsCount: toolResults.length,
-          },
-        }).catch((err) => {
-          logger.error({ err }, 'Failed to dispatch webhook event');
-        });
-      }
-
-      return {
-        assistantMessageId: assistantMessage.id,
-        assistantContent: assistantMessage.content,
-        usage: finalResult.usage,
-      };
-    }
-
-    // If no valid tool envelope, fall through to normal single-pass behavior below.
-  }
-
-  // Single-pass behavior (no tools or tools not used)
-  const result = await provider.chat(baseMessages, {
-    model: modelConfig.providerModel,
+  return {
+    conversation,
+    modelConfig,
+    provider: getProviderForModel(modelConfig),
     temperature,
     toolsEnabled,
-  });
+    structuredToolsEnabled,
+    baseMessages,
+    ctx
+  };
+}
 
+async function finalizeConversationTurn(
+  conversation: any,
+  modelConfig: any,
+  userId: string,
+  content: string,
+  usage?: ProviderUsage,
+  toolMessageId?: string
+) {
   const assistantMessage = await prisma.message.create({
     data: {
       conversationId: conversation.id,
       role: 'ASSISTANT',
-      content: result.content,
+      content,
       meta: {
-        usage: (result.usage || {}) as unknown as Prisma.JsonValue,
+        usage: (usage || {}) as unknown as Prisma.JsonValue,
+        toolMessageId: toolMessageId,
       },
     },
   });
 
   await prisma.conversation.update({
     where: { id: conversation.id },
-    data: {
-      lastActivityAt: new Date(),
-    },
+    data: { lastActivityAt: new Date() },
   });
 
-  const diffNs = Number(process.hrtime.bigint() - startedAt);
-  const durationSec = diffNs / 1e9;
-
-  chatTurnDurationSeconds
-    .labels(modelConfig.id, conversation.orgId || 'none', structuredToolsEnabled ? 'false' : 'none')
-    .observe(durationSec);
-
-  // Record usage for analytics (45.md)
-  // Analitik için kullanımı kaydet (45.md)
-  if (conversation.orgId && result.usage) {
+  // Analytics
+  if (conversation.orgId && usage) {
     const modelParts = modelConfig.id.split(':');
     const provider = modelParts[0] || 'ollama';
     const modelName = modelParts.slice(1).join(':') || modelConfig.id;
@@ -525,48 +295,276 @@ export async function runConversationTurn(
       provider,
       modelName,
       feature: 'chat',
-      inputTokens: typeof result.usage.promptTokens === 'number' ? result.usage.promptTokens : 0,
-      outputTokens: typeof result.usage.completionTokens === 'number' ? result.usage.completionTokens : 0
+      inputTokens: usage.promptTokens || 0,
+      outputTokens: usage.completionTokens || 0
     }).catch((err) => {
       logger.error({ err }, 'Failed to record usage');
     });
   }
 
-  logger.info(
-    {
-      event: 'chat.turn.completed',
-      conversationId: conversation.id,
-      orgId: conversation.orgId,
-      model: modelConfig.id,
+  return assistantMessage;
+}
+
+export async function runConversationTurn(
+  input: RunConversationTurnInput,
+): Promise<RunConversationTurnResult> {
+  const startedAt = process.hrtime.bigint();
+  const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
+    await prepareConversationContext(input.conversationId, input.userId, input.content, input.overrides);
+
+  // Tools Logic
+  if (structuredToolsEnabled) {
+    const tools = await listToolsForContext(ctx);
+    const toolsPrompt = buildToolsSystemPrompt(tools);
+    const planningMessages: ProviderMessage[] = [{ role: 'system', content: toolsPrompt }, ...baseMessages];
+
+    const planResult = await provider.chat(planningMessages, {
+      model: modelConfig.providerModel,
       temperature,
       toolsEnabled,
-      structuredToolsEnabled,
-      assistantMessageId: assistantMessage.id,
-      toolsUsed: false,
-      durationMs: Math.round(durationSec * 1000),
-    },
-    'Chat turn completed',
+    });
+
+    const envelope = parseToolEnvelopeCandidate(planResult.content);
+
+    if (envelope && envelope.toolCalls.length > 0) {
+      if (conversation.orgId) {
+        await emitEvent({
+          type: 'conversation.tool_call',
+          context: { orgId: conversation.orgId, userId: input.userId, conversationId: conversation.id },
+          metadata: { toolNames: envelope.toolCalls.map((t) => t.tool), modelId: conversation.model }
+        }).catch((err) => logger.error({ err }, 'Failed to emit tool_call event'));
+      }
+
+      const toolResults = await executeToolEnvelope(envelope, ctx);
+
+      const toolMessage = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'TOOL',
+          content: JSON.stringify(toolResults, null, 2),
+          meta: { toolsEnvelope: envelope as unknown as Prisma.JsonValue },
+        },
+      });
+
+      const messagesWithTools: ProviderMessage[] = [
+        ...baseMessages,
+        {
+          role: 'tool',
+          content: 'Tool results (JSON):\n' + JSON.stringify({ toolResults }, null, 2) + '\nUse this information to answer the user. Respond normally to the user now.',
+        },
+      ];
+
+      const finalResult = await provider.chat(messagesWithTools, {
+        model: modelConfig.providerModel,
+        temperature,
+        toolsEnabled,
+      });
+
+      const assistantMessage = await finalizeConversationTurn(
+        conversation,
+        modelConfig,
+        input.userId,
+        finalResult.content,
+        finalResult.usage,
+        toolMessage.id
+      );
+
+      const diffNs = Number(process.hrtime.bigint() - startedAt);
+      const durationSec = diffNs / 1e9;
+      chatTurnDurationSeconds.labels(modelConfig.id, conversation.orgId || 'none', 'true').observe(durationSec);
+
+      return {
+        assistantMessageId: assistantMessage.id,
+        assistantContent: assistantMessage.content,
+        usage: finalResult.usage,
+      };
+    }
+  }
+
+  // Single pass
+  const result = await provider.chat(baseMessages, {
+    model: modelConfig.providerModel,
+    temperature,
+    toolsEnabled,
+  });
+
+  const assistantMessage = await finalizeConversationTurn(
+    conversation,
+    modelConfig,
+    input.userId,
+    result.content,
+    result.usage
   );
 
-  // Dispatch webhook event if org context exists
-  if (conversation.orgId) {
-    await dispatchWebhookEvent({
-      type: 'chat.turn.completed',
-      orgId: conversation.orgId,
-      conversationId: conversation.id,
-      data: {
-        assistantMessageId: assistantMessage.id,
-        model: modelConfig.id,
-        toolsUsed: false,
-      },
-    }).catch((err) => {
-      logger.error({ err }, 'Failed to dispatch webhook event');
-    });
-  }
+  const diffNs = Number(process.hrtime.bigint() - startedAt);
+  const durationSec = diffNs / 1e9;
+  chatTurnDurationSeconds.labels(modelConfig.id, conversation.orgId || 'none', structuredToolsEnabled ? 'false' : 'none').observe(durationSec);
 
   return {
     assistantMessageId: assistantMessage.id,
     assistantContent: assistantMessage.content,
     usage: result.usage,
   };
+}
+
+export async function* streamConversationTurn(
+  input: RunConversationTurnInput,
+): AsyncGenerator<ChatStreamEvent, void, unknown> {
+  const startedAt = process.hrtime.bigint();
+  const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
+    await prepareConversationContext(input.conversationId, input.userId, input.content, input.overrides);
+
+  if (!provider.chatStream) {
+    throw new Error('Provider does not support streaming');
+  }
+
+  let finalContent = '';
+  let finalUsage: ProviderUsage | undefined;
+  let toolMessageId: string | undefined;
+
+  // Tools Logic (Hybrid: Plan non-streaming, Final streaming)
+  if (structuredToolsEnabled) {
+    const tools = await listToolsForContext(ctx);
+    const toolsPrompt = buildToolsSystemPrompt(tools);
+    const planningMessages: ProviderMessage[] = [{ role: 'system', content: toolsPrompt }, ...baseMessages];
+
+    // Planning phase is non-streaming to simplify JSON parsing
+    const planResult = await provider.chat(planningMessages, {
+      model: modelConfig.providerModel,
+      temperature,
+      toolsEnabled,
+    });
+
+    const envelope = parseToolEnvelopeCandidate(planResult.content);
+
+    if (envelope && envelope.toolCalls.length > 0) {
+      if (conversation.orgId) {
+        await emitEvent({
+          type: 'conversation.tool_call',
+          context: { orgId: conversation.orgId, userId: input.userId, conversationId: conversation.id },
+          metadata: { toolNames: envelope.toolCalls.map((t) => t.tool), modelId: conversation.model }
+        }).catch((err) => logger.error({ err }, 'Failed to emit tool_call event'));
+      }
+
+      // Emit tool start events to client
+      for (const call of envelope.toolCalls) {
+        yield {
+           type: 'tool_start',
+           toolName: call.tool,
+           toolCallId: call.id, // Ensure tool calls have IDs or fallback
+        };
+      }
+
+      const toolResults = await executeToolEnvelope(envelope, ctx);
+
+      // Emit tool end events
+      for (let i = 0; i < envelope.toolCalls.length; i++) {
+        const call = envelope.toolCalls[i];
+        const result = toolResults[i];
+        yield {
+            type: 'tool_end',
+            toolName: call.tool,
+            toolCallId: call.id,
+            toolResult: result
+        };
+      }
+
+      const toolMessage = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'TOOL',
+          content: JSON.stringify(toolResults, null, 2),
+          meta: { toolsEnvelope: envelope as unknown as Prisma.JsonValue },
+        },
+      });
+      toolMessageId = toolMessage.id;
+
+      const messagesWithTools: ProviderMessage[] = [
+        ...baseMessages,
+        {
+          role: 'tool',
+          content: 'Tool results (JSON):\n' + JSON.stringify({ toolResults }, null, 2) + '\nUse this information to answer the user. Respond normally to the user now.',
+        },
+      ];
+
+      // Stream Final Answer
+      for await (const event of provider.chatStream(messagesWithTools, {
+        model: modelConfig.providerModel,
+        temperature,
+        toolsEnabled,
+      })) {
+        if (event.type === 'token' && event.token) {
+           finalContent += event.token;
+        }
+        if (event.type === 'end') {
+           if (event.usage) finalUsage = event.usage;
+           yield {
+             ...event,
+             finalMessage: { role: 'assistant', content: finalContent }
+           };
+        } else {
+           yield event;
+        }
+      }
+    } else {
+        // Fallback: Plan phase didn't produce tools, but it might have produced an answer?
+        // Usually if we prompt for tools, and it returns text, that text IS the answer.
+        // We should just stream that text to the user?
+        // But we already fetched it non-streaming.
+        // To be "streaming", we want the user to see it token by token.
+        // Since we did a non-streaming call, we already have the full content.
+        // We can simulate streaming it out, or just send it as one chunk.
+        // OR: Better approach: If we want streaming, maybe we shouldn't do non-streaming planning?
+        // But parsing JSON from a stream is hard.
+        // Compromise: If plan fails, we assume it's a direct answer. We just stream it as a single chunk (simulated).
+        // Or re-run as stream? (Wasteful).
+
+        // Let's optimize: If no tools used, we yield the content we got.
+        finalContent = planResult.content;
+        finalUsage = planResult.usage;
+
+        // Yield synthetic start/token/end
+        yield { type: 'start' };
+        yield { type: 'token', token: finalContent };
+        yield { type: 'end', usage: finalUsage, finalMessage: { role: 'assistant', content: finalContent } };
+    }
+  } else {
+    // Single pass streaming
+    for await (const event of provider.chatStream(baseMessages, {
+        model: modelConfig.providerModel,
+        temperature,
+        toolsEnabled,
+      })) {
+        if (event.type === 'token' && event.token) {
+           finalContent += event.token;
+        }
+        if (event.type === 'end') {
+           if (event.usage) finalUsage = event.usage;
+           yield {
+             ...event,
+             finalMessage: { role: 'assistant', content: finalContent }
+           };
+        } else {
+           yield event;
+        }
+    }
+  }
+
+  // Finalize (save to DB)
+  if (finalContent || toolMessageId) {
+      // If we have toolMessageId but no final content (rare), we still save something?
+      // Assistant usually replies.
+      await finalizeConversationTurn(
+        conversation,
+        modelConfig,
+        input.userId,
+        finalContent,
+        finalUsage,
+        toolMessageId
+      );
+  }
+
+  const diffNs = Number(process.hrtime.bigint() - startedAt);
+  const durationSec = diffNs / 1e9;
+  chatTurnDurationSeconds.labels(modelConfig.id, conversation.orgId || 'none', structuredToolsEnabled ? 'mixed' : 'false').observe(durationSec);
 }
