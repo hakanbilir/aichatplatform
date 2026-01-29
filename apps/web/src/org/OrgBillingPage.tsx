@@ -7,7 +7,8 @@ import {
   Card,
   CardContent,
   Chip,
-  Typography
+  Typography,
+  Alert
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
@@ -26,6 +27,7 @@ export const OrgBillingPage: React.FC = () => {
 
   const [plans, setPlans] = useState<BillingPlanDto[]>([]);
   const [subscription, setSubscription] = useState<OrgSubscriptionDto | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(34,197,94,0.18), transparent 55%), ' +
@@ -33,12 +35,17 @@ export const OrgBillingPage: React.FC = () => {
 
   const load = async () => {
     if (!token || !orgId) return;
-    const [p, s] = await Promise.all([
-      fetchBillingPlans(token),
-      fetchOrgSubscription(token, orgId)
-    ]);
-    setPlans(p.plans);
-    setSubscription(s.subscription);
+    try {
+      const [p, s] = await Promise.all([
+        fetchBillingPlans(token),
+        fetchOrgSubscription(token, orgId)
+      ]);
+      setPlans(p.plans);
+      setSubscription(s.subscription);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load billing information.");
+    }
   };
 
   useEffect(() => {
@@ -48,10 +55,21 @@ export const OrgBillingPage: React.FC = () => {
 
   const handleChangePlan = async (planId: string) => {
     if (!token || !orgId) return;
-    const res = await requestPlanChange(token, orgId, planId);
-    // Redirect to PAYTR checkout
-    if (typeof window !== 'undefined' && (window as any).PayTR) {
-      (window as any).PayTR.Checkout(res.checkoutToken);
+
+    if (typeof window !== 'undefined' && !(window as any).PayTR) {
+        setError("Payment gateway not initialized. Please try again later.");
+        return;
+    }
+
+    try {
+        const res = await requestPlanChange(token, orgId, planId);
+        // Redirect to PAYTR checkout
+        if (typeof window !== 'undefined' && (window as any).PayTR) {
+          (window as any).PayTR.Checkout(res.checkoutToken);
+        }
+    } catch (err) {
+        console.error(err);
+        setError("Failed to initiate plan change.");
     }
   };
 
@@ -80,6 +98,8 @@ export const OrgBillingPage: React.FC = () => {
           </Typography>
         </Box>
       </Box>
+
+      {error && <Alert severity="error">{error}</Alert>}
 
       {subscription && (
         <Card sx={{ borderRadius: 3 }}>
