@@ -5,6 +5,7 @@ import {
   Box,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   FormControlLabel,
   Pagination,
@@ -98,7 +99,7 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
 
           <FormControlLabel
             control={
-              <Radio
+              <Checkbox
                 checked={severeOnly}
                 onChange={(e) => setSevereOnly(e.target.checked)}
               />

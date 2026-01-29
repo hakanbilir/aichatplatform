@@ -2,28 +2,41 @@
 
 import { apiRequest } from './client';
 
-export type PromptTemplateKind = 'system' | 'user' | 'macro';
-
 export interface PromptVariable {
-  name: string;
-  label: string;
-  type: 'string' | 'number' | 'boolean' | 'multiline';
-  required: boolean;
-  defaultValue?: string | number | boolean;
+  description?: string;
+  required?: boolean;
+  defaultValue?: string;
+}
+
+export interface PromptTemplateVersionDto {
+  id: string;
+  version: number;
+  systemPrompt: string;
+  userPrefix: string | null;
+  assistantStyle: string | null;
+  variables: Record<string, PromptVariable>;
+  createdAt: string;
+  createdByDisplayName: string | null;
 }
 
 export interface PromptTemplate {
   id: string;
   orgId: string;
-  createdById: string;
-  isOrgShared: boolean;
-  title: string;
-  description?: string | null;
-  kind: PromptTemplateKind;
-  template: string;
-  variables: PromptVariable[];
+  name: string;
+  description: string | null;
+  isArchived: boolean;
   createdAt: string;
-  updatedAt: string;
+  latestVersion: PromptTemplateVersionDto | null;
+}
+
+export interface PromptTemplateDetailDto {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string | null;
+  isArchived: boolean;
+  createdAt: string;
+  versions: PromptTemplateVersionDto[];
 }
 
 export async function fetchPromptTemplates(
@@ -31,7 +44,7 @@ export async function fetchPromptTemplates(
   orgId: string
 ): Promise<PromptTemplate[]> {
   const res = await apiRequest<{ templates: PromptTemplate[] }>(
-    `/orgs/${orgId}/prompts`,
+    `/orgs/${orgId}/prompt-templates`,
     { method: 'GET' },
     token
   );
@@ -39,12 +52,13 @@ export async function fetchPromptTemplates(
 }
 
 export interface CreatePromptTemplateInput {
-  title: string;
+  name: string;
   description?: string;
-  kind: PromptTemplateKind;
-  template: string;
-  variables: PromptVariable[];
-  isOrgShared?: boolean;
+  systemPrompt: string;
+  userPrefix?: string;
+  assistantStyle?: string;
+  variables?: Record<string, PromptVariable>;
+  metadata?: Record<string, any>;
 }
 
 export async function createPromptTemplateApi(
@@ -53,7 +67,7 @@ export async function createPromptTemplateApi(
   input: CreatePromptTemplateInput
 ): Promise<PromptTemplate> {
   const res = await apiRequest<{ template: PromptTemplate }>(
-    `/orgs/${orgId}/prompts`,
+    `/orgs/${orgId}/prompt-templates`,
     {
       method: 'POST',
       headers: {
@@ -70,10 +84,10 @@ export async function updatePromptTemplateApi(
   token: string,
   orgId: string,
   templateId: string,
-  data: Partial<CreatePromptTemplateInput>
+  data: { description?: string; isArchived?: boolean }
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
-    `/orgs/${orgId}/prompts/${templateId}`,
+    `/orgs/${orgId}/prompt-templates/${templateId}`,
     {
       method: 'PATCH',
       headers: {
@@ -85,38 +99,17 @@ export async function updatePromptTemplateApi(
   );
 }
 
+// NOTE: No DELETE endpoint in backend yet.
 export async function deletePromptTemplateApi(
   token: string,
   orgId: string,
   templateId: string
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
-    `/orgs/${orgId}/prompts/${templateId}`,
+    `/orgs/${orgId}/prompt-templates/${templateId}`,
     { method: 'DELETE' },
     token
   );
-}
-
-// 42.md: Prompt Template Versions
-export interface PromptTemplateVersionDto {
-  id: string;
-  version: number;
-  systemPrompt: string;
-  userPrefix: string | null;
-  assistantStyle: string | null;
-  variables: Record<string, { description?: string; required?: boolean; defaultValue?: string }>;
-  createdAt: string;
-  createdByDisplayName: string | null;
-}
-
-export interface PromptTemplateDetailDto {
-  id: string;
-  orgId: string;
-  name: string;
-  description: string | null;
-  isArchived: boolean;
-  createdAt: string;
-  versions: PromptTemplateVersionDto[];
 }
 
 export async function fetchPromptTemplateDetail(
@@ -139,7 +132,7 @@ export async function createPromptTemplateVersion(
     systemPrompt: string;
     userPrefix?: string;
     assistantStyle?: string;
-    variables?: Record<string, { description?: string; required?: boolean; defaultValue?: string }>;
+    variables?: Record<string, PromptVariable>;
     metadata?: Record<string, any>;
   }
 ): Promise<{ version: PromptTemplateVersionDto }> {
@@ -152,4 +145,3 @@ export async function createPromptTemplateVersion(
     token
   );
 }
-

@@ -24,7 +24,8 @@ import {
   PromptTemplateDetailDto,
   PromptTemplateVersionDto,
   fetchPromptTemplateDetail,
-  createPromptTemplateVersion
+  createPromptTemplateVersion,
+  createPromptTemplateApi
 } from '../api/prompts';
 import { fetchPromptTemplates, PromptTemplate } from '../api/prompts';
 
@@ -64,7 +65,13 @@ export const PromptTemplatesPage: React.FC = () => {
 
   const handleCreateTemplate = async () => {
     if (!token || !orgId) return;
-    // This would call createPromptTemplateApi - simplified for now
+
+    await createPromptTemplateApi(token, orgId, {
+      name: newName,
+      description: newDesc,
+      systemPrompt: newSystemPrompt
+    });
+
     setDialogOpen(false);
     setNewName('');
     setNewDesc('');
@@ -151,7 +158,10 @@ export const PromptTemplatesPage: React.FC = () => {
                   selected={selected?.id === t.id}
                   onClick={() => void loadDetail(t.id)}
                 >
-                  <ListItemText primary={t.title} secondary={t.description || t.template.slice(0, 60)} />
+                  <ListItemText
+                    primary={t.name}
+                    secondary={t.description || t.latestVersion?.systemPrompt.slice(0, 60) || 'No content'}
+                  />
                 </ListItemButton>
               ))}
               {templates.length === 0 && (

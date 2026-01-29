@@ -11,7 +11,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   FormControlLabel,
+  InputLabel,
+  MenuItem,
+  Select,
   Switch,
   TextField,
   Typography
@@ -92,7 +96,7 @@ export const ChatProfilesPage: React.FC = () => {
   const findTemplateName = (id: string | null) => {
     if (!id) return 'None';
     const t = templates.find((t) => t.id === id);
-    return t?.title || 'Unknown';
+    return t?.name || 'Unknown';
   };
 
   return (
@@ -213,13 +217,24 @@ export const ChatProfilesPage: React.FC = () => {
             helperText="Example: llama3, gpt-4.1, claude-3.5"
           />
 
-          <TextField
-            label="System template (ID)"
-            fullWidth
-            value={systemTemplateId || ''}
-            onChange={(e) => setSystemTemplateId(e.target.value || null)}
-            helperText="Paste template ID from Prompt Templates or leave blank"
-          />
+          <FormControl fullWidth>
+            <InputLabel id="system-template-label">System template</InputLabel>
+            <Select
+              labelId="system-template-label"
+              value={systemTemplateId || ''}
+              label="System template"
+              onChange={(e) => setSystemTemplateId(e.target.value || null)}
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {templates.map((t) => (
+                <MenuItem key={t.id} value={t.id}>
+                  {t.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           <FormControlLabel
             control={
