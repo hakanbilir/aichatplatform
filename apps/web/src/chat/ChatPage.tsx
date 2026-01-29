@@ -9,6 +9,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
@@ -273,14 +274,14 @@ export const ChatPage: React.FC = () => {
           <Typography variant="caption" color="text.secondary">
             {t('settings.temperature')}
           </Typography>
-          <Slider size="small" value={temperature} min={0} max={2} step={0.1} onChange={handleChangeTemperature} />
+          <Slider size="small" value={temperature} min={0} max={2} step={0.1} onChange={handleChangeTemperature} aria-label={t('settings.temperature')} />
         </Box>
 
         <Box width={130} px={1}>
           <Typography variant="caption" color="text.secondary">
             {t('settings.topP')}
           </Typography>
-          <Slider size="small" value={topP} min={0} max={1} step={0.05} onChange={handleChangeTopP} />
+          <Slider size="small" value={topP} min={0} max={1} step={0.05} onChange={handleChangeTopP} aria-label={t('settings.topP')} />
         </Box>
 
         <Chip size="small" label={creativityLabel} sx={{ fontSize: 11, height: 24 }} variant="outlined" />
@@ -305,21 +306,36 @@ export const ChatPage: React.FC = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <Tooltip title={t('settings.toolsPanel')}>
             <span>
-              <IconButton size="small" onClick={() => setToolsOpen(true)} disabled={!conversationId}>
+              <IconButton
+                size="small"
+                onClick={() => setToolsOpen(true)}
+                disabled={!conversationId}
+                aria-label={t('settings.toolsPanel')}
+              >
                 <ExtensionIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title={t('settings.advancedSettings')}>
             <span>
-              <IconButton size="small" onClick={() => setSettingsOpen(true)} disabled={!conversationId}>
+              <IconButton
+                size="small"
+                onClick={() => setSettingsOpen(true)}
+                disabled={!conversationId}
+                aria-label={t('settings.advancedSettings')}
+              >
                 <SettingsIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title={t('settings.resetSettings')}>
             <span>
-              <IconButton size="small" onClick={handleResetSettings} disabled={!conversation}>
+              <IconButton
+                size="small"
+                onClick={handleResetSettings}
+                disabled={!conversation}
+                aria-label={t('settings.resetSettings')}
+              >
                 <RestartAltIcon fontSize="small" />
               </IconButton>
             </span>
@@ -331,6 +347,7 @@ export const ChatPage: React.FC = () => {
                 color={dirty ? 'primary' : 'default'}
                 onClick={handleSaveSettings}
                 disabled={!dirty || saving || !conversationId}
+                aria-label={dirty ? t('settings.saveSettings') : t('settings.settingsUpToDate')}
               >
                 <SaveIcon fontSize="small" />
               </IconButton>
@@ -389,6 +406,7 @@ export const ChatPage: React.FC = () => {
             onClick={() => setPromptLibraryOpen(true)}
             sx={{ opacity: 0.7 }}
             title={t('settings.promptLibrary')}
+            aria-label={t('settings.promptLibrary')}
           >
             <AutoAwesomeIcon fontSize="small" />
           </IconButton>

@@ -102,6 +102,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               <IconButton
                 size="small"
                 onClick={() => removeImage(idx)}
+                aria-label={t('messageInput.removeImage', 'Remove image')}
                 sx={{
                   position: 'absolute',
                   top: -6,
@@ -132,6 +133,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           <IconButton
             disabled={disabled || isStreaming}
             onClick={() => fileInputRef.current?.click()}
+            aria-label={t('messageInput.attach', 'Attach image')}
             sx={{ color: 'text.secondary' }}
           >
             <AttachFileIcon />
