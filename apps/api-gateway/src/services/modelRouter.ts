@@ -3,13 +3,14 @@
 import { ModelConfig } from '../config/models';
 import { ModelProvider } from '../providers/base';
 import { OllamaProvider } from '../providers/ollamaProvider';
+import { OpenAIProvider } from '../providers/openaiProvider';
 
 export function getProviderForModel(config: ModelConfig): ModelProvider {
   switch (config.provider) {
     case 'ollama':
       return new OllamaProvider();
-    // case 'openai':
-    //   return new OpenAIProvider();
+    case 'openai':
+      return new OpenAIProvider();
     // case 'local':
     //   return new LocalProvider();
     default:

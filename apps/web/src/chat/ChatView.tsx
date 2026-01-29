@@ -6,9 +6,10 @@ import { MessageBubble } from './MessageBubble';
 interface ChatViewProps {
   messages: Array<{ id: string; role: string; content: string; images?: string[] }>;
   streamingAssistantText: string;
+  toolStatus?: string | null;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, toolStatus }) => {
   const { t } = useTranslation('chat');
   const allMessages = [...messages];
 
@@ -46,6 +47,13 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
           images={m.images}
         />
       ))}
+      {toolStatus && (
+        <Box display="flex" justifyContent="flex-start" mb={2} pl={2}>
+           <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+             {toolStatus}
+           </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

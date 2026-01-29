@@ -19,6 +19,7 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [streamingText, setStreamingText] = useState('');
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -91,21 +92,31 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
         },
         (event: StreamEvent) => {
            if (event.type === 'token') {
+            setToolStatus(null);
             setStreamingText((prev) => prev + event.token);
-          } else if (event.type === 'end' && event.message) {
+          } else if (event.type === 'tool_start') {
+            setToolStatus(`Using tool: ${event.toolName}...`);
+          } else if (event.type === 'tool_end') {
+             // Keep status or clear? Usually clear when tokens start, or immediately.
+             // If we clear immediately, it might flash too fast.
+             // But 'token' event clears it.
+          } else if (event.type === 'end') {
             setStreamingText('');
+            setToolStatus(null);
             // The final message is handled by invalidation mostly, but we can append it optimistically if we want smooth transition
             // However, usually 'end' event means backend has saved it.
             // But to avoid flicker until revalidation, we can append it.
-             setOptimisticMessages((prev) => [
-              ...prev,
-              {
-                id: `assistant-${Date.now()}`,
-                role: 'ASSISTANT',
-                content: event.message.content,
-                createdAt: new Date().toISOString(),
-              }
-            ]);
+             if (event.finalMessage) {
+                 setOptimisticMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `assistant-${Date.now()}`,
+                    role: 'ASSISTANT',
+                    content: event.finalMessage!.content,
+                    createdAt: new Date().toISOString(),
+                  }
+                ]);
+             }
           } else if (event.type === 'error') {
              if (onError) onError(new Error(event.error));
           }
@@ -168,6 +179,7 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
     usage,
     messages: optimisticMessages,
     streamingText,
+    toolStatus,
     isStreaming,
     isLoading: isLoadingConversation,
     sendMessage,

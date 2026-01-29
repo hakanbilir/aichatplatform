@@ -5,6 +5,9 @@ import SendIcon from '@mui/icons-material/Send';
 import StopIcon from '@mui/icons-material/Stop';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
+import MicIcon from '@mui/icons-material/Mic';
+import MicOffIcon from '@mui/icons-material/MicOff';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface MessageInputProps {
   disabled?: boolean;
@@ -28,6 +31,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { isListening, transcript, startListening, stopListening, resetTranscript, supported: speechSupported } = useSpeechToText();
   
   const value = controlledValue !== undefined ? controlledValue : internalValue;
   const setValue = (newValue: string) => {
@@ -37,6 +42,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       setInternalValue(newValue);
     }
   };
+
+  useEffect(() => {
+    if (transcript) {
+      setValue(value + (value && !value.endsWith(' ') ? ' ' : '') + transcript);
+      resetTranscript();
+    }
+  }, [transcript, resetTranscript, value, setValue]);
 
   const hasContent = value.trim().length > 0 || images.length > 0;
   // If streaming, send button becomes stop button, so it is not disabled unless onStop is missing
@@ -137,6 +149,19 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             <AttachFileIcon />
           </IconButton>
         </Tooltip>
+
+        {speechSupported && (
+          <Tooltip title={isListening ? t('messageInput.stopListening', 'Stop listening') : t('messageInput.startListening', 'Voice input')}>
+            <IconButton
+              disabled={disabled || isStreaming}
+              onClick={isListening ? stopListening : startListening}
+              color={isListening ? 'error' : 'default'}
+              sx={{ color: isListening ? 'error.main' : 'text.secondary' }}
+            >
+              {isListening ? <MicOffIcon /> : <MicIcon />}
+            </IconButton>
+          </Tooltip>
+        )}
 
         <TextField
           fullWidth

@@ -64,6 +64,7 @@ export const ChatPage: React.FC = () => {
     usage,
     messages,
     streamingText,
+    toolStatus,
     isStreaming,
     sendMessage,
     regenerate,
@@ -351,7 +352,7 @@ export const ChatPage: React.FC = () => {
 
       {/* Chat view */}
       <GlassPanel refractive={!isEcoMode} sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <ChatView messages={messages ?? []} streamingAssistantText={streamingText} />
+        <ChatView messages={messages ?? []} streamingAssistantText={streamingText} toolStatus={toolStatus} />
 
         {/* Regenerate Button */}
         {!isStreaming && messages && messages.length > 0 &&
