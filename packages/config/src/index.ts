@@ -79,6 +79,8 @@ const baseSchema = z.object({
     .url()
     .default('http://localhost:4000'),
 
+  CORS_ALLOWED_ORIGINS: z.string().default(''),
+
   // Worker
   WORKER_CONCURRENCY: z
     .string()
