@@ -4,11 +4,13 @@ import { ToolDefinition } from './types';
 import { timeNowTool } from './timeNowTool';
 import { orgUsageSnapshotTool } from './orgUsageSnapshotTool';
 import { conversationSearchTool } from './conversationSearchTool';
+import { generateUiTool } from './generateUiTool';
 
 const TOOLS: ToolDefinition<unknown, unknown>[] = [
   timeNowTool as ToolDefinition<unknown, unknown>,
   orgUsageSnapshotTool as ToolDefinition<unknown, unknown>,
-  conversationSearchTool as ToolDefinition<unknown, unknown>
+  conversationSearchTool as ToolDefinition<unknown, unknown>,
+  generateUiTool as ToolDefinition<unknown, unknown>
 ];
 
 export function listAllTools(): ToolDefinition[] {

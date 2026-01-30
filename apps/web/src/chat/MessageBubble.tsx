@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Tooltip, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import PsychologyIcon from '@mui/icons-material/Psychology';
+import { ThinkingBubble } from './ThinkingBubble';
+import { ArtifactRenderer } from './ArtifactRenderer';
 
 interface MessageBubbleProps {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'tool';
   content: string;
   images?: string[];
+  meta?: any;
+  thinkingText?: string;
+  isThinking?: boolean;
 }
 
 // Optimized with React.memo to prevent re-renders of list items during streaming
-const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, images }) => {
+const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, images, meta, thinkingText, isThinking }) => {
   const { t } = useTranslation('chat');
   const isUser = role === 'user';
+  const isTool = role === 'tool';
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -24,60 +28,81 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Simple parsing for <think> blocks
+  // Artifact detection
+  let artifact = null;
+  if (isTool) {
+      try {
+          // Tool content is usually stringified JSON
+          const json = JSON.parse(content);
+          // Check for array of results or single result
+          // The structure from chatEngine is usually `[{ tool: 'name', result: ... }]` (array of ToolExecutionResult)
+          // BUT executeToolEnvelope returns array.
+          // And chatEngine saves: `content: JSON.stringify(toolResults, null, 2)`
+          // So it is an array.
+          // I need to find the generate_ui result in the array.
+
+          const results = Array.isArray(json) ? json : [json];
+          const uiResult = results.find((r: any) => r.tool === 'generate_ui' && r.result?.status === 'generated');
+
+          if (uiResult) {
+              artifact = uiResult.result;
+          }
+      } catch (e) {
+          // not json
+      }
+  }
+
+  const thought = thinkingText || (meta && meta.thought);
+
   const renderContent = () => {
-    // If no thinking tags, just return content
-    if (!content.includes('<think>')) {
-      return (
-        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-          {content}
-        </Typography>
-      );
+    if (artifact) {
+        return (
+            <ArtifactRenderer
+                title={artifact.title}
+                type={artifact.type}
+                code={artifact.code}
+            />
+        );
     }
 
-    const parts = content.split(/(<think>[\s\S]*?<\/think>)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('<think>') && part.endsWith('</think>')) {
-        const thoughtContent = part.slice(7, -8).trim(); // Remove tags
-        return (
-          <Accordion
-            key={index}
-            disableGutters
-            sx={{
-              bgcolor: 'rgba(0,0,0,0.2)',
-              color: 'text.secondary',
-              boxShadow: 'none',
-              mb: 1,
-              borderRadius: 1,
-              '&:before': { display: 'none' },
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon sx={{ color: 'text.secondary' }} />}
-              aria-label={t('message.reasoning', 'Reasoning Process')}
-              sx={{ minHeight: 40, '& .MuiAccordionSummary-content': { margin: '8px 0' } }}
-            >
-              <Box display="flex" alignItems="center" gap={1}>
-                <PsychologyIcon fontSize="small" />
-                <Typography variant="caption">Reasoning Process</Typography>
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails sx={{ pt: 0, pb: 1 }}>
-              <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                {thoughtContent}
-              </Typography>
-            </AccordionDetails>
-          </Accordion>
+    // Legacy <think> parsing + new thought bubble
+    // If we have explicit thought prop, show it.
+
+    const elements = [];
+
+    if (thought || isThinking) {
+        elements.push(
+            <ThinkingBubble key="thought" text={thought || ''} isThinking={!!isThinking} />
         );
-      }
-      if (!part.trim()) return null;
-      return (
-        <Typography key={index} variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-          {part}
-        </Typography>
-      );
-    });
+    }
+
+    // Strip <think> tags from content if present (backward compatibility or if leaked)
+    const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+    if (cleanContent) {
+        elements.push(
+            <Typography key="content" variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+            {cleanContent}
+            </Typography>
+        );
+    }
+
+    return elements;
   };
+
+  if (isTool && !artifact) {
+      // Hide generic tool outputs or show simplified?
+      // Usually we hide raw tool outputs unless debugging.
+      // But for now let's show them in a collapsed way or just code block.
+      return (
+        <Box mb={1} sx={{ opacity: 0.6, fontSize: '0.8rem' }}>
+            <details>
+                <summary>Tool Output</summary>
+                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{content}</pre>
+            </details>
+        </Box>
+      );
+  }
 
   return (
     <Box
@@ -86,6 +111,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
       mb={1.2}
       className="micro-fade-in"
       sx={{
+        width: '100%', // Ensure full width available for left-aligned messages
         '&:hover .message-actions': {
           opacity: 1
         }
@@ -93,14 +119,15 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
     >
       <Box
         sx={{
-          maxWidth: '80%',
-          px: 1.8,
-          py: 1.2,
+          maxWidth: artifact ? '100%' : '80%', // Allow artifacts to be wider
+          width: artifact ? '100%' : 'auto',
+          px: artifact ? 0 : 1.8, // Remove padding for artifacts wrapper
+          py: artifact ? 0 : 1.2,
           borderRadius: 3,
-          bgcolor: isUser ? 'primary.main' : 'rgba(15,17,35,0.9)',
-          color: 'white',
-          border: isUser ? 'none' : '1px solid rgba(255,255,255,0.12)',
-          boxShadow: isUser ? '0 14px 36px rgba(124,77,255,0.6)' : '0 10px 24px rgba(0,0,0,0.65)',
+          bgcolor: isUser ? 'primary.main' : (artifact ? 'transparent' : 'rgba(15,17,35,0.9)'),
+          color: isUser || !artifact ? 'white' : 'text.primary',
+          border: isUser || artifact ? 'none' : '1px solid rgba(255,255,255,0.12)',
+          boxShadow: isUser ? '0 14px 36px rgba(124,77,255,0.6)' : (artifact ? 'none' : '0 10px 24px rgba(0,0,0,0.65)'),
           position: 'relative',
         }}
       >
@@ -115,8 +142,12 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
           </Box>
         )}
 
-        {renderContent()}
+        {/* Content Wrapper */}
+        <Box sx={{ px: artifact ? 0 : 0 }}>
+             {renderContent()}
+        </Box>
 
+        {!isTool && !artifact && (
         <Box
             className="message-actions"
             sx={{
@@ -142,6 +173,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
                 </IconButton>
             </Tooltip>
         </Box>
+        )}
       </Box>
     </Box>
   );

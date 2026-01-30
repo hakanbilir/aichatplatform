@@ -257,13 +257,80 @@ async function prepareConversationContext(conversationId: string, userId: string
   };
 }
 
+async function* streamWithThoughtParsing(
+  stream: AsyncGenerator<ChatStreamEvent, void, unknown>,
+  onContent: (token: string) => void,
+  onThought: (token: string) => void
+): AsyncGenerator<ChatStreamEvent, void, unknown> {
+  let isThinking = false;
+
+  for await (const event of stream) {
+    if (event.type === 'token' && event.token) {
+      const content = event.token;
+
+      if (!isThinking) {
+        if (content.includes('<think>')) {
+          isThinking = true;
+          const parts = content.split('<think>');
+          if (parts[0]) {
+            yield { type: 'token', token: parts[0] };
+            onContent(parts[0]);
+          }
+          yield { type: 'thought_start' };
+
+          const remaining = parts[1] || '';
+          if (remaining.includes('</think>')) {
+            const innerParts = remaining.split('</think>');
+            if (innerParts[0]) {
+              yield { type: 'thought_token', token: innerParts[0] };
+              onThought(innerParts[0]);
+            }
+            yield { type: 'thought_end' };
+            isThinking = false;
+            if (innerParts[1]) {
+              yield { type: 'token', token: innerParts[1] };
+              onContent(innerParts[1]);
+            }
+          } else if (remaining) {
+            yield { type: 'thought_token', token: remaining };
+            onThought(remaining);
+          }
+        } else {
+          yield event;
+          onContent(content);
+        }
+      } else {
+        if (content.includes('</think>')) {
+          const parts = content.split('</think>');
+          if (parts[0]) {
+            yield { type: 'thought_token', token: parts[0] };
+            onThought(parts[0]);
+          }
+          yield { type: 'thought_end' };
+          isThinking = false;
+          if (parts[1]) {
+            yield { type: 'token', token: parts[1] };
+            onContent(parts[1]);
+          }
+        } else {
+          yield { type: 'thought_token', token: content };
+          onThought(content);
+        }
+      }
+    } else {
+      yield event;
+    }
+  }
+}
+
 async function finalizeConversationTurn(
   conversation: any,
   modelConfig: any,
   userId: string,
   content: string,
   usage?: ProviderUsage,
-  toolMessageId?: string
+  toolMessageId?: string,
+  thought?: string
 ) {
   const assistantMessage = await prisma.message.create({
     data: {
@@ -273,6 +340,7 @@ async function finalizeConversationTurn(
       meta: {
         usage: (usage || {}) as unknown as Prisma.JsonValue,
         toolMessageId: toolMessageId,
+        thought: thought || undefined,
       },
     },
   });
@@ -419,6 +487,7 @@ export async function* streamConversationTurn(
   }
 
   let finalContent = '';
+  let finalThought = '';
   let finalUsage: ProviderUsage | undefined;
   let toolMessageId: string | undefined;
 
@@ -488,22 +557,21 @@ export async function* streamConversationTurn(
       ];
 
       // Stream Final Answer
-      for await (const event of provider.chatStream(messagesWithTools, {
+      const stream = provider.chatStream(messagesWithTools, {
         model: modelConfig.providerModel,
         temperature,
         toolsEnabled,
-      })) {
-        if (event.type === 'token' && event.token) {
-           finalContent += event.token;
-        }
+      });
+
+      for await (const event of streamWithThoughtParsing(stream, (c) => finalContent += c, (t) => finalThought += t)) {
         if (event.type === 'end') {
-           if (event.usage) finalUsage = event.usage;
-           yield {
-             ...event,
-             finalMessage: { role: 'assistant', content: finalContent }
-           };
+          if (event.usage) finalUsage = event.usage;
+          yield {
+            ...event,
+            finalMessage: { role: 'assistant', content: finalContent }
+          };
         } else {
-           yield event;
+          yield event;
         }
       }
     } else {
@@ -530,23 +598,22 @@ export async function* streamConversationTurn(
     }
   } else {
     // Single pass streaming
-    for await (const event of provider.chatStream(baseMessages, {
-        model: modelConfig.providerModel,
-        temperature,
-        toolsEnabled,
-      })) {
-        if (event.type === 'token' && event.token) {
-           finalContent += event.token;
-        }
-        if (event.type === 'end') {
-           if (event.usage) finalUsage = event.usage;
-           yield {
-             ...event,
-             finalMessage: { role: 'assistant', content: finalContent }
-           };
-        } else {
-           yield event;
-        }
+    const stream = provider.chatStream(baseMessages, {
+      model: modelConfig.providerModel,
+      temperature,
+      toolsEnabled,
+    });
+
+    for await (const event of streamWithThoughtParsing(stream, (c) => finalContent += c, (t) => finalThought += t)) {
+      if (event.type === 'end') {
+        if (event.usage) finalUsage = event.usage;
+        yield {
+          ...event,
+          finalMessage: { role: 'assistant', content: finalContent }
+        };
+      } else {
+        yield event;
+      }
     }
   }
 
@@ -560,7 +627,8 @@ export async function* streamConversationTurn(
         input.userId,
         finalContent,
         finalUsage,
-        toolMessageId
+        toolMessageId,
+        finalThought
       );
   }
 

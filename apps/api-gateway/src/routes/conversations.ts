@@ -471,6 +471,7 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
           role: m.role,
           content: m.content,
           createdAt: m.createdAt,
+          meta: m.meta,
         })),
       },
     });
