@@ -76,6 +76,75 @@ export async function fetchOrgAnalytics(
   );
 }
 
+export async function streamOrgAnalytics(
+  token: string,
+  orgId: string,
+  windowDays: number,
+  onData: (data: any) => void,
+  onError: (error: Error) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
+  const params = new URLSearchParams();
+  if (windowDays) params.set('windowDays', String(windowDays));
+
+  const url = `${API_BASE_URL}/orgs/${orgId}/analytics/kinetic-stream?${params.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === 'processing') continue;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.error) {
+              onError(new Error(parsed.error));
+            } else {
+              onData(parsed);
+            }
+          } catch (e) {
+            console.warn('Failed to parse analytics stream chunk', e);
+          }
+        } else if (line.startsWith('event: error')) {
+           // Handle named error events if any
+        }
+      }
+    }
+  } catch (err) {
+    if ((err as Error).name !== 'AbortError') {
+      onError(err as Error);
+    }
+  }
+}
+
 
 
 

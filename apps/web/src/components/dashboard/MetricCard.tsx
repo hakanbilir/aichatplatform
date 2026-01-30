@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Tooltip, useTheme } from '@mui/material';
+import { Box, CardContent, Typography, Tooltip, useTheme } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
+import { GlassPanel } from '../ui/kinetic/GlassPanel';
 
 // Metric card component with gradient background, icon, value, label, trend indicator, and micro-animations
 // Gradyan arka plan, ikon, değer, etiket, trend göstergesi ve mikro animasyonlarla metrik kartı bileşeni
@@ -71,7 +72,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   const cardContent = (
-    <Card
+    <GlassPanel
       sx={{
         position: 'relative',
         overflow: 'hidden',
@@ -168,7 +169,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           </Box>
         )}
       </CardContent>
-    </Card>
+    </GlassPanel>
   );
 
   // Wrap in tooltip if provided / Sağlanmışsa tooltip ile sar

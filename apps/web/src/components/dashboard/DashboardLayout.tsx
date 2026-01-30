@@ -24,14 +24,16 @@ export interface DashboardLayoutProps {
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
   columns = { xs: 1, sm: 2, md: 2, lg: 3, xl: 4 },
-  gap = 2,
+  gap = 3, // Default to 24px (theme.spacing(3)) for Bento
   sx,
 }) => {
   const theme = useTheme();
 
   return (
     <Box
+      className="bento-grid"
       sx={{
+        // Override bento-grid's auto-fit if specific columns are needed, but keep the gap variable
         display: 'grid',
         gridTemplateColumns: {
           xs: `repeat(${columns.xs || 1}, 1fr)`,

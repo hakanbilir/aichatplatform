@@ -26,6 +26,7 @@ import {
   ErrorState,
   EmptyState,
 } from '../components/dashboard';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { useOrgAnalytics } from './useOrgAnalytics';
 
 export interface OrgAnalyticsPageProps {
@@ -130,9 +131,9 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
         <Box display="flex" alignItems="center" gap={1.5}>
           <QueryStatsIcon sx={{ fontSize: '1.5rem', color: 'primary.main' }} />
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+            <KineticTypography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
               {t('title')}
-            </Typography>
+            </KineticTypography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
               {t('subtitle')}
             </Typography>

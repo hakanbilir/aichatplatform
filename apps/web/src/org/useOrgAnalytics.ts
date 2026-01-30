@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { OrgAnalyticsResult, fetchOrgAnalytics } from '../api/orgAnalytics';
+import { OrgAnalyticsResult, streamOrgAnalytics } from '../api/orgAnalytics';
 
 export function useOrgAnalytics(orgId: string | null, initialWindowDays = 30) {
   const { token } = useAuth();
@@ -15,22 +15,34 @@ export function useOrgAnalytics(orgId: string | null, initialWindowDays = 30) {
   useEffect(() => {
     if (!token || !orgId) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
+    let isMounted = true;
 
     async function load() {
-      if (!token || !orgId) return; // Type guard / Tip koruması
-      const currentOrgId = orgId; // Capture for closure / Kapanış için yakala
+      if (!token || !orgId) return;
+      const currentOrgId = orgId;
       setLoading(true);
       setError(null);
+
       try {
-        const res = await fetchOrgAnalytics(token, currentOrgId, windowDays);
-        if (cancelled) return;
-        setData(res);
+        await streamOrgAnalytics(
+          token,
+          currentOrgId,
+          windowDays,
+          (result) => {
+            if (isMounted) setData(result);
+          },
+          (err) => {
+            if (isMounted) setError(err.message || 'Failed to stream analytics');
+          },
+          controller.signal
+        );
       } catch (err) {
-        if (cancelled) return;
-        setError((err as Error).message || 'Failed to load analytics');
+        if (isMounted) {
+          setError((err as Error).message || 'Failed to initiate stream');
+        }
       } finally {
-        if (!cancelled) {
+        if (isMounted) {
           setLoading(false);
         }
       }
@@ -39,7 +51,8 @@ export function useOrgAnalytics(orgId: string | null, initialWindowDays = 30) {
     void load();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
+      controller.abort();
     };
   }, [token, orgId, windowDays]);
 

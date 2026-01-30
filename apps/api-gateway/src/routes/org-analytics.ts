@@ -275,10 +275,9 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
     });
   });
 
-  // SSE Streaming Analytics Endpoint using Worker Thread
-  app.get('/orgs/:orgId/analytics/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
+  // SSE Kinetic Streaming Analytics Endpoint (Full Data)
+  app.get('/orgs/:orgId/analytics/kinetic-stream', { preHandler: [app.authenticate] }, async (request, reply) => {
     const payload = request.user as JwtPayload;
-    // orgId is in params but Fastify types it loosely
     const orgId = (request.params as any).orgId as string;
 
     const querySchema = z.object({
@@ -296,33 +295,11 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
       return reply.code(400).send({ error: request.i18n.t('errors.invalidQueryParams'), details: parsedQuery.error.format() });
     }
 
-    const windowDays = parsedQuery.data.windowDays || 30;
-
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'analytics:view'
     );
-
-    // Fetch data (IO)
-    const now = new Date();
-    const from = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
-
-    const messages = await prisma.message.findMany({
-      where: {
-        role: 'ASSISTANT',
-        createdAt: { gte: from },
-        conversation: { orgId },
-      },
-      select: {
-        meta: true,
-        createdAt: true,
-        conversation: {
-          select: { model: true },
-        },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
 
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -332,26 +309,23 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
     });
 
     // Notify client of processing
-    reply.raw.write(`event: status\ndata: "processing"\n\n`);
+    reply.raw.write(`data: "processing"\n\n`);
 
-    // Determine worker path (handle both .ts and .js)
-    const workerExt = __filename.endsWith('.ts') ? '.ts' : '.js';
-    const workerPath = join(__dirname, '../analytics.worker' + workerExt);
+    try {
+      // Use the existing service to get the full data structure needed by the UI
+      const { getOrgAnalytics } = await import('../services/orgAnalytics');
+      const result = await getOrgAnalytics({
+        orgId,
+        windowDays: parsedQuery.data.windowDays
+      });
 
-    const worker = new Worker(workerPath, {
-      workerData: { messages }
-    });
-
-    worker.on('message', (result) => {
       reply.raw.write(`data: ${JSON.stringify(result)}\n\n`);
+    } catch (err) {
+      request.log.error(err, 'Streaming analytics error');
+      reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: (err as Error).message })}\n\n`);
+    } finally {
       reply.raw.end();
-    });
-
-    worker.on('error', (err) => {
-        request.log.error(err, 'Worker error');
-        reply.raw.write(`event: error\ndata: ${JSON.stringify({error: err.message})}\n\n`);
-        reply.raw.end();
-    });
+    }
 
     return new Promise(() => {}); // Prevent immediate closure
   });
