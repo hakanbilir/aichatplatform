@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, Tooltip, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -13,6 +14,7 @@ interface MessageBubbleProps {
 
 // Optimized with React.memo to prevent re-renders of list items during streaming
 const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, images }) => {
+  const { t } = useTranslation('chat');
   const isUser = role === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -52,6 +54,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
           >
             <AccordionSummary
               expandIcon={<ExpandMoreIcon sx={{ color: 'text.secondary' }} />}
+              aria-label={t('message.reasoning', 'Reasoning Process')}
               sx={{ minHeight: 40, '& .MuiAccordionSummary-content': { margin: '8px 0' } }}
             >
               <Box display="flex" alignItems="center" gap={1}>
@@ -128,10 +131,11 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
                 zIndex: 1,
             }}
         >
-            <Tooltip title={copied ? "Copied" : "Copy"}>
+            <Tooltip title={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}>
                 <IconButton
                   size="small"
                   onClick={handleCopy}
+                  aria-label={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}
                   sx={{ color: 'text.secondary', bgcolor: 'rgba(0,0,0,0.2)' }}
                 >
                     {copied ? <CheckIcon fontSize="small" sx={{ fontSize: 16 }} /> : <ContentCopyIcon fontSize="small" sx={{ fontSize: 16 }} />}
