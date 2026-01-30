@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SaveIcon from '@mui/icons-material/Save';
 import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   OrgDataRetentionConfig,
@@ -73,7 +74,7 @@ export const RetentionSettingsPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [token, orgId]);
+  }, [token, orgId, t]);
 
   const handleSave = async () => {
     if (!token || !orgId) return;

@@ -1,6 +1,7 @@
 // apps/api-gateway/src/services/knowledgeRetrieval.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { getDefaultEmbeddingProvider } from '../knowledge/embeddings';
 
 export interface RetrievedChunk {
@@ -22,7 +23,7 @@ export async function retrieveRelevantChunks(params: {
   try {
     const embeddings = await provider.embed([params.query]);
     queryEmbedding = embeddings[0];
-  } catch (err) {
+  } catch (_err) {
     // If embedding fails, return empty results
     return [];
   }

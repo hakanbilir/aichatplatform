@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { theme } from './theme/theme';
 import { createOrgTheme } from './theme/orgTheme';
 import { AuthProvider } from './auth/AuthContext';

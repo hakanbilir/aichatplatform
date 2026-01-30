@@ -247,6 +247,7 @@ export async function* streamChatCompletion(
   // Çağıranların stream'in başladığını bilmesi için bir start event'i yayınla.
   yield { type: 'start' };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reader = (res.body as any).getReader();
   const decoder = new TextDecoder('utf-8');
   let buffer = '';

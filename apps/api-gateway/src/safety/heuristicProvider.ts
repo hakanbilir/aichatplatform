@@ -1,8 +1,7 @@
 // apps/api-gateway/src/safety/heuristicProvider.ts
 
 import { ModerationProvider } from './provider';
-import { ModerationResult } from './types';
-import { ModerationCategoryScore, ModerationCategory } from './types';
+import { ModerationResult , ModerationCategoryScore, ModerationCategory } from './types';
 
 const BLOCKLIST: { category: ModerationCategory; patterns: RegExp[] }[] = [
   {

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { Outlet, useParams } from 'react-router-dom';
+
 import { ConversationSidebar } from './ConversationSidebar';
 
 /**

@@ -19,11 +19,11 @@ export const breakpoints = {
 export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
   
-  if (breakpoint === 'xxl') {
-    return useMediaQuery(`(min-width:${breakpoints.xxl}px)`);
-  }
+  const query = breakpoint === 'xxl'
+    ? `(min-width:${breakpoints.xxl}px)`
+    : theme.breakpoints.up(breakpoint);
   
-  return useMediaQuery(theme.breakpoints.up(breakpoint));
+  return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is below a breakpoint
@@ -31,11 +31,11 @@ export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
 export const useBreakpointDown = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
   
-  if (breakpoint === 'xxl') {
-    return useMediaQuery(`(max-width:${breakpoints.xxl - 1}px)`);
-  }
+  const query = breakpoint === 'xxl'
+    ? `(max-width:${breakpoints.xxl - 1}px)`
+    : theme.breakpoints.down(breakpoint);
   
-  return useMediaQuery(theme.breakpoints.down(breakpoint));
+  return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is between two breakpoints

@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
+
 import { JwtPayload } from '../auth/types';
 
 export default async function aiContextRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {

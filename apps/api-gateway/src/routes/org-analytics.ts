@@ -1,12 +1,14 @@
 // apps/api-gateway/src/routes/org-analytics.ts
 
-import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { prisma } from '@ai-chat/db';
-import { JwtPayload } from '../auth/types';
-import { z } from 'zod';
-import { assertOrgPermission } from '../rbac/guards';
 import { Worker } from 'worker_threads';
 import { join } from 'path';
+
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { prisma } from '@ai-chat/db';
+import { z } from 'zod';
+
+import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
 
 const usageQuerySchema = z.object({
   days: z

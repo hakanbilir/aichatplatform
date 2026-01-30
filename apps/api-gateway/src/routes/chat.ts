@@ -3,7 +3,6 @@ import { prisma } from '@ai-chat/db';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Prisma types are available via workspace
 import type { Prisma } from '@prisma/client';
-import { JwtPayload } from '../auth/types';
 import {
   ConversationContext,
   OrchestratorOptions,
@@ -13,6 +12,8 @@ import {
 } from '@ai-chat/chat-orchestrator';
 import { ChatMessage, ChatRole, ChatStreamEvent } from '@ai-chat/core-types';
 import { z } from 'zod';
+
+import { JwtPayload } from '../auth/types';
 import { chatCompletionDurationSeconds, chatCompletionTokensTotal } from '../metrics';
 import { recordUsage } from '../usage/usageTracker';
 // import { getOrgQuotaWindowUsage } from '../services/orgQuotaGuard'; // Unused for now

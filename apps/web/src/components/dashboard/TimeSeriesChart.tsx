@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+
 import { ChartTooltip } from './utils/ChartTooltip';
 
 // Time-series chart component with Grafana-style Material 3 styling

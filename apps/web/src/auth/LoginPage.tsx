@@ -3,12 +3,14 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Box, Button, TextField, Typography, Link, IconButton, InputAdornment } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+
 import { login } from '../api/auth';
-import { useAuth } from './AuthContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { useEcoMode } from '../hooks/useEcoMode';
+
+import { useAuth } from './AuthContext';
 
 export const LoginPage: React.FC = () => {
   const { setAuthFromResponse } = useAuth();

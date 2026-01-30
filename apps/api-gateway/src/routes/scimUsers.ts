@@ -2,6 +2,7 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
+
 import { validateScimBearerToken } from '../scim/scimAuth';
 import { createUserFromScim, updateUserFromScim, deleteUserFromScim } from '../scim/scimService';
 

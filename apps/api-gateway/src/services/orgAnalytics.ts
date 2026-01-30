@@ -1,6 +1,7 @@
 // apps/api-gateway/src/services/orgAnalytics.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { getOrgQuotaWindowUsage, OrgQuotaWindowUsage } from './orgQuotaGuard';
 
 export interface OrgAnalyticsOptions {

@@ -2,12 +2,11 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
+import { prisma } from '@ai-chat/db';
+import type { Prisma } from '@prisma/client';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
-import { prisma } from '@ai-chat/db';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - Prisma types are available via workspace
-import type { Prisma } from '@prisma/client';
 import { generateSlug, hashPassphrase, verifyPassphrase } from '../sharing/utils';
 
 const createShareBodySchema = z.object({

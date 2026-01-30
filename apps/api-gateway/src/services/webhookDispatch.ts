@@ -1,7 +1,9 @@
 // apps/api-gateway/src/services/webhookDispatch.ts
 
 import crypto from 'crypto';
+
 import { prisma } from '@ai-chat/db';
+
 import { logger } from '../observability/logger';
 
 export type WebhookEventType = 'chat.turn.completed' | 'tool.exec.success' | 'tool.exec.error';

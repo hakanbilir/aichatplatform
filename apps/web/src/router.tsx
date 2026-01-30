@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
 import { RequireAuth } from './auth/RequireAuth';
 import { LoadingState } from './components/dashboard/LoadingState';
 

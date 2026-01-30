@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
+/* eslint-disable no-console, no-process-exit, node/shebang */
 
 /**
  * CLI tool to create a superadmin user.
@@ -10,8 +10,10 @@
  */
 
 import * as readline from 'readline';
-import { prisma } from '../index';
+
 import bcrypt from 'bcryptjs';
+
+import { prisma } from '../index';
 
 // Default salt rounds for password hashing
 // Şifre hash'leme için varsayılan tuz turu
@@ -287,6 +289,7 @@ async function main() {
               data: {
                 userId: user.id,
                 orgId: org.id,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 role: selectedRole as any,
               },
             });
@@ -324,4 +327,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-

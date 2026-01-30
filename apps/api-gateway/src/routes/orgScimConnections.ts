@@ -1,11 +1,13 @@
 // apps/api-gateway/src/routes/orgScimConnections.ts
 
+import crypto from 'crypto';
+
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '@ai-chat/db';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
-import crypto from 'crypto';
 
 const createConnectionSchema = z.object({
   name: z.string().min(1).max(128),

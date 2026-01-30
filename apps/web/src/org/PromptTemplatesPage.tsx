@@ -19,14 +19,14 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
 import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   PromptTemplateDetailDto,
   PromptTemplateVersionDto,
   fetchPromptTemplateDetail,
   createPromptTemplateVersion
-} from '../api/prompts';
-import { fetchPromptTemplates, PromptTemplate } from '../api/prompts';
+, fetchPromptTemplates, PromptTemplate } from '../api/prompts';
 
 export const PromptTemplatesPage: React.FC = () => {
   const { orgId } = useParams();

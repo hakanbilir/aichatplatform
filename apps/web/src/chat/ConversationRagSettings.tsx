@@ -12,9 +12,10 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import { useKnowledgeSpaces } from '../knowledge/useKnowledgeSpaces';
-import { useParams } from 'react-router-dom';
 import { updateConversationSettings } from '../api/conversationSettings';
 
 interface ConversationRagSettings {

@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply, FastifyPluginOptions } from 'fastify';
 import fp from 'fastify-plugin';
+
 import i18next from './config';
 
 // Extend FastifyRequest to include i18n

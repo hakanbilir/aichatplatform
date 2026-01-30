@@ -1,6 +1,7 @@
 // apps/api-gateway/src/usage/usageTracker.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { UsageEvent } from './types';
 
 export async function recordUsage(event: UsageEvent) {

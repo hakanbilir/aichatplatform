@@ -1,7 +1,8 @@
 // apps/api-gateway/src/tools/orgUsageSnapshotTool.ts
 
-import { ToolDefinition, ToolContext } from './types';
 import { getOrgQuotaWindowUsage, OrgQuotaWindowUsage } from '../services/orgQuotaGuard';
+
+import { ToolDefinition, ToolContext } from './types';
 
 interface OrgUsageSnapshotArgs {
   windowDays?: number;

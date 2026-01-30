@@ -2,6 +2,8 @@ import fastify from 'fastify';
 import cors from '@fastify/cors';
 import { getConfig } from '@ai-chat/config';
 import { ensureDbExtensions, checkDbConnection } from '@ai-chat/db';
+import fp from 'fastify-plugin';
+
 import { loggerConfig } from './observability/logger';
 import authPlugin from './plugins/auth';
 import metricsPlugin from './plugins/metrics';
@@ -54,7 +56,6 @@ import { initLlmProviders } from './llm/router';
 import { setModerationProvider } from './safety/provider';
 import { HeuristicModerationProvider } from './safety/heuristicProvider';
 import { resolveTenantByHostname } from './tenancy/hostnameResolver';
-import fp from 'fastify-plugin';
 
 // Tenancy plugin for hostname-based tenant resolution (47.md)
 // Hostname tabanlı tenant çözümlemesi için tenancy plugin'i (47.md)
@@ -200,15 +201,14 @@ async function start() {
 
   const app = await buildServer();
 
-  app
-    .listen({ port, host })
-    .then(() => {
-      app.log.info(`API Gateway listening on http://${host}:${port}`);
-    })
-    .catch((err) => {
-      app.log.error(err, 'Failed to start API Gateway');
-      process.exit(1);
-    });
+  try {
+    await app.listen({ port, host });
+    app.log.info(`API Gateway listening on http://${host}:${port}`);
+  } catch (err) {
+    app.log.error(err, 'Failed to start API Gateway');
+    // eslint-disable-next-line no-process-exit
+    process.exit(1);
+  }
 }
 
 start();

@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
+
 import {
   PublicSharedConversation,
   fetchPublicSharedConversation
@@ -60,7 +61,7 @@ export const PublicSharedConversationPage: React.FC = () => {
     }
 
     void load();
-  }, [slug]);
+  }, [slug, t]);
 
   const handlePassphraseSubmit = async () => {
     if (!slug || !passphrase) return;
@@ -71,7 +72,7 @@ export const PublicSharedConversationPage: React.FC = () => {
       setConversation(data);
       setPassphraseDialogOpen(false);
       setNeedsPassphrase(false);
-    } catch (err) {
+    } catch (_err) {
       setError(t('invalidPassphrase'));
     } finally {
       setLoading(false);

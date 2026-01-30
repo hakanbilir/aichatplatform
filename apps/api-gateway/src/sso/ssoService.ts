@@ -1,6 +1,7 @@
 // apps/api-gateway/src/sso/ssoService.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { checkSeatLimit } from '../billing/seatService';
 
 export async function findOrProvisionUserFromSso(

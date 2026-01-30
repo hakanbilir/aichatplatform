@@ -1,7 +1,8 @@
 // apps/api-gateway/src/providers/ollamaProvider.ts
 
-import { ModelProvider, ProviderChatOptions, ProviderChatResult, ProviderMessage } from './base';
 import { getConfig } from '@ai-chat/config';
+
+import { ModelProvider, ProviderChatOptions, ProviderChatResult, ProviderMessage } from './base';
 
 const getOllamaBaseUrl = (): string => {
   const config = getConfig();

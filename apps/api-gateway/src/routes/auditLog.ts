@@ -2,9 +2,10 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
+import { prisma } from '@ai-chat/db';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
-import { prisma } from '@ai-chat/db';
 
 const auditQuerySchema = z.object({
   page: z.coerce.number().int().min(0).default(0),

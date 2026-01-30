@@ -131,7 +131,7 @@ function estimateTotalTokens(messages: ChatMessage[]): number {
  * En eski mesajlar önce kaldırılır (baştan), en son mesajlar + kullanıcı girdisi korunur.
  */
 function trimMessagesToMaxTokens(messages: ChatMessage[], maxTokens: number): ChatMessage[] {
-  let result = [...messages];
+  const result = [...messages];
   let total = estimateTotalTokens(result);
 
   // Keep at least the last message even if it exceeds max on its own.

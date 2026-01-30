@@ -4,19 +4,22 @@ import { prisma } from '@ai-chat/db';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Prisma types are available via workspace
 import type { Prisma } from '@prisma/client';
+
 import { ProviderMessage, ProviderUsage } from '../providers/base';
 import { getModelConfig, resolveModelId } from '../config/models';
-import { getProviderForModel } from './modelRouter';
-import { listToolsForContext, executeToolEnvelope } from './toolEngine';
 import { ToolCallEnvelope, ToolContext } from '../tools/types';
-import { buildToolsSystemPrompt } from './chatEngineToolsPrompt';
 import { logger } from '../observability/logger';
 import { chatTurnDurationSeconds } from '../metrics';
+import { emitEvent } from '../events/emitter';
+import { recordUsage } from '../usage/usageTracker';
+
+import { getProviderForModel } from './modelRouter';
+import { listToolsForContext, executeToolEnvelope } from './toolEngine';
+import { buildToolsSystemPrompt } from './chatEngineToolsPrompt';
 import { dispatchWebhookEvent } from './webhookDispatch';
 import { retrieveRelevantChunks } from './knowledgeRetrieval';
 import { getOrgAiPolicy } from './orgAiPolicy';
-import { emitEvent } from '../events/emitter';
-import { recordUsage } from '../usage/usageTracker';
+
 
 export type ChatRole = 'SYSTEM' | 'USER' | 'ASSISTANT' | 'TOOL';
 

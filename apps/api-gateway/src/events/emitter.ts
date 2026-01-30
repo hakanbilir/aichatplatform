@@ -1,6 +1,7 @@
 // apps/api-gateway/src/events/emitter.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { EmitEventParams } from './types';
 
 function matchesEventType(eventType: string, pattern: string): boolean {

@@ -3,8 +3,9 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
-import { JwtPayload } from '../auth/types';
 import { z } from 'zod';
+
+import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 
 const createBaseModelBodySchema = z.object({
@@ -215,7 +216,7 @@ export default async function baseModelsRoutes(app: FastifyInstance, _opts: Fast
           const baseModel = await prisma.baseModel.create({ data: model });
           created.push(baseModel);
         }
-      } catch (error) {
+      } catch (_error) {
         // Skip if already exists
       }
     }

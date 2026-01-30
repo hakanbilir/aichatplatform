@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SaveIcon from '@mui/icons-material/Save';
 import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import { fetchOrgBranding, updateOrgBranding, OrgBrandingConfigDto } from '../api/orgBranding';
 
@@ -76,7 +77,7 @@ export const OrgBrandingPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [token, orgId]);
+  }, [token, orgId, t]);
 
   const handleSave = async () => {
     if (!token || !orgId || !config) return;
@@ -183,7 +184,6 @@ export const OrgBrandingPage: React.FC = () => {
                 {t('preview')}
               </Typography>
               <Box mt={0.5} display="flex" alignItems="center" gap={1}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={config.logoUrl}
                   alt={t('logoPreviewAlt')}

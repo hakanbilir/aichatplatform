@@ -2,8 +2,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { prisma } from '@ai-chat/db';
+
 import { ConversationExportFormat } from '@ai-chat/core-types';
+import { prisma } from '@ai-chat/db';
 
 // This is a simple implementation writing to local disk; in real deployments, use S3/minio.
 const EXPORT_DIR = process.env.EXPORT_DIR ?? path.join(process.cwd(), 'exports');
@@ -14,7 +15,9 @@ async function ensureExportDir() {
 
 async function buildExportContent(
   format: ConversationExportFormat,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   conversation: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: any[]
 ): Promise<string> {
   if (format === 'jsonl') {

@@ -25,10 +25,12 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
-import { useKnowledgeSpaces } from './useKnowledgeSpaces';
-import { useKnowledgeSearch } from './useKnowledgeSearch';
+
 import { ingestTextDocument } from '../api/knowledge';
 import { useAuth } from '../auth/AuthContext';
+
+import { useKnowledgeSpaces } from './useKnowledgeSpaces';
+import { useKnowledgeSearch } from './useKnowledgeSearch';
 
 export const KnowledgeBasePage: React.FC = () => {
   const { t } = useTranslation(['knowledge', 'common']);

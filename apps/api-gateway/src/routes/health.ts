@@ -28,7 +28,7 @@ export default async function healthRoutes(app: FastifyInstance, _opts: FastifyP
   app.get('/readyz', async (_request, reply) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
-    } catch (err) {
+    } catch (_err) {
       return reply.code(503).send({ status: 'error', reason: 'db_unreachable' });
     }
 

@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
-import { OrgSwitcher } from './OrgSwitcher';
+
 import { ConversationList } from '../chat/ConversationList';
 import { useIsMobile } from '../utils/responsive';
+
+import { OrgSwitcher } from './OrgSwitcher';
 
 interface SideNavProps {
   onCreateConversation: () => void;

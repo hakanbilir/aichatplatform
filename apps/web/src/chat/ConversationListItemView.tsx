@@ -1,6 +1,7 @@
 import React from 'react';
 import { ListItemButton, ListItemText } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+
 import { ConversationListItem } from '../api/conversations';
 
 interface ConversationListItemViewProps {

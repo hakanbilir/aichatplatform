@@ -9,6 +9,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
@@ -16,8 +17,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
-import { ToolsPanel } from './ToolsPanel';
+
 import { PromptLibraryDrawer } from '../prompts/PromptLibraryDrawer';
 import { PromptTemplateEditorDialog } from '../prompts/PromptTemplateEditorDialog';
 import { useAuth } from '../auth/AuthContext';
@@ -27,8 +27,6 @@ import {
   createConversation,
   updateConversation,
 } from '../api/conversations';
-import { ChatView } from './ChatView';
-import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
 import { useChat } from '../hooks/useChat';
@@ -37,6 +35,11 @@ import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
+
+import { MessageInput } from './MessageInput';
+import { ChatView } from './ChatView';
+import { ToolsPanel } from './ToolsPanel';
+import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;

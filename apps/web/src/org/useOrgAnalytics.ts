@@ -1,6 +1,7 @@
 // apps/web/src/org/useOrgAnalytics.ts
 
 import { useEffect, useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import { OrgAnalyticsResult, fetchOrgAnalytics } from '../api/orgAnalytics';
 
