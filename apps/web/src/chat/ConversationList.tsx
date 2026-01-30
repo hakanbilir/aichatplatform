@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, List, Typography } from '@mui/material';
+import { Box, List, Typography, Skeleton } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ConversationListItemView } from './ConversationListItemView';
 import { listConversations, ConversationListItem } from '../api/conversations';
@@ -11,6 +11,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
   const [items, setItems] = useState<ConversationListItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     async function load() {
       if (!token) return; // Type guard / Tip koruması
       try {
+        setLoading(true);
         const resp = await listConversations(token);
         if (!cancelled) {
           setItems(resp.conversations);
@@ -31,6 +33,8 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
         }
       } catch {
         // ignore errors
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -70,6 +74,21 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
 
   if (!token) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <Box px={2} pt={2} role="status" aria-busy="true" aria-label={t('sidebar.loading', 'Loading conversations...')}>
+        {[1, 2, 3].map((i) => (
+          <Skeleton
+            key={i}
+            variant="rounded"
+            height={50}
+            sx={{ mb: 1, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }}
+          />
+        ))}
+      </Box>
+    );
   }
 
   if (items.length === 0) {
