@@ -11,12 +11,12 @@ import { sendInvitationEmail } from '../services/email';
 
 const inviteBodySchema = z.object({
   email: z.string().email(),
-  role: z.string().min(1),
+  role: z.enum(['ADMIN', 'MEMBER', 'VIEWER']),
   expiresInDays: z.number().int().min(1).max(60).default(7)
 });
 
 const updateMemberRoleSchema = z.object({
-  role: z.string().min(1)
+  role: z.enum(['ADMIN', 'MEMBER', 'VIEWER'])
 });
 
 const toggleMemberStatusSchema = z.object({
