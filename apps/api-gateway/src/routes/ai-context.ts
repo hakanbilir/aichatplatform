@@ -19,22 +19,34 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
       select: { id: true, title: true, model: true, updatedAt: true, orgId: true }
     });
 
-    // Mock intent analysis
-    const primaryIntent = recentConversations.length > 0
-      ? `Continuing conversation about ${recentConversations[0].title}`
-      : 'Starting a new task';
+    // Derive intent from recent activity
+    let primaryIntent = 'Starting a new task';
+    if (recentConversations.length > 0) {
+      const lastConv = recentConversations[0];
+      const hoursSinceLast = (Date.now() - new Date(lastConv.updatedAt).getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceLast < 1) {
+        primaryIntent = `Resuming active conversation: ${lastConv.title}`;
+      } else if (hoursSinceLast < 24) {
+        primaryIntent = `Following up on: ${lastConv.title}`;
+      } else {
+        primaryIntent = `Revisiting topic: ${lastConv.title}`;
+      }
+    }
 
     return reply.send({
       user,
       state: {
         currentOrgId: (request.headers['x-org-id'] as string) || null,
         theme: 'kinetic-glass', // 2026 standard
+        timestamp: new Date().toISOString()
       },
       navigation_history: recentConversations.map((c: any) => ({
         type: 'conversation',
         id: c.id,
         title: c.title,
-        timestamp: c.updatedAt
+        timestamp: c.updatedAt,
+        model: c.model
       })),
       primary_intent: primaryIntent
     });

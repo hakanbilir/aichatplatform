@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Card,
   CardContent,
   CardHeader,
   Typography,
@@ -11,6 +10,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { GlassPanel } from '../ui/kinetic/GlassPanel';
 
 // Reusable panel/card container with header, actions, and collapsible support
 // Başlık, eylemler ve daraltılabilir destekle yeniden kullanılabilir panel/kart konteyneri
@@ -32,6 +32,8 @@ export interface PanelProps {
   sx?: object;
   // Custom header sx / Özel başlık sx
   headerSx?: object;
+  // Refractive effect
+  refractive?: boolean;
 }
 
 export const Panel: React.FC<PanelProps> = ({
@@ -43,6 +45,7 @@ export const Panel: React.FC<PanelProps> = ({
   defaultExpanded = true,
   sx,
   headerSx,
+  refractive = false,
 }) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -54,12 +57,9 @@ export const Panel: React.FC<PanelProps> = ({
   };
 
   return (
-    <Card
+    <GlassPanel
+      refractive={refractive}
       sx={{
-        borderRadius: 3,
-        backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.08)',
         transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           transform: 'translateY(-2px)',
@@ -118,7 +118,7 @@ export const Panel: React.FC<PanelProps> = ({
       <Collapse in={expanded} timeout={300}>
         <CardContent sx={{ pt: 0, '&:last-child': { pb: 2 } }}>{children}</CardContent>
       </Collapse>
-    </Card>
+    </GlassPanel>
   );
 };
 
