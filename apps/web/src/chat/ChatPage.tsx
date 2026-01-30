@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   FormControl,
@@ -168,13 +168,13 @@ export const ChatPage: React.FC = () => {
     return () => window.clearTimeout(timeout);
   }, [savedAt]);
 
-  const handleSend = async (content: string, images?: string[]) => {
+  const handleSend = useCallback(async (content: string, images?: string[]) => {
     await sendMessage(content, images, {
         model,
         temperature,
         topP
     });
-  };
+  }, [sendMessage, model, temperature, topP]);
 
   const handleSaveSettings = async () => {
     if (!token || !conversationId) return;
