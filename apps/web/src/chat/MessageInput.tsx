@@ -18,7 +18,7 @@ interface MessageInputProps {
   onStop?: () => void;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({
+const MessageInputComponent: React.FC<MessageInputProps> = ({
   disabled,
   onSend,
   value: controlledValue,
@@ -205,3 +205,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     </Box>
   );
 };
+
+export const MessageInput = React.memo(MessageInputComponent);
+MessageInput.displayName = 'MessageInput';
