@@ -1,6 +1,6 @@
 // apps/api-gateway/src/providers/ollamaProvider.ts
 
-import { ModelProvider, ProviderChatOptions, ProviderChatResult, ProviderMessage } from './base';
+import { ModelProvider, ProviderChatOptions, ProviderChatResult, ProviderMessage, MessageContent } from './base';
 import { getConfig } from '@ai-chat/config';
 import { ChatStreamEvent } from '@ai-chat/core-types';
 
@@ -12,6 +12,7 @@ const getOllamaBaseUrl = (): string => {
 interface OllamaChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  images?: string[];
 }
 
 interface OllamaChatRequestBody {
@@ -35,15 +36,44 @@ interface OllamaChatResponse {
   prompt_eval_count?: number;
 }
 
+function parseContentForOllama(content: MessageContent): { content: string; images?: string[] } {
+  if (typeof content === 'string') {
+    return { content };
+  }
+
+  let text = '';
+  const images: string[] = [];
+
+  for (const part of content) {
+    if (part.type === 'text') {
+      text += part.text;
+    } else if (part.type === 'image_url') {
+      // Strip data URI prefix if present to get raw base64
+      const url = part.image_url.url;
+      const base64 = url.replace(/^data:image\/\w+;base64,/, '');
+      images.push(base64);
+    }
+  }
+
+  return { content: text, images: images.length > 0 ? images : undefined };
+}
+
 export class OllamaProvider implements ModelProvider {
   async chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult> {
     const baseUrl = getOllamaBaseUrl();
+
+    const mappedMessages: OllamaChatMessage[] = messages.map((m) => {
+      const { content, images } = parseContentForOllama(m.content);
+      return {
+        role: m.role === 'tool' ? 'assistant' : (m.role as 'system' | 'user' | 'assistant'),
+        content,
+        images
+      };
+    });
+
     const body: OllamaChatRequestBody = {
       model: options.model,
-      messages: messages.map((m) => ({
-        role: m.role === 'tool' ? 'assistant' : (m.role as 'system' | 'user' | 'assistant'),
-        content: m.content,
-      })),
+      messages: mappedMessages,
       stream: false,
       options: {
         temperature: options.temperature,
@@ -77,12 +107,19 @@ export class OllamaProvider implements ModelProvider {
 
   async *chatStream(messages: ProviderMessage[], options: ProviderChatOptions): AsyncGenerator<ChatStreamEvent, void, unknown> {
     const baseUrl = getOllamaBaseUrl();
+
+    const mappedMessages: OllamaChatMessage[] = messages.map((m) => {
+      const { content, images } = parseContentForOllama(m.content);
+      return {
+        role: m.role === 'tool' ? 'assistant' : (m.role as 'system' | 'user' | 'assistant'),
+        content,
+        images
+      };
+    });
+
     const body: OllamaChatRequestBody = {
       model: options.model,
-      messages: messages.map((m) => ({
-        role: m.role === 'tool' ? 'assistant' : (m.role as 'system' | 'user' | 'assistant'),
-        content: m.content,
-      })),
+      messages: mappedMessages,
       stream: true,
       options: {
         temperature: options.temperature,
@@ -119,21 +156,7 @@ export class OllamaProvider implements ModelProvider {
 
         buffer += decoder.decode(value, { stream: true });
 
-        // Ollama sends JSON objects, one per line (usually, but we should handle parsing carefully)
-        // But Ollama sometimes just concatenates JSONs.
-        // Assuming strict JSON lines for now, but scanning for objects is safer.
-        // Let's use simple line splitting as Ollama is usually well behaved.
-
-        // However, a single chunk might contain partial JSON or multiple JSONs.
-        // Since Ollama output is not SSE but raw JSON stream (ndjson), we iterate lines.
-
-        // Fix: Ollama emits valid JSON objects. We need to parse them.
-
-        // Simple brace counting or regex matching is hard.
-        // But Ollama documentation says "stream of JSON objects".
-
         const lines = buffer.split('\n');
-        // If the last line is not empty, it might be incomplete.
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
@@ -161,7 +184,7 @@ export class OllamaProvider implements ModelProvider {
                     };
                 }
             } catch {
-                // Ignore parse errors for partial lines (though we try to handle that with buffer)
+                // Ignore
             }
         }
       }
@@ -172,4 +195,3 @@ export class OllamaProvider implements ModelProvider {
     }
   }
 }
-

@@ -1,10 +1,15 @@
-// apps/api-gateway/src/providers/base.ts
 
 export type ProviderRole = 'system' | 'user' | 'assistant' | 'tool';
 
+export type MessageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+export type MessageContent = string | MessageContentPart[];
+
 export interface ProviderMessage {
   role: ProviderRole;
-  content: string;
+  content: MessageContent;
 }
 
 export interface ProviderUsage {
@@ -41,4 +46,3 @@ export interface ModelProvider {
    */
   chatStream?(messages: ProviderMessage[], options: ProviderChatOptions): AsyncGenerator<ChatStreamEvent, void, unknown>;
 }
-

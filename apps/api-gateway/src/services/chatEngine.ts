@@ -4,7 +4,7 @@ import { prisma } from '@ai-chat/db';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Prisma types are available via workspace
 import type { Prisma } from '@prisma/client';
-import { ProviderMessage, ProviderUsage } from '../providers/base';
+import { ProviderMessage, ProviderUsage, MessageContentPart } from '../providers/base';
 import { getModelConfig, resolveModelId } from '../config/models';
 import { getProviderForModel } from './modelRouter';
 import { listToolsForContext, executeToolEnvelope } from './toolEngine';
@@ -25,6 +25,7 @@ export interface RunConversationTurnInput {
   conversationId: string;
   userId: string;
   content: string; // latest user message content
+  images?: string[];
   overrides?: {
     model?: string;
     temperature?: number;
@@ -52,7 +53,7 @@ function parseToolEnvelopeCandidate(text: string): ToolCallEnvelope | null {
   }
 }
 
-async function prepareConversationContext(conversationId: string, userId: string, content: string, overrides?: RunConversationTurnInput['overrides']) {
+async function prepareConversationContext(conversationId: string, userId: string, content: string, images: string[] | undefined, overrides?: RunConversationTurnInput['overrides']) {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: {
@@ -95,7 +96,7 @@ async function prepareConversationContext(conversationId: string, userId: string
       conversationId: conversation.id,
       role: 'USER',
       content,
-      meta: {},
+      meta: images ? { images } : {},
       orgId: conversation.orgId ?? undefined,
     },
   });
@@ -128,6 +129,7 @@ async function prepareConversationContext(conversationId: string, userId: string
     select: {
       role: true,
       content: true,
+      meta: true,
     },
   });
 
@@ -135,9 +137,6 @@ async function prepareConversationContext(conversationId: string, userId: string
   let effectiveTemperature = overrides?.temperature ?? (typeof conversation.temperature === 'number'
     ? conversation.temperature
     : undefined);
-
-  // If overrides are present, they take precedence over ChatProfile too?
-  // Usually explicit user overrides (if allowed) win.
 
   if (conversation.chatProfile && !overrides?.model) {
     const profile = conversation.chatProfile;
@@ -236,7 +235,20 @@ async function prepareConversationContext(conversationId: string, userId: string
 
   for (const msg of history) {
     const role = (msg.role as ChatRole) || 'USER';
-    baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: msg.content });
+    const msgMeta = msg.meta as any;
+    const msgImages = msgMeta?.images as string[] | undefined;
+
+    if (msgImages && msgImages.length > 0) {
+        const contentParts: MessageContentPart[] = [
+            { type: 'text', text: msg.content }
+        ];
+        for (const img of msgImages) {
+            contentParts.push({ type: 'image_url', image_url: { url: img } });
+        }
+        baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: contentParts });
+    } else {
+        baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: msg.content });
+    }
   }
 
   const ctx: ToolContext = {
@@ -378,7 +390,7 @@ export async function runConversationTurn(
 ): Promise<RunConversationTurnResult> {
   const startedAt = process.hrtime.bigint();
   const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
-    await prepareConversationContext(input.conversationId, input.userId, input.content, input.overrides);
+    await prepareConversationContext(input.conversationId, input.userId, input.content, input.images, input.overrides);
 
   // Tools Logic
   if (structuredToolsEnabled) {
@@ -480,7 +492,7 @@ export async function* streamConversationTurn(
 ): AsyncGenerator<ChatStreamEvent, void, unknown> {
   const startedAt = process.hrtime.bigint();
   const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
-    await prepareConversationContext(input.conversationId, input.userId, input.content, input.overrides);
+    await prepareConversationContext(input.conversationId, input.userId, input.content, input.images, input.overrides);
 
   if (!provider.chatStream) {
     throw new Error('Provider does not support streaming');
@@ -575,23 +587,10 @@ export async function* streamConversationTurn(
         }
       }
     } else {
-        // Fallback: Plan phase didn't produce tools, but it might have produced an answer?
-        // Usually if we prompt for tools, and it returns text, that text IS the answer.
-        // We should just stream that text to the user?
-        // But we already fetched it non-streaming.
-        // To be "streaming", we want the user to see it token by token.
-        // Since we did a non-streaming call, we already have the full content.
-        // We can simulate streaming it out, or just send it as one chunk.
-        // OR: Better approach: If we want streaming, maybe we shouldn't do non-streaming planning?
-        // But parsing JSON from a stream is hard.
-        // Compromise: If plan fails, we assume it's a direct answer. We just stream it as a single chunk (simulated).
-        // Or re-run as stream? (Wasteful).
-
-        // Let's optimize: If no tools used, we yield the content we got.
+        // Fallback: Plan phase didn't produce tools.
         finalContent = planResult.content;
         finalUsage = planResult.usage;
 
-        // Yield synthetic start/token/end
         yield { type: 'start' };
         yield { type: 'token', token: finalContent };
         yield { type: 'end', usage: finalUsage, finalMessage: { role: 'assistant', content: finalContent } };
@@ -619,8 +618,6 @@ export async function* streamConversationTurn(
 
   // Finalize (save to DB)
   if (finalContent || toolMessageId) {
-      // If we have toolMessageId but no final content (rare), we still save something?
-      // Assistant usually replies.
       await finalizeConversationTurn(
         conversation,
         modelConfig,

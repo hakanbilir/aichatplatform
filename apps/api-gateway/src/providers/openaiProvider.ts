@@ -15,8 +15,6 @@ export class OpenAIProvider implements ModelProvider {
     return messages.map((m) => ({
       role: m.role === 'tool' ? 'tool' : (m.role as 'system' | 'user' | 'assistant'),
       content: m.content,
-      // Note: OpenAI tool messages require tool_call_id, but our simple provider abstraction might not pass it in 'meta' yet.
-      // Ideally ProviderMessage should have 'meta' too. For now, we assume simple text.
     }));
   }
 
@@ -66,12 +64,8 @@ export class OpenAIProvider implements ModelProvider {
       messages: this.mapMessages(messages),
       temperature: options.temperature,
       stream: true,
-      // stream_options: { include_usage: true } // Supported in newer OpenAI models
+      stream_options: { include_usage: true }
     };
-
-    // Add usage support if model supports it (generic check)
-    // We'll optimistically request it
-    body.stream_options = { include_usage: true };
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -94,6 +88,7 @@ export class OpenAIProvider implements ModelProvider {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let ended = false;
 
     yield { type: 'start' };
 
@@ -117,10 +112,9 @@ export class OpenAIProvider implements ModelProvider {
             const chunk = JSON.parse(jsonStr);
 
             if (chunk.usage) {
+               ended = true;
                yield {
-                 type: 'end', // Usage usually comes in the last chunk which might be 'end' equivalent
-                 // Actually we should yield a dedicated usage update or attach to end.
-                 // Core types `end` event has usage.
+                 type: 'end',
                  usage: {
                    promptTokens: chunk.usage.prompt_tokens,
                    completionTokens: chunk.usage.completion_tokens,
@@ -140,10 +134,7 @@ export class OpenAIProvider implements ModelProvider {
               };
             }
 
-            if (finishReason === 'stop') {
-              // We'll emit 'end' at the very end of the loop logic or rely on usage chunk.
-              // But OpenAI might send usage AFTER stop.
-            }
+            // OpenAI usage chunk comes after finish_reason: stop, so we wait for usage to send 'end'.
           } catch (e) {
              console.warn('Failed to parse OpenAI chunk', e);
           }
@@ -155,9 +146,8 @@ export class OpenAIProvider implements ModelProvider {
       reader.releaseLock();
     }
 
-    // Ensure we send an end event if not sent (simple logic)
-    // Since we stream tokens, the consumer accumulates.
-    // We can yield a final empty end to signify completion if usage wasn't received.
-    yield { type: 'end' };
+    if (!ended) {
+      yield { type: 'end' };
+    }
   }
 }

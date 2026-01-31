@@ -6,6 +6,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import HeadphonesIcon from '@mui/icons-material/Headphones';
 import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
 import { ChatSettingsBar } from './ChatSettingsBar';
 import { ToolsPanel } from './ToolsPanel';
@@ -23,6 +24,7 @@ import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
 import { useChat } from '../hooks/useChat';
+import { VoiceModeOverlay } from './VoiceModeOverlay';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
@@ -87,6 +89,7 @@ export const ChatPage: React.FC = () => {
   const [messageInputValue, setMessageInputValue] = useState<string>('');
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
+  const [voiceModeOpen, setVoiceModeOpen] = useState<boolean>(false);
   
   const { user } = useAuth();
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
@@ -286,6 +289,15 @@ export const ChatPage: React.FC = () => {
           >
             <AutoAwesomeIcon fontSize="small" />
           </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => setVoiceModeOpen(true)}
+            sx={{ opacity: 0.7 }}
+            title={t('chat.voiceMode', 'Voice Mode')}
+            aria-label={t('chat.voiceMode', 'Voice Mode')}
+          >
+            <HeadphonesIcon fontSize="small" />
+          </IconButton>
         </Box>
         <MessageInput
           disabled={!conversationId || isStreaming}
@@ -366,6 +378,19 @@ export const ChatPage: React.FC = () => {
           basePublicUrl={window.location.origin}
         />
       )}
+
+      <VoiceModeOverlay
+        open={voiceModeOpen}
+        onClose={() => setVoiceModeOpen(false)}
+        onSend={(content) => handleSend(content)}
+        isStreaming={isStreaming}
+        streamingText={streamingText}
+        latestAssistantMessageContent={
+          messages && messages.length > 0 && messages[messages.length - 1].role.toLowerCase() === 'assistant'
+            ? messages[messages.length - 1].content
+            : undefined
+        }
+      />
     </BentoGrid>
   );
 };

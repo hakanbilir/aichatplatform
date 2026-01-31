@@ -87,6 +87,7 @@ async function buildServer() {
   const app = fastify({
     logger: loggerConfig,
     trustProxy: true, // Enable trustProxy to respect X-Forwarded-For headers (critical for rate limiting behind proxies)
+    bodyLimit: 50 * 1024 * 1024, // 50MB for large image uploads
   });
 
   // Initialize moderation provider (41.md)
