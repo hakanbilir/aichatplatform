@@ -13,3 +13,7 @@
 ## 2026-02-04 - List Selection Performance
 **Learning:** In lists where a single item is selected (e.g., navigation sidebars), storing `selectedId` in the parent component causes the entire list to re-render when selection changes.
 **Action:** Extract the list item into a `React.memo` component and ensure callback props (like `onSelect`) are stable using `useCallback`. This reduces re-renders from O(N) to O(1) (only the 2 changed items update).
+
+## 2026-05-22 - Deep Linking Broken in ChatPage
+**Learning:** The `ChatPage` component relied solely on custom events (`select-conversation`) to update its state, ignoring the React Router `useParams`. This caused direct URL navigation (deep linking) to fail, loading an empty state instead of the conversation, which also broke automated verification scripts relying on direct navigation.
+**Action:** When implementing route components, always sync internal state with `useParams` to ensure the URL remains the source of truth for navigation state.

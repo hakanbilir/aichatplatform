@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Box, IconButton, TextField, CircularProgress, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SendIcon from '@mui/icons-material/Send';

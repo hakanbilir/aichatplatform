@@ -11,23 +11,13 @@ interface ChatViewProps {
   isThinking?: boolean;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, toolStatus, thinkingText, isThinking }) => {
+const ChatViewComponent: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, toolStatus, thinkingText, isThinking }) => {
   const { t } = useTranslation('chat');
-  const allMessages = [...messages];
 
-  if (streamingAssistantText || isThinking) {
-    allMessages.push({
-      id: 'streaming',
-      role: 'assistant',
-      content: streamingAssistantText,
-      // @ts-ignore - temporary property for rendering
-      thinkingText,
-      // @ts-ignore - temporary property for rendering
-      isThinking
-    });
-  }
+  const hasStreaming = !!(streamingAssistantText || isThinking);
+  const isEmpty = messages.length === 0 && !hasStreaming;
 
-  if (allMessages.length === 0) {
+  if (isEmpty) {
     return (
       <Box
         flex={1}
@@ -49,7 +39,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
 
   return (
     <Box flex={1} overflow="auto" px={3} py={2}>
-      {allMessages.map((m) => (
+      {messages.map((m) => (
         <MessageBubble
           key={m.id}
           role={m.role === 'USER' || m.role === 'user' ? 'user' : (m.role === 'TOOL' || m.role === 'tool' ? 'tool' : 'assistant')}
@@ -60,6 +50,15 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
           isThinking={(m as any).isThinking}
         />
       ))}
+      {hasStreaming && (
+        <MessageBubble
+          key="streaming"
+          role="assistant"
+          content={streamingAssistantText}
+          thinkingText={thinkingText}
+          isThinking={isThinking}
+        />
+      )}
       {toolStatus && (
         <Box display="flex" justifyContent="flex-start" mb={2} pl={2}>
            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
@@ -71,3 +70,4 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
   );
 };
 
+export const ChatView = React.memo(ChatViewComponent);

@@ -38,6 +38,7 @@ import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
+import { useParams } from 'react-router-dom';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
@@ -57,7 +58,14 @@ export const ChatPage: React.FC = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
   const { isEcoMode } = useEcoMode();
+  const { conversationId: paramConversationId } = useParams();
   const [conversationId, setConversationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (paramConversationId) {
+      setConversationId(paramConversationId);
+    }
+  }, [paramConversationId]);
 
   // Hook handles fetching, streaming, state
   const {
