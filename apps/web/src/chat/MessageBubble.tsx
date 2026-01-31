@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import { useState, memo } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { ThinkingBubble } from './ThinkingBubble';
 import { ArtifactRenderer } from './ArtifactRenderer';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'tool';
@@ -16,8 +18,9 @@ interface MessageBubbleProps {
 }
 
 // Optimized with React.memo to prevent re-renders of list items during streaming
-const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, images, meta, thinkingText, isThinking }) => {
+const MessageBubbleComponent = ({ role, content, images, meta, thinkingText, isThinking }: MessageBubbleProps) => {
   const { t } = useTranslation('chat');
+  const { isEcoMode } = useEcoMode();
   const isUser = role === 'user';
   const isTool = role === 'tool';
   const [copied, setCopied] = useState(false);
@@ -104,6 +107,9 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
       );
   }
 
+  const BubbleComponent = isUser || artifact ? Box : GlassPanel;
+  const bubbleProps = isUser || artifact ? {} : { refractive: !isEcoMode };
+
   return (
     <Box
       display="flex"
@@ -117,17 +123,17 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
         }
       }}
     >
-      <Box
+      <BubbleComponent
+        {...bubbleProps}
         sx={{
           maxWidth: artifact ? '100%' : '80%', // Allow artifacts to be wider
           width: artifact ? '100%' : 'auto',
-          px: artifact ? 0 : 1.8, // Remove padding for artifacts wrapper
-          py: artifact ? 0 : 1.2,
+          px: artifact ? 0 : 2, // Remove padding for artifacts wrapper
+          py: artifact ? 0 : 1.5,
           borderRadius: 3,
-          bgcolor: isUser ? 'primary.main' : (artifact ? 'transparent' : 'rgba(15,17,35,0.9)'),
-          color: isUser || !artifact ? 'white' : 'text.primary',
-          border: isUser || artifact ? 'none' : '1px solid rgba(255,255,255,0.12)',
-          boxShadow: isUser ? '0 14px 36px rgba(124,77,255,0.6)' : (artifact ? 'none' : '0 10px 24px rgba(0,0,0,0.65)'),
+          bgcolor: isUser ? 'primary.main' : (artifact ? 'transparent' : undefined),
+          color: isUser ? 'white' : 'text.primary',
+          boxShadow: isUser ? '0 14px 36px rgba(124,77,255,0.6)' : (artifact ? 'none' : undefined),
           position: 'relative',
         }}
       >
@@ -167,16 +173,21 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
                   size="small"
                   onClick={handleCopy}
                   aria-label={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}
-                  sx={{ color: 'text.secondary', bgcolor: 'rgba(0,0,0,0.2)' }}
+                  sx={{
+                    color: 'text.secondary',
+                    bgcolor: 'rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(4px)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                  }}
                 >
                     {copied ? <CheckIcon fontSize="small" sx={{ fontSize: 16 }} /> : <ContentCopyIcon fontSize="small" sx={{ fontSize: 16 }} />}
                 </IconButton>
             </Tooltip>
         </Box>
         )}
-      </Box>
+      </BubbleComponent>
     </Box>
   );
 };
 
-export const MessageBubble = React.memo(MessageBubbleComponent);
+export const MessageBubble = memo(MessageBubbleComponent);
