@@ -86,7 +86,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ role, content, i
       mb={1.2}
       className="micro-fade-in"
       sx={{
-        '&:hover .message-actions': {
+        '&:hover .message-actions, &:focus-within .message-actions': {
           opacity: 1
         }
       }}
