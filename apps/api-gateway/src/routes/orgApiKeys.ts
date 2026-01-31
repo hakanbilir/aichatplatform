@@ -7,18 +7,19 @@ import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 import { generateOrgApiKey } from '../apiKeys/utils';
 import { writeAuditLog } from '../services/audit';
+import { ALL_PERMISSIONS } from '../rbac/roles';
 
 const createKeySchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().max(512).optional(),
-  scopes: z.array(z.string()).min(1),
+  scopes: z.array(z.enum(ALL_PERMISSIONS as unknown as [string, ...string[]])).min(1),
   expiresAt: z.string().datetime().optional()
 });
 
 const updateKeySchema = z.object({
   name: z.string().min(1).max(128).optional(),
   description: z.string().max(512).optional(),
-  scopes: z.array(z.string()).min(1).optional(),
+  scopes: z.array(z.enum(ALL_PERMISSIONS as unknown as [string, ...string[]])).min(1).optional(),
   expiresAt: z.string().datetime().optional(),
   isActive: z.boolean().optional()
 });
@@ -156,4 +157,3 @@ export default async function orgApiKeysRoutes(app: FastifyInstance, _opts: Fast
     return reply.send({ ok: true });
   });
 }
-

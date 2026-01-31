@@ -34,3 +34,8 @@
 **Vulnerability:** The organization admin endpoints (`invite` and `updateRole`) accepted any string as a `role`, relying on the database to enforce constraints. This could lead to 500 errors (unhandled enum rejection) and potentially allowed privilege escalation if restricted roles like `SUPERADMIN` were passed (which were valid enum values but intended to be restricted).
 **Learning:** Zod schemas often default to `z.string()` for simplicity during development. When mapping to database enums, strict validation `z.enum([...])` is crucial not just for data integrity but for security (preventing assignment of higher-privilege roles that exist in the DB but shouldn't be grantable via API).
 **Prevention:** Always use `z.enum()` or `z.nativeEnum()` in API validation layers when the underlying data model uses an enum. Explicitly whitelist allowed values rather than blacklisting or relying on database constraints.
+
+## 2026-02-17 - Unvalidated API Key Scopes
+**Vulnerability:** The `scopes` field in API Key creation/update was validated only as an array of strings, allowing administrators to create keys with nonsensical or potentially undefined permissions.
+**Learning:** TypeScript types (unions) are erased at runtime. To validate inputs against these types, you must maintain a runtime-accessible list (e.g., a constant array) that acts as the source of truth for both the type and the validation logic.
+**Prevention:** Define permissions as a `const` array (using `as const`), derive the TypeScript type from it (`typeof ARRAY[number]`), and use the array in Zod schemas (`z.enum(ARRAY)`).
