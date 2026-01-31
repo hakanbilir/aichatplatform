@@ -4,17 +4,27 @@ import { useTranslation } from 'react-i18next';
 import { MessageBubble } from './MessageBubble';
 
 interface ChatViewProps {
-  messages: Array<{ id: string; role: string; content: string; images?: string[] }>;
+  messages: Array<{ id: string; role: string; content: string; images?: string[]; meta?: any }>;
   streamingAssistantText: string;
   toolStatus?: string | null;
+  thinkingText?: string;
+  isThinking?: boolean;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, toolStatus }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, toolStatus, thinkingText, isThinking }) => {
   const { t } = useTranslation('chat');
   const allMessages = [...messages];
 
-  if (streamingAssistantText) {
-    allMessages.push({ id: 'streaming', role: 'assistant', content: streamingAssistantText });
+  if (streamingAssistantText || isThinking) {
+    allMessages.push({
+      id: 'streaming',
+      role: 'assistant',
+      content: streamingAssistantText,
+      // @ts-ignore - temporary property for rendering
+      thinkingText,
+      // @ts-ignore - temporary property for rendering
+      isThinking
+    });
   }
 
   if (allMessages.length === 0) {
@@ -42,9 +52,12 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, streamingAssistant
       {allMessages.map((m) => (
         <MessageBubble
           key={m.id}
-          role={m.role === 'USER' || m.role === 'user' ? 'user' : 'assistant'}
+          role={m.role === 'USER' || m.role === 'user' ? 'user' : (m.role === 'TOOL' || m.role === 'tool' ? 'tool' : 'assistant')}
           content={m.content}
           images={m.images}
+          meta={m.meta}
+          thinkingText={(m as any).thinkingText}
+          isThinking={(m as any).isThinking}
         />
       ))}
       {toolStatus && (

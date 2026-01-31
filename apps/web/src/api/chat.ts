@@ -48,6 +48,9 @@ export type StreamEvent =
   | { type: 'token'; token: string }
   | { type: 'tool_start'; toolName: string; toolCallId?: string }
   | { type: 'tool_end'; toolName: string; toolCallId?: string; toolResult?: unknown }
+  | { type: 'thought_start' }
+  | { type: 'thought_token'; token: string }
+  | { type: 'thought_end' }
   | {
       type: 'end';
       finalMessage?: { role: string; content: string };

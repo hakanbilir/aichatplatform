@@ -41,6 +41,7 @@ export interface ConversationDetails {
     content: string;
     createdAt: string;
     images?: string[];
+    meta?: any;
   }>;
 }
 

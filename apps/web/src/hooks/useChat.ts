@@ -19,6 +19,8 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [streamingText, setStreamingText] = useState('');
+  const [thinkingText, setThinkingText] = useState('');
+  const [isThinking, setIsThinking] = useState(false);
   const [toolStatus, setToolStatus] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -76,6 +78,8 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
     // Optimistic update
     setOptimisticMessages((prev) => [...prev, userMessage]);
     setStreamingText('');
+    setThinkingText('');
+    setIsThinking(false);
     setIsStreaming(true);
 
     const controller = new AbortController();
@@ -93,7 +97,18 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
         (event: StreamEvent) => {
            if (event.type === 'token') {
             setToolStatus(null);
+            // If we receive a token, we are done thinking (if we were)
+            // But usually thought_end comes before token.
+            // Just in case:
+            if (isThinking) setIsThinking(false);
             setStreamingText((prev) => prev + event.token);
+          } else if (event.type === 'thought_start') {
+             setIsThinking(true);
+             setThinkingText('');
+          } else if (event.type === 'thought_token') {
+             setThinkingText((prev) => prev + event.token);
+          } else if (event.type === 'thought_end') {
+             setIsThinking(false);
           } else if (event.type === 'tool_start') {
             setToolStatus(`Using tool: ${event.toolName}...`);
           } else if (event.type === 'tool_end') {
@@ -102,6 +117,8 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
              // But 'token' event clears it.
           } else if (event.type === 'end') {
             setStreamingText('');
+            setThinkingText('');
+            setIsThinking(false);
             setToolStatus(null);
             // The final message is handled by invalidation mostly, but we can append it optimistically if we want smooth transition
             // However, usually 'end' event means backend has saved it.
@@ -179,6 +196,8 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
     usage,
     messages: optimisticMessages,
     streamingText,
+    thinkingText,
+    isThinking,
     toolStatus,
     isStreaming,
     isLoading: isLoadingConversation,
