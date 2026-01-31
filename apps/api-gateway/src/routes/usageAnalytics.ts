@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { prisma } from '@ai-chat/db';
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
+import { Worker } from 'worker_threads';
+import path from 'path';
 
 const usageQuerySchema = z.object({
   from: z.string().optional(), // ISO date string (YYYY-MM-DD)
@@ -58,26 +60,49 @@ export default async function usageAnalyticsRoutes(
       orderBy: { date: 'asc' }
     });
 
-    const totals = {
-      requestCount: 0,
-      inputTokens: 0,
-      outputTokens: 0,
-      estimatedCostMicros: 0,
-    };
+    // Set headers for SSE
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*', // Adjust if needed
+    });
 
-    for (const row of rows) {
-      totals.requestCount += row.requestCount;
-      totals.inputTokens += row.inputTokens;
-      totals.outputTokens += row.outputTokens;
-      totals.estimatedCostMicros += row.estimatedCostMicros;
-    }
+    reply.raw.write(`data: ${JSON.stringify({ status: 'processing', rowsCount: rows.length })}\n\n`);
 
-    const period = {
-      startDate: fromDate.toISOString(),
-      endDate: toDate.toISOString(),
-    };
+    // Determine worker path based on current file extension (ts or js)
+    const ext = __filename.endsWith('.ts') ? 'ts' : 'js';
+    const workerPath = path.join(__dirname, `../analytics/analytics.worker.${ext}`);
 
-    return reply.send({ usage: rows, totals, period });
+    const worker = new Worker(workerPath, { workerData: { rows } });
+
+    worker.on('message', (result) => {
+      const period = {
+        startDate: fromDate.toISOString(),
+        endDate: toDate.toISOString(),
+      };
+      // Send the final result
+      reply.raw.write(`data: ${JSON.stringify({ usage: rows, totals: result.totals, period })}\n\n`);
+      reply.raw.end();
+    });
+
+    worker.on('error', (err) => {
+      app.log.error(err, 'Analytics worker error');
+      reply.raw.write(`data: ${JSON.stringify({ error: 'Computation failed' })}\n\n`);
+      reply.raw.end();
+    });
+
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        app.log.error(`Worker stopped with exit code ${code}`);
+        if (!reply.raw.writableEnded) {
+            reply.raw.end();
+        }
+      }
+    });
+
+    // Return nothing (reply is handled via raw stream)
+    return reply;
   });
 
   app.get(
@@ -103,7 +128,8 @@ export default async function usageAnalyticsRoutes(
       const fromDate = parseDateOrFallback(parsed.data.from, defaultFrom);
       const toDate = parseDateOrFallback(parsed.data.to, now);
 
-      const raw = await prisma.orgUserDailyUsage.groupBy({
+      // Explicitly typing raw result to avoid implicit any errors
+      const raw: any[] = await prisma.orgUserDailyUsage.groupBy({
         by: ['userId'],
         where: {
           orgId,
@@ -123,24 +149,29 @@ export default async function usageAnalyticsRoutes(
         take: 20
       });
 
-      const userIds = raw.map((r) => r.userId);
+      const userIds = raw.map((r: any) => r.userId);
       const users = await prisma.user.findMany({ where: { id: { in: userIds } } });
-      const userMap = new Map(users.map((u) => [u.id, u]));
+      // Explicitly type the user so map doesn't return 'any' or '{}'
+      const userMap = new Map<string, any>();
+      users.forEach((u: any) => userMap.set(u.id, u));
 
-      const result = raw.map((r) => ({
-        userId: r.userId,
-        user: userMap.get(r.userId)
-          ? {
-              id: userMap.get(r.userId)!.id,
-              name: userMap.get(r.userId)!.name,
-              email: userMap.get(r.userId)!.email
-            }
-          : null,
-        requestCount: r._sum.requestCount ?? 0,
-        inputTokens: r._sum.inputTokens ?? 0,
-        outputTokens: r._sum.outputTokens ?? 0,
-        estimatedCostMicros: r._sum.estimatedCostMicros ?? 0
-      }));
+      const result = raw.map((r: any) => {
+        const u = userMap.get(r.userId);
+        return {
+          userId: r.userId,
+          user: u
+            ? {
+                id: u.id,
+                name: u.name,
+                email: u.email
+              }
+            : null,
+          requestCount: r._sum.requestCount ?? 0,
+          inputTokens: r._sum.inputTokens ?? 0,
+          outputTokens: r._sum.outputTokens ?? 0,
+          estimatedCostMicros: r._sum.estimatedCostMicros ?? 0
+        };
+      });
 
       return reply.send({ topUsers: result });
     }

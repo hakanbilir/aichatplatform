@@ -1,0 +1,50 @@
+:root {
+  --glass-border: 1px solid rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-blur: blur(30px) saturate(200%);
+  --bento-gap: 24px;
+  --bento-radius: 28px;
+}
+
+[data-eco-mode="true"] {
+  --glass-blur: none;
+  --glass-bg: rgba(20, 20, 20, 0.95);
+}
+
+.kinetic-glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--bento-radius);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.kinetic-glass:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--bento-gap);
+}
+
+.specular-highlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.specular-highlight::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.4), transparent 100px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.specular-highlight:hover::after {
+  opacity: 1;
+}

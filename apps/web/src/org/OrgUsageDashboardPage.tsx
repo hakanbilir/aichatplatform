@@ -3,8 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   FormControl,
   InputLabel,
   MenuItem,
@@ -19,7 +17,12 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { fetchUsageAnalytics, fetchTopUsers, UsageAnalyticsResponse, TopUserDto } from '../api/usageAnalytics';
+import { streamUsageAnalytics, fetchTopUsers, UsageAnalyticsResponse, TopUserDto } from '../api/usageAnalytics';
+import { BentoGrid, BentoItem } from '../components/ui/kinetic/BentoGrid';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { RefractionFilter } from '../components/ui/RefractionFilter';
+import '../../styles/theme2026.css';
 
 export const OrgUsageDashboardPage: React.FC = () => {
   const { orgId } = useParams();
@@ -29,29 +32,24 @@ export const OrgUsageDashboardPage: React.FC = () => {
   const [topUsers, setTopUsers] = useState<TopUserDto[]>([]);
   const [featureFilter, setFeatureFilter] = useState<string>('all');
 
-  const gradientBg =
-    'radial-gradient(circle at top left, rgba(34,197,94,0.18), transparent 55%), ' +
-    'radial-gradient(circle at bottom right, rgba(59,130,246,0.18), transparent 55%)';
-
-  const load = async () => {
+  useEffect(() => {
     if (!token || !orgId) return;
 
-    const [u, t] = await Promise.all([
-      fetchUsageAnalytics(token, orgId, {
-        feature: featureFilter === 'all' ? undefined : featureFilter
-      }),
-      fetchTopUsers(token, orgId, {
-        feature: featureFilter === 'all' ? undefined : featureFilter
-      })
-    ]);
+    // Load top users (standard fetch)
+    fetchTopUsers(token, orgId, { feature: featureFilter === 'all' ? undefined : featureFilter })
+      .then(t => setTopUsers(t.topUsers))
+      .catch(console.error);
 
-    setUsage(u);
-    setTopUsers(t.topUsers);
-  };
+    // Stream usage
+    const abort = streamUsageAnalytics(
+        token,
+        orgId,
+        { feature: featureFilter === 'all' ? undefined : featureFilter },
+        (data) => setUsage(data),
+        (err) => console.error('Stream error', err)
+    );
 
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => abort();
   }, [orgId, token, featureFilter]);
 
   const formatCost = (micros: number) => {
@@ -59,23 +57,14 @@ export const OrgUsageDashboardPage: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-        height: '100%',
-        backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
-      }}
-    >
-      <Box display="flex" alignItems="center" justifyContent="space-between">
+    <Box sx={{ p: 4, height: '100%', overflow: 'auto' }}>
+       <RefractionFilter />
+       <Box display="flex" alignItems="center" justifyContent="space-between" mb={4}>
         <Box display="flex" alignItems="center" gap={1}>
-          <AutoAwesomeIcon fontSize="small" />
+          <AutoAwesomeIcon fontSize="large" sx={{ color: 'primary.main' }} />
           <Box>
-            <Typography variant="h6">Usage & cost dashboard</Typography>
-            <Typography variant="caption" color="text.secondary">
+            <KineticTypography variant="h4" fontWeight="bold">Usage & cost dashboard</KineticTypography>
+            <Typography variant="body1" color="text.secondary">
               Track token usage and estimated costs across your organization.
             </Typography>
           </Box>
@@ -95,81 +84,72 @@ export const OrgUsageDashboardPage: React.FC = () => {
         </FormControl>
       </Box>
 
-      {usage && (
-        <Box display="flex" gap={2}>
-          <Card sx={{ borderRadius: 3, flex: 1 }}>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                Total requests
-              </Typography>
-              <Typography variant="h4">{usage.totals.requestCount.toLocaleString()}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ borderRadius: 3, flex: 1 }}>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                Total tokens
-              </Typography>
-              <Typography variant="h4">
-                {(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {usage.totals.inputTokens.toLocaleString()} in ·{' '}
-                {usage.totals.outputTokens.toLocaleString()} out
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ borderRadius: 3, flex: 1 }}>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                Estimated cost
-              </Typography>
-              <Typography variant="h4">{formatCost(usage.totals.estimatedCostMicros)}</Typography>
-            </CardContent>
-          </Card>
-        </Box>
-      )}
+      <BentoGrid>
+        {/* Large Summary Cards */}
+         <BentoItem colSpan={4} rowSpan={1}>
+             <GlassPanel variant="heavy" sx={{ height: '100%', p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="subtitle2" gutterBottom>Total requests</Typography>
+                <KineticTypography variant="h2">
+                    {usage ? usage.totals.requestCount.toLocaleString() : '...'}
+                </KineticTypography>
+             </GlassPanel>
+         </BentoItem>
 
-      <Card sx={{ borderRadius: 3, flex: 1 }}>
-        <CardContent>
-          <Typography variant="subtitle2" gutterBottom>
-            Top users
-          </Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell align="right">Requests</TableCell>
-                <TableCell align="right">Tokens</TableCell>
-                <TableCell align="right">Cost</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {topUsers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4}>
-                    <Typography variant="body2" color="text.secondary">
-                      No usage data yet.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {topUsers.map((u) => (
-                <TableRow key={u.userId}>
-                  <TableCell>
-                    {u.user?.name || u.user?.email || `User ${u.userId.slice(0, 8)}`}
-                  </TableCell>
-                  <TableCell align="right">{u.requestCount.toLocaleString()}</TableCell>
-                  <TableCell align="right">
-                    {(u.inputTokens + u.outputTokens).toLocaleString()}
-                  </TableCell>
-                  <TableCell align="right">{formatCost(u.estimatedCostMicros)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+         <BentoItem colSpan={4} rowSpan={1}>
+            <GlassPanel variant="heavy" sx={{ height: '100%', p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+               <Typography variant="subtitle2" gutterBottom>Total tokens</Typography>
+                <KineticTypography variant="h2">
+                    {usage ? (usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString() : '...'}
+                </KineticTypography>
+                <Typography variant="caption" color="text.secondary">
+                    {usage ? `${usage.totals.inputTokens.toLocaleString()} in · ${usage.totals.outputTokens.toLocaleString()} out` : ''}
+                </Typography>
+            </GlassPanel>
+         </BentoItem>
+
+         <BentoItem colSpan={4} rowSpan={1}>
+            <GlassPanel variant="heavy" sx={{ height: '100%', p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+               <Typography variant="subtitle2" gutterBottom>Estimated cost</Typography>
+                <KineticTypography variant="h2">
+                    {usage ? formatCost(usage.totals.estimatedCostMicros) : '...'}
+                </KineticTypography>
+            </GlassPanel>
+         </BentoItem>
+
+        {/* Top Users Table - Full Width */}
+         <BentoItem colSpan={12} rowSpan={2}>
+            <GlassPanel variant="default" sx={{ height: '100%', p: 3 }}>
+                 <Typography variant="h6" gutterBottom>Top users</Typography>
+                 <Table size="medium">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>User</TableCell>
+                        <TableCell align="right">Requests</TableCell>
+                        <TableCell align="right">Tokens</TableCell>
+                        <TableCell align="right">Cost</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {topUsers.length === 0 && (
+                            <TableRow>
+                            <TableCell colSpan={4}>
+                                <Typography variant="body2" color="text.secondary">No usage data yet.</Typography>
+                            </TableCell>
+                            </TableRow>
+                        )}
+                        {topUsers.map((u) => (
+                            <TableRow key={u.userId}>
+                            <TableCell>{u.user?.name || u.user?.email || `User ${u.userId.slice(0, 8)}`}</TableCell>
+                            <TableCell align="right">{u.requestCount.toLocaleString()}</TableCell>
+                            <TableCell align="right">{(u.inputTokens + u.outputTokens).toLocaleString()}</TableCell>
+                            <TableCell align="right">{formatCost(u.estimatedCostMicros)}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                 </Table>
+            </GlassPanel>
+         </BentoItem>
+      </BentoGrid>
     </Box>
   );
 };

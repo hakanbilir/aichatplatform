@@ -40,6 +40,7 @@ import experimentsRoutes from './routes/experiments';
 import experimentRunRoutes from './routes/experimentRun';
 import experimentFeedbackRoutes from './routes/experimentFeedback';
 import usageAnalyticsRoutes from './routes/usageAnalytics';
+import aiContextRoutes from './routes/aiContext';
 import billingRoutes from './routes/billing';
 import paytrWebhookRoutes from './routes/paytrWebhook';
 import ssoRoutes from './routes/sso';
@@ -167,6 +168,7 @@ async function buildServer() {
   await app.register(experimentRunRoutes);
   await app.register(experimentFeedbackRoutes);
   await app.register(usageAnalyticsRoutes);
+  await app.register(aiContextRoutes);
   await app.register(billingRoutes);
   await app.register(paytrWebhookRoutes);
   await app.register(ssoRoutes);
