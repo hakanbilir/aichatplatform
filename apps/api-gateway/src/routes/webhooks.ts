@@ -1,14 +1,17 @@
 // apps/api-gateway/src/routes/webhooks.ts
 
+import crypto from 'node:crypto';
+
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
-import crypto from 'node:crypto';
+import { prisma } from '@ai-chat/db';
+import type { Prisma } from '@prisma/client';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
-import { prisma } from '@ai-chat/db';
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Prisma types are available via workspace
-import type { Prisma } from '@prisma/client';
 
 const webhookBodySchema = z.object({
   name: z.string().min(1).max(128),

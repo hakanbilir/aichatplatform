@@ -1,0 +1,48 @@
+• turbo 2.8.1
+• Packages in scope: @ai-chat/chat-orchestrator, @ai-chat/config, @ai-chat/core-types, @ai-chat/db, @ai-chat/ollama-client, @ai-chat/telemetry, @ai-chat/tools-engine, api-gateway, web, web-app, worker-jobs
+• Running lint in 11 packages
+• Remote caching disabled
+web-app:lint: cache miss, executing 0ad8ac78cf94828b
+@ai-chat/tools-engine:lint: cache hit, replaying logs b4649a0c2dff2235
+@ai-chat/tools-engine:lint: $ eslint src --ext .ts
+@ai-chat/db:lint: cache miss, executing a9997d73e69ce8d5
+web-app:lint: $ next lint
+@ai-chat/core-types:lint: cache hit, replaying logs 473915f5b2f90f41
+@ai-chat/core-types:lint: $ eslint src --ext .ts
+@ai-chat/db:lint: $ eslint src --ext .ts
+@ai-chat/chat-orchestrator:lint: cache hit, replaying logs 401bf984cd65bc43
+@ai-chat/chat-orchestrator:lint: $ eslint src --ext .ts
+@ai-chat/config:lint: cache miss, executing a2ca2de177da2251
+@ai-chat/telemetry:lint: cache hit, replaying logs dbafbd62f9453d3a
+@ai-chat/telemetry:lint: $ eslint src --ext .ts
+worker-jobs:lint: cache miss, executing a095d2b49b68b114
+@ai-chat/config:lint: $ eslint src --ext .ts
+@ai-chat/ollama-client:lint: cache miss, executing 840a48083546a1e3
+worker-jobs:lint: $ eslint src --ext .ts
+web:lint: cache miss, executing cb0c00df9920820b
+api-gateway:lint: cache miss, executing 956ce1d16bd968e0
+@ai-chat/ollama-client:lint: $ eslint src --ext .ts
+web:lint: $ eslint src --ext .ts,.tsx
+api-gateway:lint: $ eslint src --ext .ts
+web-app:lint: `next lint` is deprecated and will be removed in Next.js 16.
+web-app:lint: For new projects, use create-next-app to choose your preferred linter.
+web-app:lint: For existing projects, migrate to the ESLint CLI:
+web-app:lint: npx @next/codemod@canary next-lint-to-eslint-cli .
+web-app:lint:
+@ai-chat/ollama-client:lint:
+@ai-chat/ollama-client:lint: /app/packages/ollama-client/src/index.ts
+@ai-chat/ollama-client:lint:   250:31  error  Unexpected any. Specify a different type                                                            @typescript-eslint/no-explicit-any
+@ai-chat/ollama-client:lint:   251:23  error  The 'TextDecoder' is not supported until Node.js 11.0.0. The configured version range is '>=8.0.0'  node/no-unsupported-features/node-builtins
+@ai-chat/ollama-client:lint:
+@ai-chat/ollama-client:lint: ✖ 2 problems (2 errors, 0 warnings)
+@ai-chat/ollama-client:lint:
+@ai-chat/ollama-client:lint: error: script "lint" exited with code 1
+@ai-chat/ollama-client:lint: ERROR: command finished with error: command (/app/packages/ollama-client) /usr/local/bun/bin/bun run lint exited (1)
+@ai-chat/ollama-client#lint: command (/app/packages/ollama-client) /usr/local/bun/bin/bun run lint exited (1)
+
+ Tasks:    5 successful, 11 total
+Cached:    4 cached, 11 total
+  Time:    4.042s
+Failed:    @ai-chat/ollama-client#lint
+
+ ERROR  run failed: command  exited (1)

@@ -247,7 +247,7 @@ export async function* streamChatCompletion(
   // Çağıranların stream'in başladığını bilmesi için bir start event'i yayınla.
   yield { type: 'start' };
 
-  const reader = (res.body as any).getReader();
+  const reader = (res.body as ReadableStream<Uint8Array>).getReader();
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
   let finalContent = '';

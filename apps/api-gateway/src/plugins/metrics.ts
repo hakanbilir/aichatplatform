@@ -1,4 +1,5 @@
 import { FastifyPluginCallback } from 'fastify';
+
 import { getMetrics, getMetricsContentType, httpRequestsTotal, httpRequestDurationSeconds } from '../metrics';
 
 const metricsPlugin: FastifyPluginCallback = (app, _opts, done) => {

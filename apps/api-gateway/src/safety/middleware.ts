@@ -1,9 +1,10 @@
 // apps/api-gateway/src/safety/middleware.ts
 
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { prisma } from '@ai-chat/db';
+
 import { getModerationProvider } from './provider';
 import { decideSafetyAction } from './policy';
-import { prisma } from '@ai-chat/db';
 import { ModerationSource } from './types';
 
 interface SafetyContext {

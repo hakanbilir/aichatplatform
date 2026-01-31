@@ -1,6 +1,7 @@
 // apps/api-gateway/src/services/audit.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { JwtPayload } from '../auth/types';
 
 export async function writeAuditLog(params: {

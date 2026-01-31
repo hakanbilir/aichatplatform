@@ -1,6 +1,7 @@
 // apps/api-gateway/src/services/knowledgeRetrieval.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { getDefaultEmbeddingProvider } from '../knowledge/embeddings';
 
 export interface RetrievedChunk {

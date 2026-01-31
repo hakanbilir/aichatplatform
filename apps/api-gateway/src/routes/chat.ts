@@ -1,8 +1,9 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
-import { JwtPayload } from '../auth/types';
 import { z } from 'zod';
 import { ChatStreamEvent } from '@ai-chat/core-types';
+
+import { JwtPayload } from '../auth/types';
 import { runConversationTurn, streamConversationTurn } from '../services/chatEngine';
 
 const sendMessageBodySchema = z.object({

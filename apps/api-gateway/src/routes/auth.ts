@@ -1,10 +1,11 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
+import { z } from 'zod';
+
 import { hashPassword, verifyPassword } from '../auth/password';
 import { JwtPayload } from '../auth/types';
 import { generateRefreshToken, verifyRefreshToken, revokeRefreshToken } from '../auth/refreshToken';
 import { writeAuditLog } from '../services/audit';
-import { z } from 'zod';
 
 export const signupBodySchema = z.object({
   email: z.string().email(),
@@ -208,6 +209,7 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
         
         let slug = orgSlugBase || 'workspace';
         let suffix = 1;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const existingOrg = await prisma.organization.findUnique({ where: { slug } });
           if (!existingOrg) break;

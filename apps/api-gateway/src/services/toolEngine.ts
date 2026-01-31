@@ -1,12 +1,14 @@
 // apps/api-gateway/src/services/toolEngine.ts
 
+import { z } from 'zod';
+
 import { ToolCall, ToolContext, ToolExecutionResult, ToolCallEnvelope } from '../tools/types';
 import { getToolByName, listAllTools } from '../tools/registry';
 import { logger } from '../observability/logger';
 import { toolExecutionDurationSeconds } from '../metrics';
 import { buildExternalToolsForOrg } from '../tools/externalHttpToolAdapter';
+
 import { dispatchWebhookEvent } from './webhookDispatch';
-import { z } from 'zod';
 
 /**
  * Validate tool arguments using Zod schema (32.md, 43.md)

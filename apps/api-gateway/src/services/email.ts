@@ -1,6 +1,7 @@
 // apps/api-gateway/src/services/email.ts
 
 import nodemailer from 'nodemailer';
+
 import { loadSecrets } from '../config/secrets';
 import { logger } from '../observability/logger';
 

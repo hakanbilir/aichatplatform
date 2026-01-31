@@ -2,6 +2,7 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
+
 import { findOrProvisionUserFromSso } from '../sso/ssoService';
 import { handleSamlCallback } from '../sso/samlHandler';
 import { handleOidcCallback } from '../sso/oidcHandler';

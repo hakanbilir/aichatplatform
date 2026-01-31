@@ -1,6 +1,7 @@
 // apps/api-gateway/src/services/orgIntegrations.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { IntegrationProviderKey } from '../integrations/types';
 import { getIntegrationProvider } from '../integrations/registry';
 

@@ -1,6 +1,7 @@
+import path from 'path';
+
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
-import path from 'path';
 
 // Initialize i18next for Node.js
 // Node.js için i18next'i başlat

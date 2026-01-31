@@ -1,7 +1,8 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
-import { JwtPayload } from '../auth/types';
 import { z } from 'zod';
+
+import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 import { emitEvent } from '../events/emitter';
 import { renderSystemPromptFromProfile } from '../promptStudio/render';
@@ -176,7 +177,7 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
     let _effectiveMaxTokens: number | null | undefined = undefined;
     void _effectiveMaxTokens; // Suppress unused variable warning
     let effectiveSystemPrompt: string | null | undefined = undefined;
-    let effectiveChatProfileId: string | null = chatProfileId ?? null;
+    const effectiveChatProfileId: string | null = chatProfileId ?? null;
     let effectiveToolsEnabled: any = undefined;
     let effectiveKbConfig: any = undefined;
 
@@ -347,7 +348,7 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
     let effectiveTemperature: number | undefined = temperature;
     let effectiveTopP: number | undefined = topP;
     let effectiveSystemPrompt: string | undefined = systemPrompt;
-    let effectiveChatProfileId: string | null = chatProfileId ?? null;
+    const effectiveChatProfileId: string | null = chatProfileId ?? null;
     let effectiveToolsEnabled: any = undefined;
     let effectiveKbConfig: any = undefined;
 

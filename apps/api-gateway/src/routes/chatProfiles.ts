@@ -3,9 +3,10 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '@ai-chat/db';
+import slugify from 'slugify';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
-import slugify from 'slugify';
 
 const createProfileSchema = z.object({
   name: z.string().min(1).max(128),

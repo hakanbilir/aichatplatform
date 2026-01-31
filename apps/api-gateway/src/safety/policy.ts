@@ -1,6 +1,7 @@
 // apps/api-gateway/src/safety/policy.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { ModerationCategory, ModerationResult, ModerationAction, SafetyDecision } from './types';
 
 // Default platform-wide actions (can be overridden by org config unless locked elsewhere)

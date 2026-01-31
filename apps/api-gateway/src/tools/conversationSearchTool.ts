@@ -1,7 +1,8 @@
 // apps/api-gateway/src/tools/conversationSearchTool.ts
 
-import { ToolDefinition, ToolContext } from './types';
 import { prisma } from '@ai-chat/db';
+
+import { ToolDefinition, ToolContext } from './types';
 
 interface ConversationSearchArgs {
   query: string;

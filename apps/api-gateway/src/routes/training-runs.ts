@@ -3,8 +3,9 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';
-import { JwtPayload } from '../auth/types';
 import { z } from 'zod';
+
+import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 
 const createTrainingRunBodySchema = z.object({

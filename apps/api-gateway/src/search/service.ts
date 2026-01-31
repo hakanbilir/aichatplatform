@@ -4,6 +4,7 @@ import { prisma } from '@ai-chat/db';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Prisma types are available via workspace
 import type { Prisma } from '@prisma/client';
+
 import {
   ConversationSearchFilters,
   ConversationSearchRequest,

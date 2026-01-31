@@ -2,6 +2,7 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 import { searchConversations } from '../search/service';

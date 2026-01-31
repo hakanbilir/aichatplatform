@@ -2,7 +2,7 @@
 
 import { ToolDefinition } from './types';
 
-interface TimeNowArgs {}
+type TimeNowArgs = Record<string, never>;
 
 interface TimeNowResult {
   iso: string;

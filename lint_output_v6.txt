@@ -1,0 +1,625 @@
+• turbo 2.8.1
+• Packages in scope: api-gateway
+• Running lint in 1 packages
+• Remote caching disabled
+api-gateway:lint: cache miss, executing ff310aab521e53a5
+api-gateway:lint: $ eslint src --ext .ts
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/analytics.worker.ts
+api-gateway:lint:    5:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   35:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   71:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   71:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   88:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   89:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   91:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/auth/refreshToken.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/billing/seatService.ts
+api-gateway:lint:   24:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/events/emitter.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   56:12  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/events/types.ts
+api-gateway:lint:   34:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/exports/service.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/i18n/config.ts
+api-gateway:lint:   2:1  error    There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:   3:1  error    `path` import should occur before import of `i18next`                                                                import/order
+api-gateway:lint:   7:1  warning  Caution: `i18next` also has a named export `use`. Check if you meant to write `import {use} from 'i18next'` instead  import/no-named-as-default-member
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/i18n/middleware.ts
+api-gateway:lint:   2:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/llm/providers/ollama.ts
+api-gateway:lint:    55:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   116:20  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/llm/types.ts
+api-gateway:lint:   32:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/main.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups                   import/order
+api-gateway:lint:    56:1   error  There should be at least one empty line between import groups                   import/order
+api-gateway:lint:    57:1   error  `fastify-plugin` import should occur before import of `./observability/logger`  import/order
+api-gateway:lint:    66:15  error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+api-gateway:lint:   205:11  error  Each then() should return a value or throw                                      promise/always-return
+api-gateway:lint:   210:7   error  Don't use process.exit(); throw an error instead                                no-process-exit
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/payments/paytrClient.ts
+api-gateway:lint:   88:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/plugins/auth.ts
+api-gateway:lint:   33:16  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/plugins/metrics.ts
+api-gateway:lint:    1:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   10:17  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   16:35  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/promptStudio/render.ts
+api-gateway:lint:   28:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   32:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/providers/ollamaProvider.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:   3:1  error  `./base` import should occur after import of `@ai-chat/core-types`  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/providers/openaiProvider.ts
+api-gateway:lint:    1:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    1:1   error  `./base` import should occur after import of `@ai-chat/core-types`  import/order
+api-gateway:lint:   26:17  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:   47:43  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:   64:17  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/rbac/guards.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   65:15  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/ai-context.ts
+api-gateway:lint:    2:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   44:55  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/auditLog.ts
+api-gateway:lint:    4:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    6:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    7:1   error  `@ai-chat/db` import should occur before import of `../auth/types`  import/order
+api-gateway:lint:   20:38  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:   35:18  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/auth.ts
+api-gateway:lint:     2:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     7:1   error  `zod` import should occur before import of `../auth/password`  import/order
+api-gateway:lint:   199:25  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   211:16  error  Unexpected constant condition                                  no-constant-condition
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/base-models.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     7:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     7:1   error  `zod` import should occur before import of `../auth/types`     import/order
+api-gateway:lint:    23:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   218:16  error  'error' is defined but never used                              @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/billing.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   43:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   62:36  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/chat.ts
+api-gateway:lint:     2:1   error  There should be at least one empty line between import groups              import/order
+api-gateway:lint:     3:1   error  There should be at least one empty line between import groups              import/order
+api-gateway:lint:     3:1   error  `../auth/types` import should occur after import of `@ai-chat/core-types`  import/order
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups              import/order
+api-gateway:lint:    42:25  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+api-gateway:lint:   131:25  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/chatProfiles.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups   import/order
+api-gateway:lint:     7:1   error  There should be at least one empty line between import groups   import/order
+api-gateway:lint:     8:1   error  `slugify` import should occur before import of `../auth/types`  import/order
+api-gateway:lint:    37:34  error  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+api-gateway:lint:    45:38  error  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+api-gateway:lint:    79:34  error  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+api-gateway:lint:   169:50  error  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+api-gateway:lint:   224:50  error  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/conversationPresets.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    32:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    46:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    79:42  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    90:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    91:41  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   132:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   133:41  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/conversationSettings.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  `zod` import should occur before import of `../auth/types`     import/order
+api-gateway:lint:    71:27  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    91:44  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    92:36  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   133:27  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   155:17  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   170:47  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   199:46  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   200:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/conversations.ts
+api-gateway:lint:     2:1   error  There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:     3:1   error  There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:     4:1   error  `zod` import should occur before import of `../auth/types`                                                           import/order
+api-gateway:lint:    93:24  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   175:5   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:   179:9   error  'effectiveChatProfileId' is never reassigned. Use 'const' instead                                                    prefer-const
+api-gateway:lint:   180:32  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   181:28  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   287:25  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   350:9   error  'effectiveChatProfileId' is never reassigned. Use 'const' instead                                                    prefer-const
+api-gateway:lint:   351:32  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   352:28  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   436:25  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   498:25  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   528:33  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   543:17  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   626:25  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   692:25  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   731:19  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/datasets.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups           import/order
+api-gateway:lint:    6:1   error  There should be at least one empty line between import groups           import/order
+api-gateway:lint:    7:1   error  There should be at least one empty line between import groups           import/order
+api-gateway:lint:    7:1   error  `zod` import should occur before import of `../auth/types`              import/order
+api-gateway:lint:    8:1   error  There should be at least one empty line between import groups           import/order
+api-gateway:lint:    9:1   error  `@ai-chat/config` import should occur before import of `../auth/types`  import/order
+api-gateway:lint:   58:36  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/experimentFeedback.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   30:46  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   70:46  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/experimentRun.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   26:53  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   55:22  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/experiments.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    40:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    64:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    98:53  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   133:53  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/exports.ts
+api-gateway:lint:    4:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    6:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    7:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    7:1   error  `@ai-chat/db` import should occur before import of `../auth/types`  import/order
+api-gateway:lint:   20:57  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:   39:66  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:   83:51  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/health.ts
+api-gateway:lint:   31:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/knowledge.ts
+api-gateway:lint:    4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   35:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   50:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   70:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   99:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/modelRegistry.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   31:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   44:36  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   80:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/moderationIncidents.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   25:43  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   41:20  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/org-analytics.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups             import/order
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups             import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups             import/order
+api-gateway:lint:     6:1   error  `zod` import should occur before import of `../auth/types`                import/order
+api-gateway:lint:     7:1   error  There should be at least one empty line between import groups             import/order
+api-gateway:lint:     8:1   error  `worker_threads` import should occur before import of `fastify`           import/order
+api-gateway:lint:     8:10  error  'Worker' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+api-gateway:lint:     9:1   error  `path` import should occur before import of `fastify`                     import/order
+api-gateway:lint:     9:10  error  'join' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+api-gateway:lint:   123:19  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:   161:43  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:   161:79  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:   180:28  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:   181:31  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:   183:29  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:   281:38  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:   337:38  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgAdminMembers.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     5:1   error  `node:crypto` import should occur before import of `fastify`   import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    32:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    72:31  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    82:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   147:49  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   162:41  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   182:49  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgAiPolicy.ts
+api-gateway:lint:    4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   26:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   40:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgApiKeys.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    31:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    60:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   106:48  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   136:48  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgBranding.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    28:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    42:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    65:76  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    71:76  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    86:76  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    89:76  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   109:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   123:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   153:49  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgIntegrations.ts
+api-gateway:lint:   4:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgSafety.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   24:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   38:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgScimConnections.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    7:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    8:1   error  `crypto` import should occur before import of `fastify`        import/order
+api-gateway:lint:   21:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   35:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   74:36  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgSsoConnections.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   23:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   37:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/orgs.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  `zod` import should occur before import of `../auth/types`     import/order
+api-gateway:lint:   145:17  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   291:33  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   297:27  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   359:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/paytrWebhook.ts
+api-gateway:lint:    4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   13:30  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   57:60  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/playground.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   32:36  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/promptTemplates.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    55:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    93:41  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   107:34  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   167:42  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   178:49  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   205:49  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   241:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   252:49  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   295:35  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/retention.ts
+api-gateway:lint:    4:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    6:1   error  There should be at least one empty line between import groups       import/order
+api-gateway:lint:    7:1   error  `@ai-chat/db` import should occur before import of `../auth/types`  import/order
+api-gateway:lint:   19:38  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:   33:38  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/scimUsers.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:    14:39  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:    26:5   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:    27:35  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:    29:47  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:    30:42  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:    59:39  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:    70:34  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:    90:47  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   101:34  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   112:47  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/search.ts
+api-gateway:lint:    4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   31:38  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/sharing.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups               import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups               import/order
+api-gateway:lint:     7:1   error  `@ai-chat/db` import should occur before import of `../auth/types`          import/order
+api-gateway:lint:    10:1   error  There should be at least one empty line between import groups               import/order
+api-gateway:lint:    10:1   error  `@prisma/client` type import should occur before import of `../auth/types`  import/order
+api-gateway:lint:    10:29  error  "@prisma/client" is extraneous                                              node/no-extraneous-import
+api-gateway:lint:    33:57  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   105:50  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   127:23  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   168:50  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   182:40  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/sso.ts
+api-gateway:lint:    4:1    error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   13:53   error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   36:30   error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   37:50   error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   47:119  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   70:63   error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   80:96   error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/superadmin.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:1   error  `zod` import should occur before import of `../auth/types`     import/order
+api-gateway:lint:    51:60  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    54:15  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   520:23  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   582:23  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/tools.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   4:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   5:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   5:1  error  `zod` import should occur before import of `../auth/types`     import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/training-runs.ts
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    7:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    7:1   error  `zod` import should occur before import of `../auth/types`     import/order
+api-gateway:lint:   50:36  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/usageAnalytics.ts
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups    import/order
+api-gateway:lint:     7:1   error  There should be at least one empty line between import groups    import/order
+api-gateway:lint:     8:1   error  `worker_threads` import should occur before import of `fastify`  import/order
+api-gateway:lint:     9:1   error  `path` import should occur before import of `fastify`            import/order
+api-gateway:lint:    31:34  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:   108:34  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:   168:36  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/webhooks.ts
+api-gateway:lint:     4:1   error  There should be at least one empty line between import groups               import/order
+api-gateway:lint:     5:1   error  There should be at least one empty line between import groups               import/order
+api-gateway:lint:     5:1   error  `node:crypto` import should occur before import of `fastify`                import/order
+api-gateway:lint:     7:1   error  There should be at least one empty line between import groups               import/order
+api-gateway:lint:     8:1   error  `@ai-chat/db` import should occur before import of `../auth/types`          import/order
+api-gateway:lint:    11:1   error  `@prisma/client` type import should occur before import of `../auth/types`  import/order
+api-gateway:lint:    11:29  error  "@prisma/client" is extraneous                                              node/no-extraneous-import
+api-gateway:lint:    29:38  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:    51:30  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:    52:37  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:    67:38  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   124:40  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   161:38  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   162:42  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   209:42  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   226:39  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   227:46  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   240:38  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:   241:42  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/safety/abuseGuard.ts
+api-gateway:lint:   10:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   11:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/safety/heuristicProvider.ts
+api-gateway:lint:   4:34  warning  '/app/apps/api-gateway/src/safety/types.ts' imported multiple times  import/no-duplicates
+api-gateway:lint:   5:61  warning  '/app/apps/api-gateway/src/safety/types.ts' imported multiple times  import/no-duplicates
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/safety/middleware.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups    import/order
+api-gateway:lint:    5:1   error  There should be at least one empty line between import groups    import/order
+api-gateway:lint:    6:1   error  There should be at least one empty line between import groups    import/order
+api-gateway:lint:    6:1   error  `@ai-chat/db` import should occur before import of `./provider`  import/order
+api-gateway:lint:   42:42  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:   57:55  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:   58:15  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:   61:32  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:   87:17  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/safety/policy.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   29:33  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/scim/scimService.ts
+api-gateway:lint:     3:1  error  There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:   124:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/search/service.ts
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:     6:29  error  "@prisma/client" is extraneous                                 node/no-extraneous-import
+api-gateway:lint:    51:10  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    56:29  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    59:10  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    64:29  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:    67:10  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   108:23  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   189:21  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/audit.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   12:14  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/chatEngine.ts
+api-gateway:lint:     6:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:     6:29  error  "@prisma/client" is extraneous                                                          node/no-extraneous-import
+api-gateway:lint:     8:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:    10:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:    11:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:    11:1   error  `../tools/types` import should occur before import of `./modelRouter`                   import/order
+api-gateway:lint:    12:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:    13:1   error  `../observability/logger` import should occur before import of `./modelRouter`          import/order
+api-gateway:lint:    14:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:    14:1   error  `../metrics` import should occur before import of `./modelRouter`                       import/order
+api-gateway:lint:    15:10  error  'dispatchWebhookEvent' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+api-gateway:lint:    17:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:    18:1   error  `../events/emitter` import should occur before import of `./modelRouter`                import/order
+api-gateway:lint:    19:1   error  There should be at least one empty line between import groups                           import/order
+api-gateway:lint:    19:1   error  `../usage/usageTracker` import should occur before import of `./modelRouter`            import/order
+api-gateway:lint:    20:1   error  `@ai-chat/core-types` import should occur before import of `../providers/base`          import/order
+api-gateway:lint:   116:51  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:   155:26  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:   162:54  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:   167:46  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:   210:61  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:   239:80  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:   327:17  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:   328:16  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/conversationPresets.ts
+api-gateway:lint:   10:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   12:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   42:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   44:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/email.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/knowledgeIngestion.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/knowledgeRetrieval.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   25:12  error  'err' is defined but never used                                @typescript-eslint/no-unused-vars
+api-gateway:lint:   40:13  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/orgAiPolicy.ts
+api-gateway:lint:    6:29  error  "@prisma/client" is extraneous            node/no-extraneous-import
+api-gateway:lint:   11:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/orgAnalytics.ts
+api-gateway:lint:     3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   123:44  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   123:80  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   150:36  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/orgIntegrations.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   11:16  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   12:12  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   61:56  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/orgQuotaGuard.ts
+api-gateway:lint:   62:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/promptTemplates.ts
+api-gateway:lint:   13:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:   14:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/toolEngine.ts
+api-gateway:lint:    7:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    8:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    9:1   error  `zod` import should occur before import of `../tools/types`    import/order
+api-gateway:lint:   15:31  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   15:52  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   25:27  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:   36:33  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/webhookDispatch.ts
+api-gateway:lint:    3:1  error  There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:    4:1  error  There should be at least one empty line between import groups                                                        import/order
+api-gateway:lint:   13:9  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   17:1  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/sharing/utils.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/sso/oidcHandler.ts
+api-gateway:lint:   10:26  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:   16:3   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:   82:22  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/sso/samlHandler.ts
+api-gateway:lint:   10:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/sso/ssoService.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   52:23  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/sso/types.ts
+api-gateway:lint:   12:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/tools/conversationSearchTool.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   4:1  error  `@ai-chat/db` import should occur before import of `./types`   import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/tools/externalHttpToolAdapter.ts
+api-gateway:lint:    3:1   error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:    4:1   error  `@ai-chat/db` import should occur before import of `./types`   import/order
+api-gateway:lint:   33:27  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/tools/generateUiTool.ts
+api-gateway:lint:   2:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:   3:1  error  `zod` import should occur before import of `./types`           import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/tools/orgUsageSnapshotTool.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups               import/order
+api-gateway:lint:   4:1  error  `../services/orgQuotaGuard` import should occur before import of `./types`  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/tools/timeNowTool.ts
+api-gateway:lint:   5:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+api-gateway:lint: - If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+api-gateway:lint: - If you want a type meaning "any object", you probably want `object` instead.
+api-gateway:lint: - If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/tools/types.ts
+api-gateway:lint:   15:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/usage/usageTracker.ts
+api-gateway:lint:   3:1  error  There should be at least one empty line between import groups  import/order
+api-gateway:lint:
+api-gateway:lint: ✖ 420 problems (417 errors, 3 warnings)
+api-gateway:lint:   164 errors and 1 warning potentially fixable with the `--fix` option.
+api-gateway:lint:
+api-gateway:lint: error: script "lint" exited with code 1
+api-gateway:lint: ERROR: command finished with error: command (/app/apps/api-gateway) /usr/local/bun/bin/bun run lint exited (1)
+api-gateway#lint: command (/app/apps/api-gateway) /usr/local/bun/bin/bun run lint exited (1)
+
+ Tasks:    0 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    5.063s
+Failed:    api-gateway#lint
+
+ ERROR  run failed: command  exited (1)

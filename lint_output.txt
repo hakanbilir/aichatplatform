@@ -1,0 +1,108 @@
+• turbo 2.8.1
+• Packages in scope: @ai-chat/chat-orchestrator, @ai-chat/config, @ai-chat/core-types, @ai-chat/db, @ai-chat/ollama-client, @ai-chat/telemetry, @ai-chat/tools-engine, api-gateway, web, web-app, worker-jobs
+• Running lint in 11 packages
+• Remote caching disabled
+web:lint: cache miss, executing b57ee2e50a0f18d0
+@ai-chat/chat-orchestrator:lint: cache miss, executing 09a13cbad39a455e
+web:lint: $ eslint src --ext .ts,.tsx
+@ai-chat/telemetry:lint: cache miss, executing 4fa09f01149429f7
+@ai-chat/chat-orchestrator:lint: $ eslint src --ext .ts
+@ai-chat/tools-engine:lint: cache miss, executing 6c2ad3df0d9b7230
+web-app:lint: cache miss, executing dd36539068efcebe
+@ai-chat/telemetry:lint: $ eslint src --ext .ts
+@ai-chat/db:lint: cache miss, executing a3c046991c0be893
+@ai-chat/tools-engine:lint: $ eslint src --ext .ts
+@ai-chat/core-types:lint: cache miss, executing 8dc790ca3c69ab8e
+@ai-chat/config:lint: cache miss, executing 6a6941855533c8a6
+web-app:lint: $ next lint
+@ai-chat/ollama-client:lint: cache miss, executing db4dcd1ceb9047dc
+worker-jobs:lint: cache miss, executing 74b75d9e08dd9d8f
+@ai-chat/db:lint: $ eslint src --ext .ts
+@ai-chat/core-types:lint: $ eslint src --ext .ts
+@ai-chat/ollama-client:lint: $ eslint src --ext .ts
+@ai-chat/config:lint: $ eslint src --ext .ts
+worker-jobs:lint: $ eslint src --ext .ts
+web-app:lint: `next lint` is deprecated and will be removed in Next.js 16.
+web-app:lint: For new projects, use create-next-app to choose your preferred linter.
+web-app:lint: For existing projects, migrate to the ESLint CLI:
+web-app:lint: npx @next/codemod@canary next-lint-to-eslint-cli .
+web-app:lint:
+api-gateway:lint: cache miss, executing 2ca425505b66037f
+api-gateway:lint: $ eslint src --ext .ts
+@ai-chat/chat-orchestrator:lint:
+@ai-chat/chat-orchestrator:lint: /app/packages/chat-orchestrator/src/index.ts
+@ai-chat/chat-orchestrator:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/namespace
+@ai-chat/chat-orchestrator:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/order
+@ai-chat/chat-orchestrator:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/no-unresolved
+@ai-chat/chat-orchestrator:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/named
+@ai-chat/chat-orchestrator:lint:     1:1   warning  Resolve error: typescript with invalid interface loaded as resolver  import/no-duplicates
+@ai-chat/chat-orchestrator:lint:     1:27  error    Unable to resolve path to module '@ai-chat/config'                   import/no-unresolved
+@ai-chat/chat-orchestrator:lint:     9:8   error    Unable to resolve path to module '@ai-chat/core-types'               import/no-unresolved
+@ai-chat/chat-orchestrator:lint:    13:8   error    Unable to resolve path to module '@ai-chat/ollama-client'            import/no-unresolved
+@ai-chat/chat-orchestrator:lint:   134:7   error    'result' is never reassigned. Use 'const' instead                    prefer-const
+@ai-chat/chat-orchestrator:lint:
+@ai-chat/chat-orchestrator:lint: ✖ 9 problems (8 errors, 1 warning)
+@ai-chat/chat-orchestrator:lint:   1 error and 0 warnings potentially fixable with the `--fix` option.
+@ai-chat/chat-orchestrator:lint:
+worker-jobs:lint:
+worker-jobs:lint: /app/apps/worker-jobs/src/cleanup.ts
+worker-jobs:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/namespace
+worker-jobs:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/order
+worker-jobs:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/no-unresolved
+worker-jobs:lint:     1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/named
+worker-jobs:lint:     1:1   warning  Resolve error: typescript with invalid interface loaded as resolver  import/no-duplicates
+worker-jobs:lint:     3:24  error    Unable to resolve path to module '@ai-chat/db'                       import/no-unresolved
+worker-jobs:lint:   110:40  error    Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+worker-jobs:lint:
+worker-jobs:lint: /app/apps/worker-jobs/src/conversationExportWorker.ts
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/namespace
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/order
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/no-unresolved
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/named
+worker-jobs:lint:    1:1   warning  Resolve error: typescript with invalid interface loaded as resolver  import/no-duplicates
+worker-jobs:lint:    4:1   error    There should be at least one empty line between import groups        import/order
+worker-jobs:lint:    5:24  error    Unable to resolve path to module '@ai-chat/db'                       import/no-unresolved
+worker-jobs:lint:    6:42  error    Unable to resolve path to module '@ai-chat/core-types'               import/no-unresolved
+worker-jobs:lint:   17:17  error    Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+worker-jobs:lint:   18:13  error    Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+worker-jobs:lint:
+worker-jobs:lint: /app/apps/worker-jobs/src/main.ts
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/namespace
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/order
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/no-unresolved
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/named
+worker-jobs:lint:    1:1   warning  Resolve error: typescript with invalid interface loaded as resolver  import/no-duplicates
+worker-jobs:lint:    3:27  error    Unable to resolve path to module '@ai-chat/config'                   import/no-unresolved
+worker-jobs:lint:   53:51  error    Unable to resolve path to module '@ai-chat/db'                       import/no-unresolved
+worker-jobs:lint:
+worker-jobs:lint: /app/apps/worker-jobs/src/retentionWorker.ts
+worker-jobs:lint:   1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/namespace
+worker-jobs:lint:   1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/order
+worker-jobs:lint:   1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/no-unresolved
+worker-jobs:lint:   1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/named
+worker-jobs:lint:   1:1   warning  Resolve error: typescript with invalid interface loaded as resolver  import/no-duplicates
+worker-jobs:lint:   3:24  error    Unable to resolve path to module '@ai-chat/db'                       import/no-unresolved
+worker-jobs:lint:
+worker-jobs:lint: /app/apps/worker-jobs/src/webhookDispatcher.ts
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/namespace
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/order
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/no-unresolved
+worker-jobs:lint:    1:1   error    Resolve error: typescript with invalid interface loaded as resolver  import/named
+worker-jobs:lint:    1:1   warning  Resolve error: typescript with invalid interface loaded as resolver  import/no-duplicates
+worker-jobs:lint:    3:1   error    There should be at least one empty line between import groups        import/order
+worker-jobs:lint:    4:24  error    Unable to resolve path to module '@ai-chat/db'                       import/no-unresolved
+worker-jobs:lint:   71:39  error    Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+worker-jobs:lint:
+worker-jobs:lint: ✖ 38 problems (33 errors, 5 warnings)
+worker-jobs:lint:   2 errors and 0 warnings potentially fixable with the `--fix` option.
+worker-jobs:lint:
+@ai-chat/chat-orchestrator:lint: error: script "lint" exited with code 1
+@ai-chat/chat-orchestrator:lint: ERROR: command finished with error: command (/app/packages/chat-orchestrator) /usr/local/bun/bin/bun run lint exited (1)
+@ai-chat/chat-orchestrator#lint: command (/app/packages/chat-orchestrator) /usr/local/bun/bin/bun run lint exited (1)
+
+ Tasks:    2 successful, 11 total
+Cached:    0 cached, 11 total
+  Time:    10.04s
+Failed:    @ai-chat/chat-orchestrator#lint
+
+ ERROR  run failed: command  exited (1)

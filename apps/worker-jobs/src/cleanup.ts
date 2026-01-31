@@ -107,6 +107,7 @@ export async function cleanupExpiredAuditLogs() {
   for (const cfg of orgs) {
     // Default audit retention: 90 days if not specified
     // Varsayılan audit saklama: belirtilmezse 90 gün
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const auditRetentionDays = (cfg as any).auditRetentionDays ?? 90;
     const cutoff = new Date(
       now.getTime() - auditRetentionDays * 24 * 60 * 60 * 1000

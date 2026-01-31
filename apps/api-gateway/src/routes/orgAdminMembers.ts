@@ -1,9 +1,11 @@
 // apps/api-gateway/src/routes/orgAdminMembers.ts
 
+import crypto from 'node:crypto';
+
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
-import crypto from 'node:crypto';
 import { prisma } from '@ai-chat/db';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 import { writeAuditLog } from '../services/audit';
