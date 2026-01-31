@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
+import { useState } from 'react';
+import { Box, Typography, Tabs, Tab } from '@mui/material';
 import { Code, Visibility } from '@mui/icons-material';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 
 interface ArtifactRendererProps {
   title: string;
@@ -12,14 +13,31 @@ export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
   const [activeTab, setActiveTab] = useState(0);
 
   return (
-    <Paper sx={{ mt: 2, mb: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden', borderRadius: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider', px: 2, bgcolor: 'action.hover', height: 48 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, flexGrow: 1 }}>
+    <GlassPanel sx={{ mt: 2, mb: 2, overflow: 'hidden', borderRadius: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', px: 2, bgcolor: 'rgba(255, 255, 255, 0.03)', height: 48 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, flexGrow: 1, letterSpacing: 0.5 }}>
           {title || 'Generated Artifact'}
         </Typography>
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ minHeight: 48 }}>
-            <Tab label="Preview" icon={<Visibility sx={{ fontSize: 16 }} />} iconPosition="start" sx={{ minHeight: 48, py: 0 }} />
-            <Tab label="Code" icon={<Code sx={{ fontSize: 16 }} />} iconPosition="start" sx={{ minHeight: 48, py: 0 }} />
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          sx={{
+            minHeight: 48,
+            '& .MuiTabs-indicator': { backgroundColor: 'primary.main' }
+          }}
+        >
+            <Tab
+              label="Preview"
+              icon={<Visibility sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              sx={{ minHeight: 48, py: 0, color: 'text.secondary', '&.Mui-selected': { color: 'primary.main' } }}
+            />
+            <Tab
+              label="Code"
+              icon={<Code sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              sx={{ minHeight: 48, py: 0, color: 'text.secondary', '&.Mui-selected': { color: 'primary.main' } }}
+            />
         </Tabs>
       </Box>
 
@@ -46,6 +64,6 @@ export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
            </Box>
         )}
       </Box>
-    </Paper>
+    </GlassPanel>
   );
 }

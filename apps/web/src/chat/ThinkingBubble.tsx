@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Typography, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, Psychology } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 
 interface ThinkingBubbleProps {
   text: string;
@@ -22,14 +23,12 @@ export function ThinkingBubble({ text, isThinking }: ThinkingBubbleProps) {
   };
 
   return (
-    <Box sx={{
+    <GlassPanel sx={{
       mb: 1,
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: 2,
       overflow: 'hidden',
       maxWidth: '100%',
-      alignSelf: 'flex-start'
+      alignSelf: 'flex-start',
+      borderRadius: 2
     }}>
       <Box
         role="button"
@@ -43,9 +42,9 @@ export function ThinkingBubble({ text, isThinking }: ThinkingBubbleProps) {
           display: 'flex',
           alignItems: 'center',
           cursor: 'pointer',
-          p: 1,
-          bgcolor: 'action.hover',
-          '&:hover': { bgcolor: 'action.selected' },
+          p: 1.5,
+          bgcolor: 'rgba(255, 255, 255, 0.03)',
+          '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.06)' },
           '&:focus-visible': {
             outline: '2px solid',
             outlineColor: 'primary.main',
@@ -56,8 +55,8 @@ export function ThinkingBubble({ text, isThinking }: ThinkingBubbleProps) {
       >
         <Psychology
           sx={{
-            fontSize: 18,
-            mr: 1,
+            fontSize: 20,
+            mr: 1.5,
             color: isThinking ? 'info.main' : 'text.secondary',
             animation: isThinking ? 'pulse 1.5s infinite ease-in-out' : 'none',
             '@keyframes pulse': {
@@ -67,21 +66,21 @@ export function ThinkingBubble({ text, isThinking }: ThinkingBubbleProps) {
             }
           }}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1, fontWeight: 500 }}>
-          {isThinking ? t('thinking.thinking', 'Thinking...') : t('thinking.process', 'Thought process')}
+        <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1, fontWeight: 600, letterSpacing: 0.5 }}>
+          {isThinking ? t('thinking.thinking', 'THINKING...') : t('thinking.process', 'THOUGHT PROCESS')}
         </Typography>
         {expanded ? <ExpandLess fontSize="small" color="action" /> : <ExpandMore fontSize="small" color="action" />}
       </Box>
       <Collapse in={expanded}>
         <Box
           id="thought-content"
-          sx={{ p: 1.5, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}
+          sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', borderTop: '1px solid', borderColor: 'rgba(255, 255, 255, 0.1)' }}
         >
           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.8rem', color: 'text.secondary' }}>
             {text}
           </Typography>
         </Box>
       </Collapse>
-    </Box>
+    </GlassPanel>
   );
 }

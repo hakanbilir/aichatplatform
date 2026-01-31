@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent } from 'react';
 import { Box, IconButton, TextField, CircularProgress, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SendIcon from '@mui/icons-material/Send';
@@ -18,14 +18,14 @@ interface MessageInputProps {
   onStop?: () => void;
 }
 
-const MessageInputComponent: React.FC<MessageInputProps> = ({
+const MessageInputComponent = ({
   disabled,
   onSend,
   value: controlledValue,
   onChange,
   isStreaming = false,
   onStop
-}) => {
+}: MessageInputProps) => {
   const { t } = useTranslation('chat');
   const [internalValue, setInternalValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,14 +75,14 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
     if (onStop) onStop();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       void handleSend();
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -104,7 +104,7 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <Box display="flex" flexDirection="column" borderTop="1px solid rgba(255,255,255,0.12)">
+    <Box display="flex" flexDirection="column">
       {/* Image Previews */}
       {images.length > 0 && (
         <Box display="flex" gap={1} px={2} pt={1} overflow="auto">
@@ -146,7 +146,7 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
             disabled={disabled || isStreaming}
             onClick={() => fileInputRef.current?.click()}
             aria-label={t('messageInput.attach', 'Attach image')}
-            sx={{ color: 'text.secondary' }}
+            sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'rgba(33,150,243,0.08)' } }}
           >
             <AttachFileIcon />
           </IconButton>
@@ -158,7 +158,7 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
               disabled={disabled || isStreaming}
               onClick={isListening ? stopListening : startListening}
               color={isListening ? 'error' : 'default'}
-              sx={{ color: isListening ? 'error.main' : 'text.secondary' }}
+              sx={{ color: isListening ? 'error.main' : 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(244,67,54,0.08)' } }}
             >
               {isListening ? <MicOffIcon /> : <MicIcon />}
             </IconButton>
@@ -179,6 +179,15 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
           disabled={disabled && !isStreaming}
           variant="outlined"
           size="small"
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              bgcolor: 'rgba(0,0,0,0.2)',
+              borderRadius: 3,
+              '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+              '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+              '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+            }
+          }}
         />
         <Tooltip title={isStreaming ? t('messageInput.stop', 'Stop generating') : t('messageInput.send')}>
           <span>
@@ -188,16 +197,26 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
               onClick={isStreaming ? handleStop : handleSend}
               aria-label={isStreaming ? t('messageInput.stop', 'Stop generating') : t('messageInput.send')}
               sx={{
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 borderRadius: '50%',
-                bgcolor: isStreaming ? 'rgba(244,67,54,0.1)' : 'rgba(255,255,255,0.06)',
+                bgcolor: isStreaming ? 'rgba(244,67,54,0.1)' : 'rgba(33,150,243,0.1)',
+                background: isActionDisabled ? undefined : (isStreaming ? undefined : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'),
+                color: isActionDisabled ? undefined : (isStreaming ? 'error.main' : 'white'),
+                boxShadow: isActionDisabled ? 'none' : '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                transition: 'all 0.3s ease',
                 '&:hover': {
                    bgcolor: isStreaming ? 'rgba(244,67,54,0.2)' : undefined,
+                   transform: isActionDisabled ? 'none' : 'scale(1.05)',
+                   boxShadow: isActionDisabled ? 'none' : '0 6px 10px 4px rgba(33, 203, 243, .3)',
+                },
+                '&.Mui-disabled': {
+                    bgcolor: 'rgba(255,255,255,0.05)',
+                    color: 'rgba(255,255,255,0.3)'
                 }
               }}
             >
-              {isStreaming ? <StopIcon /> : (submitting ? <CircularProgress size={20} /> : <SendIcon />)}
+              {isStreaming ? <StopIcon /> : (submitting ? <CircularProgress size={20} color="inherit" /> : <SendIcon />)}
             </IconButton>
           </span>
         </Tooltip>
@@ -206,5 +225,5 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
   );
 };
 
-export const MessageInput = React.memo(MessageInputComponent);
+export const MessageInput = memo(MessageInputComponent);
 MessageInput.displayName = 'MessageInput';
