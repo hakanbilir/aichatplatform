@@ -275,6 +275,16 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
       },
     });
 
+    if (!payload.isSuperadmin) {
+      const requesterRole = await getUserOrgRole(payload.userId, orgId);
+      if (role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
+      }
+      if (existing && existing.role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanUpdateOwner') });
+      }
+    }
+
     const membership = existing
       ? await prisma.orgMember.update({
           where: { id: existing.id },
@@ -333,6 +343,16 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
       return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
     }
 
+    if (!payload.isSuperadmin) {
+      const requesterRole = await getUserOrgRole(payload.userId, orgId);
+      if (parseBody.data.role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
+      }
+      if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanUpdateOwner') });
+      }
+    }
+
     const updated = await prisma.orgMember.update({
       where: { id: memberId },
       data: {
@@ -374,6 +394,13 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
     const member = await prisma.orgMember.findUnique({ where: { id: memberId } });
     if (!member || member.orgId !== orgId) {
       return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
+    }
+
+    if (!payload.isSuperadmin) {
+      const requesterRole = await getUserOrgRole(payload.userId, orgId);
+      if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanRemoveOwner') });
+      }
     }
 
     await prisma.orgMember.delete({ where: { id: memberId } });
