@@ -1,23 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Slider,
-  Chip,
   IconButton,
-  Tooltip,
-  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import SaveIcon from '@mui/icons-material/Save';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import SettingsIcon from '@mui/icons-material/Settings';
-import ExtensionIcon from '@mui/icons-material/Extension';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
+import { ChatSettingsBar } from './ChatSettingsBar';
 import { ToolsPanel } from './ToolsPanel';
 import { PromptLibraryDrawer } from '../prompts/PromptLibraryDrawer';
 import { PromptTemplateEditorDialog } from '../prompts/PromptTemplateEditorDialog';
@@ -35,7 +25,6 @@ import { ConversationShareDialog } from '../conversations/ConversationShareDialo
 import { useChat } from '../hooks/useChat';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
-import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
 
@@ -93,13 +82,6 @@ export const ChatPage: React.FC = () => {
   
   const { user } = useAuth();
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
-
-  // Get model options with translations
-  const MODEL_OPTIONS: { value: string; label: string }[] = [
-    { value: 'llama3.1', label: t('models.llama3.1') },
-    { value: 'llama3.1:8b', label: t('models.llama3.1:8b') },
-    { value: 'qwen2.5-coder', label: t('models.qwen2.5-coder') },
-  ];
 
   // Listen for conversation selection/creation events from sidebar
   useEffect(() => {
@@ -207,165 +189,50 @@ export const ChatPage: React.FC = () => {
     setDirty(false);
   };
 
-  const handleChangeModel = (value: string) => {
+  const handleChangeModel = useCallback((value: string) => {
     setModel(value);
     setDirty(true);
-  };
+  }, []);
 
-  const handleChangeTemperature = (_: Event, value: number | number[]) => {
+  const handleChangeTemperature = useCallback((_: Event, value: number | number[]) => {
     const v = Array.isArray(value) ? value[0] : value;
     setTemperature(v);
     setDirty(true);
-  };
+  }, []);
 
-  const handleChangeTopP = (_: Event, value: number | number[]) => {
+  const handleChangeTopP = useCallback((_: Event, value: number | number[]) => {
     const v = Array.isArray(value) ? value[0] : value;
     setTopP(v);
     setDirty(true);
-  };
+  }, []);
+
+  const handleOpenTools = useCallback(() => setToolsOpen(true), []);
+  const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
 
   const currentTitle = conversation?.title || t('conversation.new');
-
-  const creativityLabel =
-    temperature < 0.4
-      ? t('settings.creativity.precise')
-      : temperature < 1
-        ? t('settings.creativity.balanced')
-        : t('settings.creativity.creative');
 
   return (
     <BentoGrid sx={{ height: '100%', gridTemplateColumns: '1fr', p: 2 }}>
       {/* Settings bar */}
-      <GlassPanel
-        refractive={!isEcoMode}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          p: 1.5,
-          minHeight: 'auto'
-        }}
-      >
-        <Box flex={1} minWidth={0}>
-          <KineticTypography variant="subtitle2" noWrap>
-            {currentTitle}
-          </KineticTypography>
-          <Typography variant="caption" color="text.secondary">
-            {t('settings.modelPerConversation')}
-          </Typography>
-        </Box>
-
-        <FormControl size="small" sx={{ minWidth: 210 }}>
-          <InputLabel id="model-select-label">{t('settings.model')}</InputLabel>
-          <Select
-            labelId="model-select-label"
-            label={t('settings.model')}
-            value={model}
-            onChange={(e) => handleChangeModel(e.target.value)}
-          >
-            {MODEL_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <Box width={160} px={1}>
-          <Typography variant="caption" color="text.secondary">
-            {t('settings.temperature')}
-          </Typography>
-          <Slider size="small" value={temperature} min={0} max={2} step={0.1} onChange={handleChangeTemperature} aria-label={t('settings.temperature')} />
-        </Box>
-
-        <Box width={130} px={1}>
-          <Typography variant="caption" color="text.secondary">
-            {t('settings.topP')}
-          </Typography>
-          <Slider size="small" value={topP} min={0} max={1} step={0.05} onChange={handleChangeTopP} aria-label={t('settings.topP')} />
-        </Box>
-
-        <Chip size="small" label={creativityLabel} sx={{ fontSize: 11, height: 24 }} variant="outlined" />
-
-        {usage && (
-          <>
-            <Chip
-              size="small"
-              label={`${t('conversation.tokens')}: ${usage.totals.totalTokens.toLocaleString()}`}
-              sx={{ fontSize: 11, height: 24 }}
-              variant="outlined"
-            />
-            <Chip
-              size="small"
-              label={`${t('conversation.completions')}: ${usage.completions}`}
-              sx={{ fontSize: 11, height: 24 }}
-              variant="outlined"
-            />
-          </>
-        )}
-
-        <Box display="flex" alignItems="center" gap={1}>
-          <Tooltip title={t('settings.toolsPanel')}>
-            <span>
-              <IconButton
-                size="small"
-                onClick={() => setToolsOpen(true)}
-                disabled={!conversationId}
-                aria-label={t('settings.toolsPanel')}
-              >
-                <ExtensionIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title={t('settings.advancedSettings')}>
-            <span>
-              <IconButton
-                size="small"
-                onClick={() => setSettingsOpen(true)}
-                disabled={!conversationId}
-                aria-label={t('settings.advancedSettings')}
-              >
-                <SettingsIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title={t('settings.resetSettings')}>
-            <span>
-              <IconButton
-                size="small"
-                onClick={handleResetSettings}
-                disabled={!conversation}
-                aria-label={t('settings.resetSettings')}
-              >
-                <RestartAltIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title={dirty ? t('settings.saveSettings') : t('settings.settingsUpToDate')}>
-            <span>
-              <IconButton
-                size="small"
-                color={dirty ? 'primary' : 'default'}
-                onClick={handleSaveSettings}
-                disabled={!dirty || saving || !conversationId}
-                aria-label={dirty ? t('settings.saveSettings') : t('settings.settingsUpToDate')}
-              >
-                <SaveIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          {savedAt && !dirty && (
-            <Chip
-              size="small"
-              label={t('conversation.saved')}
-              color="success"
-              variant="outlined"
-              sx={{ height: 22, fontSize: 11 }}
-              className="micro-fade-in"
-            />
-          )}
-        </Box>
-      </GlassPanel>
+      <ChatSettingsBar
+        title={currentTitle}
+        model={model}
+        temperature={temperature}
+        topP={topP}
+        dirty={dirty}
+        saving={saving}
+        savedAt={savedAt}
+        usage={usage}
+        conversationId={conversationId}
+        isEcoMode={isEcoMode}
+        onChangeModel={handleChangeModel}
+        onChangeTemperature={handleChangeTemperature}
+        onChangeTopP={handleChangeTopP}
+        onSaveSettings={handleSaveSettings}
+        onResetSettings={handleResetSettings}
+        onOpenTools={handleOpenTools}
+        onOpenSettings={handleOpenSettings}
+      />
 
       {/* Chat view */}
       <GlassPanel refractive={!isEcoMode} sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
