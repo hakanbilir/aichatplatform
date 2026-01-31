@@ -1,8 +1,9 @@
 // apps/api-gateway/src/routes/tools.ts
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { JwtPayload } from '../auth/types';
 import { z } from 'zod';
+
+import { JwtPayload } from '../auth/types';
 import { listToolsForContext, executeToolCall, executeToolEnvelope } from '../services/toolEngine';
 
 const listQuerySchema = z.object({

@@ -1,7 +1,8 @@
 // apps/worker-jobs/src/webhookDispatcher.ts
 
 import crypto from 'node:crypto';
-import { prisma } from '@ai-chat/db';
+
+import { prisma, InputJsonValue } from '@ai-chat/db';
 
 function hmacSignature(secret: string, payload: string, timestamp: number): string {
   const toSign = `${timestamp}.${payload}`;
@@ -68,7 +69,7 @@ async function dispatchDelivery(deliveryId: string) {
       data: {
         status: res.ok ? 'success' : 'failed',
         statusCode: res.status,
-        responseBody: responseBody as any,
+        responseBody: responseBody as InputJsonValue,
         error: res.ok ? null : `HTTP ${res.status}`
       }
     });

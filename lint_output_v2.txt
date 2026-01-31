@@ -1,0 +1,67 @@
+• turbo 2.8.1
+• Packages in scope: @ai-chat/chat-orchestrator, @ai-chat/config, @ai-chat/core-types, @ai-chat/db, @ai-chat/ollama-client, @ai-chat/telemetry, @ai-chat/tools-engine, api-gateway, web, web-app, worker-jobs
+• Running lint in 11 packages
+• Remote caching disabled
+@ai-chat/ollama-client:lint: cache miss, executing 840a48083546a1e3
+api-gateway:lint: cache miss, executing 956ce1d16bd968e0
+@ai-chat/core-types:lint: cache miss, executing 473915f5b2f90f41
+api-gateway:lint: $ eslint src --ext .ts
+@ai-chat/ollama-client:lint: $ eslint src --ext .ts
+web:lint: cache miss, executing cb0c00df9920820b
+@ai-chat/core-types:lint: $ eslint src --ext .ts
+@ai-chat/db:lint: cache miss, executing 4f078b7f12c7e91e
+@ai-chat/config:lint: cache miss, executing a2ca2de177da2251
+web:lint: $ eslint src --ext .ts,.tsx
+worker-jobs:lint: cache miss, executing a095d2b49b68b114
+@ai-chat/telemetry:lint: cache miss, executing dbafbd62f9453d3a
+@ai-chat/tools-engine:lint: cache miss, executing b4649a0c2dff2235
+@ai-chat/db:lint: $ eslint src --ext .ts
+@ai-chat/config:lint: $ eslint src --ext .ts
+@ai-chat/chat-orchestrator:lint: cache miss, executing 401bf984cd65bc43
+worker-jobs:lint: $ eslint src --ext .ts
+@ai-chat/telemetry:lint: $ eslint src --ext .ts
+@ai-chat/tools-engine:lint: $ eslint src --ext .ts
+@ai-chat/chat-orchestrator:lint: $ eslint src --ext .ts
+web-app:lint: cache miss, executing 0ad8ac78cf94828b
+web-app:lint: $ next lint
+@ai-chat/db:lint:
+@ai-chat/db:lint: /app/packages/db/src/cli/createSuperadmin.ts
+@ai-chat/db:lint:    12:1   error  This file needs no shebang                                     node/shebang
+@ai-chat/db:lint:    12:1   error  There should be at least one empty line between import groups  import/order
+@ai-chat/db:lint:    13:1   error  There should be at least one empty line between import groups  import/order
+@ai-chat/db:lint:    14:1   error  `bcryptjs` import should occur before import of `../index`     import/order
+@ai-chat/db:lint:    85:11  error  Don't use process.exit(); throw an error instead               no-process-exit
+@ai-chat/db:lint:   192:11  error  Don't use process.exit(); throw an error instead               no-process-exit
+@ai-chat/db:lint:   196:11  error  Don't use process.exit(); throw an error instead               no-process-exit
+@ai-chat/db:lint:   200:7   error  Don't use process.exit(); throw an error instead               no-process-exit
+@ai-chat/db:lint:   290:39  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+@ai-chat/db:lint:   313:5   error  Don't use process.exit(); throw an error instead               no-process-exit
+@ai-chat/db:lint:   324:5   error  Don't use process.exit(); throw an error instead               no-process-exit
+@ai-chat/db:lint:
+@ai-chat/db:lint: /app/packages/db/src/index.ts
+@ai-chat/db:lint:   9:25  error  The 'globalThis' is not supported until Node.js 12.0.0. The configured version range is '>=8.0.0'  node/no-unsupported-features/es-builtins
+@ai-chat/db:lint:
+@ai-chat/db:lint: /app/packages/db/src/seed.ts
+@ai-chat/db:lint:     3:1  error  There should be at least one empty line between import groups  import/order
+@ai-chat/db:lint:     4:1  error  `bcryptjs` import should occur before import of `./index`      import/order
+@ai-chat/db:lint:   111:1  error  Expected catch() or return                                     promise/catch-or-return
+@ai-chat/db:lint:   114:5  error  Don't use process.exit(); throw an error instead               no-process-exit
+@ai-chat/db:lint:
+@ai-chat/db:lint: ✖ 16 problems (16 errors, 0 warnings)
+@ai-chat/db:lint:   6 errors and 0 warnings potentially fixable with the `--fix` option.
+@ai-chat/db:lint:
+web-app:lint: `next lint` is deprecated and will be removed in Next.js 16.
+web-app:lint: For new projects, use create-next-app to choose your preferred linter.
+web-app:lint: For existing projects, migrate to the ESLint CLI:
+web-app:lint: npx @next/codemod@canary next-lint-to-eslint-cli .
+web-app:lint:
+@ai-chat/db:lint: error: script "lint" exited with code 1
+@ai-chat/db:lint: ERROR: command finished with error: command (/app/packages/db) /usr/local/bun/bin/bun run lint exited (1)
+@ai-chat/db#lint: command (/app/packages/db) /usr/local/bun/bin/bun run lint exited (1)
+
+ Tasks:    4 successful, 11 total
+Cached:    0 cached, 11 total
+  Time:    5.283s
+Failed:    @ai-chat/db#lint
+
+ ERROR  run failed: command  exited (1)

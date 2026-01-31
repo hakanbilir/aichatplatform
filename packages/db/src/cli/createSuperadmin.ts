@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
+/* eslint-disable no-process-exit */
+/* eslint-disable node/shebang */
 
 /**
  * CLI tool to create a superadmin user.
@@ -10,8 +12,10 @@
  */
 
 import * as readline from 'readline';
-import { prisma } from '../index';
+
 import bcrypt from 'bcryptjs';
+
+import { prisma, OrgRole } from '../index';
 
 // Default salt rounds for password hashing
 // Şifre hash'leme için varsayılan tuz turu
@@ -280,14 +284,14 @@ async function main() {
           });
 
           if (!existingMember) {
-            const role = await prompt('Role (OWNER/ADMIN/MEMBER/VIEWER) [OWNER]: ');
-            const selectedRole = role || 'OWNER';
+            const roleInput = (await prompt('Role (OWNER/ADMIN/MEMBER/VIEWER) [OWNER]: ')).toUpperCase();
+            const selectedRole = (Object.values(OrgRole).includes(roleInput as OrgRole) ? roleInput : 'OWNER') as OrgRole;
 
             await prisma.orgMember.create({
               data: {
                 userId: user.id,
                 orgId: org.id,
-                role: selectedRole as any,
+                role: selectedRole,
               },
             });
 

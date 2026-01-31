@@ -1,7 +1,8 @@
 // apps/api-gateway/src/tools/externalHttpToolAdapter.ts
 
-import { ToolContext, ToolDefinition } from './types';
 import { prisma } from '@ai-chat/db';
+
+import { ToolContext, ToolDefinition } from './types';
 
 interface HttpConfig {
   method: string;

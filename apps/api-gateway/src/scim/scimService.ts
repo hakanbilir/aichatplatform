@@ -1,6 +1,7 @@
 // apps/api-gateway/src/scim/scimService.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { checkSeatLimit } from '../billing/seatService';
 
 interface ScimUser {

@@ -1,6 +1,7 @@
 
-import { ToolDefinition } from './types';
 import { z } from 'zod';
+
+import { ToolDefinition } from './types';
 
 const generateUiSchema = z.object({
   title: z.string().describe('The title of the artifact or UI component'),

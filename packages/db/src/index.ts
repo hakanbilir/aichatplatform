@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
+export * from '@prisma/client';
+
 // In dev mode, we use a global singleton to avoid exhausting connections
 // when modules are hot-reloaded.
 // Development modunda, modüller hot-reload edildiğinde bağlantıların tükenmesini önlemek için global singleton kullanıyoruz.

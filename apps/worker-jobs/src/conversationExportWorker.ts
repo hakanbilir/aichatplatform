@@ -2,7 +2,8 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { prisma } from '@ai-chat/db';
+
+import { prisma, Conversation, Message } from '@ai-chat/db';
 import { ConversationExportFormat } from '@ai-chat/core-types';
 
 // This is a simple implementation writing to local disk; in real deployments, use S3/minio.
@@ -14,8 +15,8 @@ async function ensureExportDir() {
 
 async function buildExportContent(
   format: ConversationExportFormat,
-  conversation: any,
-  messages: any[]
+  conversation: Conversation,
+  messages: Message[]
 ): Promise<string> {
   if (format === 'jsonl') {
     const lines = messages.map((m) =>

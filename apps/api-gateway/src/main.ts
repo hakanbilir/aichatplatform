@@ -1,7 +1,11 @@
+/* eslint-disable no-process-exit */
 import fastify from 'fastify';
 import cors from '@fastify/cors';
+import fp from 'fastify-plugin';
+
 import { getConfig } from '@ai-chat/config';
 import { ensureDbExtensions, checkDbConnection } from '@ai-chat/db';
+
 import { loggerConfig } from './observability/logger';
 import authPlugin from './plugins/auth';
 import metricsPlugin from './plugins/metrics';
@@ -54,7 +58,6 @@ import { initLlmProviders } from './llm/router';
 import { setModerationProvider } from './safety/provider';
 import { HeuristicModerationProvider } from './safety/heuristicProvider';
 import { resolveTenantByHostname } from './tenancy/hostnameResolver';
-import fp from 'fastify-plugin';
 
 // Tenancy plugin for hostname-based tenant resolution (47.md)
 // Hostname tabanlı tenant çözümlemesi için tenancy plugin'i (47.md)
@@ -204,6 +207,7 @@ async function start() {
     .listen({ port, host })
     .then(() => {
       app.log.info(`API Gateway listening on http://${host}:${port}`);
+      return;
     })
     .catch((err) => {
       app.log.error(err, 'Failed to start API Gateway');

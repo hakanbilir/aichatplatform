@@ -1,6 +1,7 @@
 // apps/api-gateway/src/rbac/guards.ts
 
 import { prisma } from '@ai-chat/db';
+
 import type { OrgPermission, OrgRole } from './roles';
 
 interface UserLike {

@@ -1,6 +1,7 @@
 // apps/api-gateway/src/sharing/utils.ts
 
 import crypto from 'node:crypto';
+
 import bcrypt from 'bcryptjs';
 
 export function generateSlug(): string {

@@ -1,0 +1,75 @@
+• turbo 2.8.1
+• Packages in scope: api-gateway
+• Running lint in 1 packages
+• Remote caching disabled
+api-gateway:lint: cache miss, executing 9ba77c64ee63188d
+api-gateway:lint: $ eslint src --ext .ts
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/i18n/config.ts
+api-gateway:lint:   8:1  warning  Caution: `i18next` also has a named export `use`. Check if you meant to write `import {use} from 'i18next'` instead  import/no-named-as-default-member
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/llm/providers/ollama.ts
+api-gateway:lint:   116:20  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/main.ts
+api-gateway:lint:   206:11  error  Each then() should return a value or throw        promise/always-return
+api-gateway:lint:   211:7   error  Don't use process.exit(); throw an error instead  no-process-exit
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/plugins/auth.ts
+api-gateway:lint:   33:16  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/auth.ts
+api-gateway:lint:   212:16  error  Unexpected constant condition  no-constant-condition
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/base-models.ts
+api-gateway:lint:   219:16  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/conversations.ts
+api-gateway:lint:   176:5  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/health.ts
+api-gateway:lint:   31:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/org-analytics.ts
+api-gateway:lint:   3:10  error  'Worker' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+api-gateway:lint:   4:10  error  'join' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/scimUsers.ts
+api-gateway:lint:   27:5  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/routes/sharing.ts
+api-gateway:lint:   9:1  error  There should be no empty line within import group  import/order
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/scim/scimService.ts
+api-gateway:lint:   125:3  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/chatEngine.ts
+api-gateway:lint:   20:10  error  'dispatchWebhookEvent' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/knowledgeRetrieval.ts
+api-gateway:lint:   26:12  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/services/webhookDispatch.ts
+api-gateway:lint:   19:1  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/sso/oidcHandler.ts
+api-gateway:lint:   16:3  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+api-gateway:lint:
+api-gateway:lint: /app/apps/api-gateway/src/tools/timeNowTool.ts
+api-gateway:lint:   5:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+api-gateway:lint: - If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+api-gateway:lint: - If you want a type meaning "any object", you probably want `object` instead.
+api-gateway:lint: - If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+api-gateway:lint:
+api-gateway:lint: ✖ 19 problems (13 errors, 6 warnings)
+api-gateway:lint:
+api-gateway:lint: error: script "lint" exited with code 1
+api-gateway:lint: ERROR: command finished with error: command (/app/apps/api-gateway) /usr/local/bun/bin/bun run lint exited (1)
+api-gateway#lint: command (/app/apps/api-gateway) /usr/local/bun/bin/bun run lint exited (1)
+
+ Tasks:    0 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    5.092s
+Failed:    api-gateway#lint
+
+ ERROR  run failed: command  exited (1)

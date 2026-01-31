@@ -1,6 +1,7 @@
 // apps/api-gateway/src/services/knowledgeIngestion.ts
 
 import { prisma } from '@ai-chat/db';
+
 import { chunkText } from '../knowledge/chunkText';
 import { getDefaultEmbeddingProvider } from '../knowledge/embeddings';
 import { logger } from '../observability/logger';

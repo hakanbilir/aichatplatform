@@ -2,9 +2,10 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
+import { prisma } from '@ai-chat/db';
+
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
-import { prisma } from '@ai-chat/db';
 
 const retentionBodySchema = z.object({
   retentionDays: z.number().int().min(1).max(3650).nullable().optional(), // Maps to conversationRetentionDays

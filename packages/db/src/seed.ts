@@ -1,7 +1,9 @@
 /* eslint-disable no-console */
+/* eslint-disable no-process-exit */
+
+import bcrypt from 'bcryptjs';
 
 import { prisma } from './index';
-import bcrypt from 'bcryptjs';
 
 // Default salt rounds for password hashing
 // Şifre hash'leme için varsayılan tuz turu
@@ -108,7 +110,7 @@ async function main() {
   }
 }
 
-main()
+void main()
   .catch((err) => {
     console.error('Seed error:', err);
     process.exit(1);

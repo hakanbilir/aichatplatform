@@ -1,6 +1,7 @@
-import { ModelProvider, ProviderChatOptions, ProviderChatResult, ProviderMessage } from './base';
 import { getConfig } from '@ai-chat/config';
 import { ChatStreamEvent } from '@ai-chat/core-types';
+
+import { ModelProvider, ProviderChatOptions, ProviderChatResult, ProviderMessage } from './base';
 
 export class OpenAIProvider implements ModelProvider {
   private getApiKey(): string {
