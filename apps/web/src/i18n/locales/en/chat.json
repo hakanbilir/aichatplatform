@@ -91,6 +91,11 @@
     "export": "Export",
     "share": "Share",
     "newConversation": "New Conversation"
+  },
+  "thinking": {
+    "process": "Thought process",
+    "thinking": "Thinking...",
+    "toggle": "Toggle thought process"
   }
 }
 
