@@ -17,3 +17,7 @@
 ## 2026-05-22 - Deep Linking Broken in ChatPage
 **Learning:** The `ChatPage` component relied solely on custom events (`select-conversation`) to update its state, ignoring the React Router `useParams`. This caused direct URL navigation (deep linking) to fail, loading an empty state instead of the conversation, which also broke automated verification scripts relying on direct navigation.
 **Action:** When implementing route components, always sync internal state with `useParams` to ensure the URL remains the source of truth for navigation state.
+
+## 2026-07-20 - Streaming Message Child Component Performance
+**Learning:** In a streaming chat UI, the `MessageBubble` component re-renders on every token. Child components like `ThinkingBubble` re-render unnecessarily even if their content (`thought`) is stable, because `React.memo` is missing. This adds significant overhead during long generations.
+**Action:** Memoize child components of frequently updating parents, especially if the children render DOM elements or have their own internal state/animations.
