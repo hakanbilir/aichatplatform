@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ChatStreamEvent } from '@ai-chat/core-types';
 
 import { JwtPayload } from '../auth/types';
+import { assertOrgPermission } from '../rbac/guards';
 import { runConversationTurn, streamConversationTurn } from '../services/chatEngine';
 
 const sendMessageBodySchema = z.object({
@@ -50,11 +51,25 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         id: conversationId,
         OR: orConditions,
       },
-      select: { id: true }
+      select: { id: true, orgId: true, userId: true }
     });
 
     if (!conversation) {
       return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
+    }
+
+    // Enforce permissions:
+    // If org conversation, user must have conversation:chat permission (VIEWERs don't have it).
+    // If personal conversation, user must be the owner (implicitly guaranteed by query, but explicit check adds safety).
+    if (conversation.orgId) {
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        conversation.orgId,
+        'conversation:chat'
+      );
+    } else if (conversation.userId !== payload.userId) {
+      // Should not happen due to OR conditions in query, but defensive coding
+      return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
     }
 
     try {
@@ -139,11 +154,25 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         id: conversationId,
         OR: orConditions,
       },
-      select: { id: true }
+      select: { id: true, orgId: true, userId: true }
     });
 
     if (!conversation) {
       return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
+    }
+
+    // Enforce permissions:
+    // If org conversation, user must have conversation:chat permission (VIEWERs don't have it).
+    // If personal conversation, user must be the owner (implicitly guaranteed by query, but explicit check adds safety).
+    if (conversation.orgId) {
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        conversation.orgId,
+        'conversation:chat'
+      );
+    } else if (conversation.userId !== payload.userId) {
+      // Should not happen due to OR conditions in query, but defensive coding
+      return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
     }
 
     // Set up SSE headers

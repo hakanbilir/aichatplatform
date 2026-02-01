@@ -2,7 +2,6 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import fp from 'fastify-plugin';
-
 import { getConfig } from '@ai-chat/config';
 import { ensureDbExtensions, checkDbConnection } from '@ai-chat/db';
 
