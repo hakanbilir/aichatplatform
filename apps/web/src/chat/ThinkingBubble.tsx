@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Box, Typography, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, Psychology } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 
 interface ThinkingBubbleProps {
@@ -9,7 +10,10 @@ interface ThinkingBubbleProps {
   isThinking: boolean;
 }
 
-export function ThinkingBubble({ text, isThinking }: ThinkingBubbleProps) {
+// Optimized with React.memo to prevent unnecessary re-renders during message streaming.
+// The parent MessageBubble re-renders on every token event (because content changes),
+// but the thinking state/text often remains stable after the thought process is complete.
+const ThinkingBubbleComponent = ({ text, isThinking }: ThinkingBubbleProps) => {
   const { t } = useTranslation('chat');
   const [expanded, setExpanded] = useState(false);
 
@@ -83,4 +87,6 @@ export function ThinkingBubble({ text, isThinking }: ThinkingBubbleProps) {
       </Collapse>
     </GlassPanel>
   );
-}
+};
+
+export const ThinkingBubble = memo(ThinkingBubbleComponent);
