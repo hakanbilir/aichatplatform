@@ -1,272 +1,46 @@
 {
-  "generatedAt": "2026-01-30T16:35:46.925Z",
-  "standards": "WCAG 2.1 AAA",
-  "theme": "Kinetic Refraction 2026",
-  "components": {
-    "GlassPanel": {
-      "role": "region",
-      "contrastRatio": "4.5:1 (with blur)",
-      "ariaLabel": "dynamic"
+  "version": "2026.1.0",
+  "timestamp": "2026-02-01T16:24:11.862Z",
+  "standard": "WCAG 2.1 AA + Kinetic 2026",
+  "components": [
+    {
+      "name": "BentoGrid",
+      "roles": [
+        "grid",
+        "presentation"
+      ],
+      "contrast": "N/A (Layout)",
+      "notes": "Grid gap (24px) ensures clear separation of content.",
+      "status": "Audited"
     },
-    "SpecularButton": {
-      "role": "button",
-      "focusable": true,
-      "tabIndex": 0,
-      "contrastRatio": "7:1"
+    {
+      "name": "GlassPanel",
+      "roles": [
+        "region"
+      ],
+      "contrast": "4.5:1 (calculated for glass)",
+      "notes": "Ensure backdrop-filter is disabled in high-contrast/eco mode.",
+      "status": "Audited"
+    },
+    {
+      "name": "KineticTypography",
+      "roles": [
+        "heading",
+        "text"
+      ],
+      "contrast": "AAA Pass",
+      "notes": "Variable font weight changes do not affect layout shift significantly.",
+      "status": "Audited"
+    },
+    {
+      "name": "SpecularButton",
+      "roles": [
+        "button"
+      ],
+      "contrast": "AA Pass",
+      "notes": "Interactive highlights do not interfere with text legibility. Focus states preserved.",
+      "status": "Audited"
     }
-  },
-  "routes": {
-    "/auth/login": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "/auth/signup": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "/app": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/knowledge": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/chat/:conversationId?": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/ai-policy": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/presets": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/inbox": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/webhooks": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/audit-log": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/retention": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/members": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/api-keys": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/branding": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/analytics": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/safety": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/safety/incidents": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/prompt-templates": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/chat-profiles": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/models": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/playground": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/experiments": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/usage": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/billing": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/sso": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "orgs/:orgId/settings/scim": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "s/:slug": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    },
-    "*": {
-      "tabOrder": "Sequential",
-      "ariaLandmarks": [
-        "banner",
-        "main",
-        "contentinfo"
-      ],
-      "glassEffects": "Reduced in Eco-Mode"
-    }
-  }
+  ],
+  "summary": "Kinetic design system accessibility manifest generated."
 }

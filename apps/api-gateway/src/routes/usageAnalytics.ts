@@ -70,7 +70,9 @@ export default async function usageAnalyticsRoutes(
 
     // Use Worker for aggregation (CPU-bound offloading)
     // Resolving worker path relative to this file (src/routes -> src/usage-worker.ts)
-    const workerPath = path.join(__dirname, '../usage-worker.ts');
+    // Dynamic extension handling for dev (.ts) and prod (.js)
+    const ext = __filename.endsWith('.ts') ? 'ts' : 'js';
+    const workerPath = path.join(__dirname, `../usage-worker.${ext}`);
 
     try {
       const worker = new Worker(workerPath, {
