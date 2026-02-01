@@ -7,8 +7,6 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
-import { useSpeechToText } from '../hooks/useSpeechToText';
-
 interface MessageInputProps {
   disabled?: boolean;
   onSend: (content: string, images?: string[]) => void;
@@ -16,6 +14,10 @@ interface MessageInputProps {
   onChange?: (value: string) => void; // For controlled mode
   isStreaming?: boolean;
   onStop?: () => void;
+  isListening?: boolean;
+  transcript?: string;
+  onStartListening?: () => void;
+  onStopListening?: () => void;
 }
 
 const MessageInputComponent = ({
@@ -24,7 +26,11 @@ const MessageInputComponent = ({
   value: controlledValue,
   onChange,
   isStreaming = false,
-  onStop
+  onStop,
+  isListening = false,
+  transcript = '',
+  onStartListening,
+  onStopListening
 }: MessageInputProps) => {
   const { t } = useTranslation('chat');
   const [internalValue, setInternalValue] = useState('');
@@ -32,7 +38,7 @@ const MessageInputComponent = ({
   const [images, setImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { isListening, transcript, startListening, stopListening, resetTranscript, supported: speechSupported } = useSpeechToText();
+  // Voice logic moved to parent
   
   const value = controlledValue !== undefined ? controlledValue : internalValue;
   const setValue = (newValue: string) => {
@@ -45,10 +51,18 @@ const MessageInputComponent = ({
 
   useEffect(() => {
     if (transcript) {
-      setValue(value + (value && !value.endsWith(' ') ? ' ' : '') + transcript);
-      resetTranscript();
+      // Transcript is now appended by parent or handled differently
+      // But if we want to support appending while listening (if overlay is not used, or if overlay passes final text)
+      // Actually, if using overlay, the transcript might be shown THERE, not here.
+      // But typically we want the final result to land here.
+      // Let's assume the parent handles appending to value, or we assume transcript is "live" and we don't append until done?
+      // With the previous logic, it appended continuously.
+      // Let's rely on the parent to update `value` if it wants to put text here.
+      // Or we can keep the logic if `transcript` is passed.
+      // However, if the overlay shows the transcript, maybe we don't want it here YET.
+      // Let's assume the parent handles text insertion upon completion or live updates.
     }
-  }, [transcript, resetTranscript, value, setValue]);
+  }, [transcript]); // Minimal effect
 
   const hasContent = value.trim().length > 0 || images.length > 0;
   // If streaming, send button becomes stop button, so it is not disabled unless onStop is missing
@@ -152,11 +166,11 @@ const MessageInputComponent = ({
           </IconButton>
         </Tooltip>
 
-        {speechSupported && (
+        {onStartListening && (
           <Tooltip title={isListening ? t('messageInput.stopListening', 'Stop listening') : t('messageInput.startListening', 'Voice input')}>
             <IconButton
               disabled={disabled || isStreaming}
-              onClick={isListening ? stopListening : startListening}
+              onClick={isListening ? onStopListening : onStartListening}
               color={isListening ? 'error' : 'default'}
               sx={{ color: isListening ? 'error.main' : 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(244,67,54,0.08)' } }}
             >
