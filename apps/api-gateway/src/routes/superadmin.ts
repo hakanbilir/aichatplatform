@@ -6,14 +6,15 @@ import { z } from 'zod';
 
 import { JwtPayload } from '../auth/types';
 import { hashPassword } from '../auth/password';
+import { passwordSchema } from '../auth/validation';
 import { writeAuditLog } from '../services/audit';
 
 // Schema definitions
 // Şema tanımları
-const createUserSchema = z.object({
+export const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).optional(),
-  password: z.string().min(8),
+  password: passwordSchema,
   isSuperadmin: z.boolean().default(false),
 });
 
@@ -24,8 +25,8 @@ const updateUserSchema = z.object({
   customInstructions: z.string().optional(),
 });
 
-const updateUserPasswordSchema = z.object({
-  password: z.string().min(8),
+export const updateUserPasswordSchema = z.object({
+  password: passwordSchema,
 });
 
 const updateOrgPlanSchema = z.object({
