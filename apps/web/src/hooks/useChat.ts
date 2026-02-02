@@ -191,6 +191,49 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
 
   }, [token, conversationId, conversation, optimisticMessages, sendMessage, onError, queryClient]);
 
+  const editMessage = useCallback(async (messageId: string, newContent: string) => {
+    if (!token || !conversationId) return;
+
+    // Find message index
+    const msgIndex = optimisticMessages.findIndex((m) => m.id === messageId);
+    if (msgIndex === -1) return;
+
+    const message = optimisticMessages[msgIndex];
+    if (message.role.toLowerCase() !== 'user') return; // Can only edit user messages for now
+
+    // Identify messages to delete (this one and all subsequent)
+    const messagesToDelete = optimisticMessages.slice(msgIndex);
+
+    // Optimistic update: keep only messages before this one
+    setOptimisticMessages((prev) => prev.slice(0, msgIndex));
+
+    try {
+      // Delete from backend in sequence
+      for (const msg of messagesToDelete) {
+         if (!msg.id.startsWith('local-') && !msg.id.startsWith('assistant-')) {
+             try {
+                await deleteMessage(token, conversationId, msg.id);
+             } catch (e) {
+                 console.warn('Failed to delete message', msg.id, e);
+                 // Continue anyway to try to resend
+             }
+         }
+      }
+
+      // Resend
+      await sendMessage(newContent, message.images, {
+            model: conversation?.model || undefined,
+            temperature: conversation?.temperature || undefined,
+            topP: conversation?.topP || undefined
+      });
+
+    } catch (err) {
+        if (onError) onError(err as Error);
+        queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+    }
+
+  }, [token, conversationId, optimisticMessages, sendMessage, conversation, onError, queryClient]);
+
   return {
     conversation,
     usage,
@@ -203,6 +246,7 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
     isLoading: isLoadingConversation,
     sendMessage,
     regenerate,
+    editMessage,
     stop,
     refetch: refetchConversation
   };
