@@ -28,7 +28,7 @@ export interface ToolsPanelProps {
   orgId: string | null;
 }
 
-export const ToolsPanel: React.FC<ToolsPanelProps> = ({ open, onClose, conversationId, orgId }) => {
+export const ToolsPanel: React.FC<ToolsPanelProps> = React.memo(({ open, onClose, conversationId, orgId }) => {
   const { t } = useTranslation('chat');
   const { tools, loadingTools, toolsError, runs, executing, executeError, runTool } = useToolsPanel(
     conversationId,
@@ -269,5 +269,7 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({ open, onClose, conversat
       </Box>
     </Drawer>
   );
-};
+});
+
+ToolsPanel.displayName = 'ToolsPanel';
 

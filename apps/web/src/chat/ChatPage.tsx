@@ -4,22 +4,19 @@ import {
   IconButton,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
-import { ChatSettingsBar } from './ChatSettingsBar';
-import { ToolsPanel } from './ToolsPanel';
+
+import { useAuth } from '../auth/AuthContext';
 import { PromptLibraryDrawer } from '../prompts/PromptLibraryDrawer';
 import { PromptTemplateEditorDialog } from '../prompts/PromptTemplateEditorDialog';
-import { useAuth } from '../auth/AuthContext';
 import { usePromptTemplates } from '../prompts/usePromptTemplates';
 import { CreatePromptTemplateInput } from '../api/prompts';
 import {
   createConversation,
   updateConversation,
 } from '../api/conversations';
-import { ChatView } from './ChatView';
-import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
 import { useChat } from '../hooks/useChat';
@@ -27,7 +24,12 @@ import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
-import { useParams } from 'react-router-dom';
+
+import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
+import { ChatSettingsBar } from './ChatSettingsBar';
+import { ToolsPanel } from './ToolsPanel';
+import { ChatView } from './ChatView';
+import { MessageInput } from './MessageInput';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
@@ -56,6 +58,10 @@ export const ChatPage: React.FC = () => {
     }
   }, [paramConversationId]);
 
+  const handleError = useCallback((err: Error) => {
+    console.error("Chat Error:", err);
+  }, []);
+
   // Hook handles fetching, streaming, state
   const {
     conversation,
@@ -70,7 +76,7 @@ export const ChatPage: React.FC = () => {
     refetch: refetchConversation
   } = useChat({
     conversationId,
-    onError: (err) => console.error("Chat Error:", err),
+    onError: handleError,
   });
 
   const [model, setModel] = useState<string>('llama3.1');
@@ -217,6 +223,13 @@ export const ChatPage: React.FC = () => {
   const handleOpenTools = useCallback(() => setToolsOpen(true), []);
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
 
+  const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
+  const handleCloseTools = useCallback(() => setToolsOpen(false), []);
+  const handleClosePromptLibrary = useCallback(() => setPromptLibraryOpen(false), []);
+  const handleCloseTemplateEditor = useCallback(() => setTemplateEditorOpen(false), []);
+  const handleCloseExport = useCallback(() => setExportDialogOpen(false), []);
+  const handleCloseShare = useCallback(() => setShareDialogOpen(false), []);
+
   const currentTitle = conversation?.title || t('conversation.new');
 
   return (
@@ -300,14 +313,14 @@ export const ChatPage: React.FC = () => {
       {/* Settings drawer */}
       <ConversationSettingsDrawer
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={handleCloseSettings}
         conversationId={conversationId}
       />
 
       {/* Tools panel */}
       <ToolsPanel
         open={toolsOpen}
-        onClose={() => setToolsOpen(false)}
+        onClose={handleCloseTools}
         conversationId={conversationId}
         orgId={conversation?.orgId ?? null}
       />
@@ -317,7 +330,7 @@ export const ChatPage: React.FC = () => {
         <PromptLibraryDrawer
           orgId={conversation.orgId}
           open={promptLibraryOpen}
-          onClose={() => setPromptLibraryOpen(false)}
+          onClose={handleClosePromptLibrary}
           currentUserId={user.id}
           onApplyPrompt={(content) => {
             setMessageInputValue(content);
@@ -334,7 +347,7 @@ export const ChatPage: React.FC = () => {
       {conversation?.orgId && (
         <PromptTemplateEditorDialog
           open={templateEditorOpen}
-          onClose={() => setTemplateEditorOpen(false)}
+          onClose={handleCloseTemplateEditor}
           initialTemplate={null}
           onSave={async (input: CreatePromptTemplateInput, existingId?: string) => {
             if (existingId) {
@@ -350,7 +363,7 @@ export const ChatPage: React.FC = () => {
       {conversation && conversationId && conversation.orgId && (
         <ConversationExportDialog
           open={exportDialogOpen}
-          onClose={() => setExportDialogOpen(false)}
+          onClose={handleCloseExport}
           orgId={conversation.orgId}
           conversationId={conversationId}
         />
@@ -360,7 +373,7 @@ export const ChatPage: React.FC = () => {
       {conversation && conversationId && conversation.orgId && (
         <ConversationShareDialog
           open={shareDialogOpen}
-          onClose={() => setShareDialogOpen(false)}
+          onClose={handleCloseShare}
           orgId={conversation.orgId}
           conversationId={conversationId}
           basePublicUrl={window.location.origin}

@@ -39,7 +39,7 @@ const marks = [
   { value: 2.0, label: '2.0' },
 ];
 
-export const ConversationSettingsDrawer: React.FC<ConversationSettingsDrawerProps> = ({
+export const ConversationSettingsDrawer: React.FC<ConversationSettingsDrawerProps> = React.memo(({
   open,
   onClose,
   conversationId,
@@ -276,5 +276,7 @@ export const ConversationSettingsDrawer: React.FC<ConversationSettingsDrawerProp
       </Box>
     </Drawer>
   );
-};
+});
+
+ConversationSettingsDrawer.displayName = 'ConversationSettingsDrawer';
 

@@ -25,7 +25,7 @@ interface ConversationExportDialogProps {
   conversationId: string;
 }
 
-export const ConversationExportDialog: React.FC<ConversationExportDialogProps> = ({
+export const ConversationExportDialog: React.FC<ConversationExportDialogProps> = React.memo(({
   open,
   onClose,
   orgId,
@@ -155,5 +155,7 @@ export const ConversationExportDialog: React.FC<ConversationExportDialogProps> =
       </DialogActions>
     </Dialog>
   );
-};
+});
+
+ConversationExportDialog.displayName = 'ConversationExportDialog';
 

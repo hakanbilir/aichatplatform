@@ -28,7 +28,7 @@ interface PromptTemplateEditorDialogProps {
   onSave: (input: CreatePromptTemplateInput, existingId?: string) => Promise<void>;
 }
 
-export const PromptTemplateEditorDialog: React.FC<PromptTemplateEditorDialogProps> = ({
+export const PromptTemplateEditorDialog: React.FC<PromptTemplateEditorDialogProps> = React.memo(({
   open,
   onClose,
   initialTemplate,
@@ -248,5 +248,7 @@ export const PromptTemplateEditorDialog: React.FC<PromptTemplateEditorDialogProp
       </DialogActions>
     </Dialog>
   );
-};
+});
+
+PromptTemplateEditorDialog.displayName = 'PromptTemplateEditorDialog';
 
