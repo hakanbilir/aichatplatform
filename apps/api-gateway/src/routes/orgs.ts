@@ -257,7 +257,7 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMemberData'), details: parseBody.error.format() });
     }
 
-    await assertOrgPermission(
+    const requesterRole = await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'member:invite',
@@ -277,7 +277,7 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
     });
 
     if (!payload.isSuperadmin) {
-      const requesterRole = await getUserOrgRole(payload.userId, orgId);
+      // Optimized: requesterRole is already fetched by assertOrgPermission
       if (role === 'OWNER' && requesterRole !== 'OWNER') {
         return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
       }
@@ -332,7 +332,7 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMemberUpdate'), details: parseBody.error.format() });
     }
 
-    await assertOrgPermission(
+    const requesterRole = await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'member:update',
@@ -345,7 +345,7 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
     }
 
     if (!payload.isSuperadmin) {
-      const requesterRole = await getUserOrgRole(payload.userId, orgId);
+      // Optimized: requesterRole is already fetched by assertOrgPermission
       if (parseBody.data.role === 'OWNER' && requesterRole !== 'OWNER') {
         return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
       }
@@ -385,7 +385,7 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
     const orgId = parseParams.data.id;
     const memberId = parseParams.data.memberId;
 
-    await assertOrgPermission(
+    const requesterRole = await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'member:remove',
@@ -398,7 +398,7 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
     }
 
     if (!payload.isSuperadmin) {
-      const requesterRole = await getUserOrgRole(payload.userId, orgId);
+      // Optimized: requesterRole is already fetched by assertOrgPermission
       if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
         return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanRemoveOwner') });
       }

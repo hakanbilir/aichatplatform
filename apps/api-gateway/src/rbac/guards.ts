@@ -59,12 +59,27 @@ export async function assertOrgPermission(
   user: UserLike,
   orgId: string,
   permission: OrgPermission,
-): Promise<void> {
-  const ok = await userHasOrgPermission(user, orgId, permission);
-  if (!ok) {
+): Promise<OrgRole | null> {
+  if (user.isSuperadmin) {
+    return null;
+  }
+
+  // Optimize: fetch role and check permission directly to avoid double fetch in consuming routes
+  const role = await getUserOrgRole(user.id, orgId);
+
+  if (!role) {
     const error = new Error('Forbidden');
     (error as any).statusCode = 403;
     throw error;
   }
+
+  const { roleHasPermission } = await import('./roles');
+  if (!roleHasPermission(role, permission)) {
+    const error = new Error('Forbidden');
+    (error as any).statusCode = 403;
+    throw error;
+  }
+
+  return role;
 }
 
