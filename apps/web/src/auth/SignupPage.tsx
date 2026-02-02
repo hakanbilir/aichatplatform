@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Box, Button, TextField, Typography, Paper, Link, IconButton, InputAdornment } from '@mui/material';
+import { Box, TextField, Typography, Link, IconButton, InputAdornment } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { signup } from '../api/auth';
 import { useAuth } from './AuthContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 export const SignupPage: React.FC = () => {
   const { setAuthFromResponse } = useAuth();
@@ -13,6 +17,7 @@ export const SignupPage: React.FC = () => {
   const { t } = useTranslation('auth');
   const { t: tValidation } = useTranslation('validation');
   const { t: tErrors } = useTranslation('errors');
+  const { isEcoMode } = useEcoMode();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -120,10 +125,10 @@ export const SignupPage: React.FC = () => {
       >
         <LanguageSwitcher />
       </Box>
-      <Paper className="micro-elevated" sx={{ p: 4, width: 420 }}>
-        <Typography variant="h5" gutterBottom>
+      <GlassPanel refractive={!isEcoMode} sx={{ p: 4, width: 420 }}>
+        <KineticTypography variant="h5" gutterBottom component="h1">
           {t('signup.title')}
-        </Typography>
+        </KineticTypography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
           {t('signup.subtitle')}
         </Typography>
@@ -185,9 +190,9 @@ export const SignupPage: React.FC = () => {
               {error}
             </Typography>
           )}
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3 }} disabled={loading}>
+          <SpecularButton type="submit" fullWidth variant="contained" sx={{ mt: 3 }} disabled={loading} data-ai-action="signup">
             {loading ? t('signup.creating') : t('signup.signUp')}
-          </Button>
+          </SpecularButton>
         </Box>
         <Box mt={2}>
           <Typography variant="body2">
@@ -197,7 +202,7 @@ export const SignupPage: React.FC = () => {
             </Link>
           </Typography>
         </Box>
-      </Paper>
+      </GlassPanel>
     </Box>
   );
 };

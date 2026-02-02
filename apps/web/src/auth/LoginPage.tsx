@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Box, Button, TextField, Typography, Link, IconButton, InputAdornment } from '@mui/material';
+import { Box, TextField, Typography, Link, IconButton, InputAdornment } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { login } from '../api/auth';
@@ -8,6 +8,7 @@ import { useAuth } from './AuthContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
 
 export const LoginPage: React.FC = () => {
@@ -105,7 +106,7 @@ export const LoginPage: React.FC = () => {
               {error}
             </Typography>
           )}
-          <Button
+          <SpecularButton
             type="submit"
             fullWidth
             variant="contained"
@@ -114,7 +115,7 @@ export const LoginPage: React.FC = () => {
             data-ai-action="login"
           >
             {loading ? t('login.signingIn') : t('login.signIn')}
-          </Button>
+          </SpecularButton>
         </Box>
         <Box mt={2}>
           <Typography variant="body2">
