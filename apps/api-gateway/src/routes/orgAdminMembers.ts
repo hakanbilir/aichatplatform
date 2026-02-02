@@ -148,7 +148,7 @@ export default async function orgAdminMembersRoutes(
     const payload = request.user as JwtPayload;
     const { orgId, userId } = request.params as any;
 
-    await assertOrgPermission(
+    const requesterRole = await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'org:admin:members:write'
@@ -159,21 +159,36 @@ export default async function orgAdminMembersRoutes(
       return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
     }
 
-    const updated = await prisma.orgMember.updateMany({
-      where: { orgId, userId },
+    const member = await prisma.orgMember.findUnique({
+      where: { userId_orgId: { userId, orgId } }
+    });
+
+    if (!member) {
+      return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
+    }
+
+    if (!payload.isSuperadmin) {
+      if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanUpdateOwner') });
+      }
+      if (parsed.data.role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
+      }
+    }
+
+    const updated = await prisma.orgMember.update({
+      where: { id: member.id },
       data: { role: parsed.data.role as any }
     });
 
-    if (updated.count > 0) {
-      await writeAuditLog({
-        orgId,
-        user: payload,
-        action: 'org.member_role_changed',
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent'],
-        metadata: { userId, newRole: parsed.data.role }
-      });
-    }
+    await writeAuditLog({
+      orgId,
+      user: payload,
+      action: 'org.member_role_changed',
+      ipAddress: request.ip,
+      userAgent: request.headers['user-agent'],
+      metadata: { userId, newRole: parsed.data.role }
+    });
 
     return reply.send({ ok: true });
   });
@@ -183,7 +198,7 @@ export default async function orgAdminMembersRoutes(
     const payload = request.user as JwtPayload;
     const { orgId, userId } = request.params as any;
 
-    await assertOrgPermission(
+    const requesterRole = await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'org:admin:members:write'
@@ -194,21 +209,33 @@ export default async function orgAdminMembersRoutes(
       return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
     }
 
-    const updated = await prisma.orgMember.updateMany({
-      where: { orgId, userId },
+    const member = await prisma.orgMember.findUnique({
+      where: { userId_orgId: { userId, orgId } }
+    });
+
+    if (!member) {
+      return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
+    }
+
+    if (!payload.isSuperadmin) {
+      if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
+        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanUpdateOwner') });
+      }
+    }
+
+    const updated = await prisma.orgMember.update({
+      where: { id: member.id },
       data: { isDisabled: parsed.data.disabled }
     });
 
-    if (updated.count > 0) {
-      await writeAuditLog({
-        orgId,
-        user: payload,
-        action: parsed.data.disabled ? 'org.member_disabled' : 'org.member_enabled',
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent'],
-        metadata: { userId }
-      });
-    }
+    await writeAuditLog({
+      orgId,
+      user: payload,
+      action: parsed.data.disabled ? 'org.member_disabled' : 'org.member_enabled',
+      ipAddress: request.ip,
+      userAgent: request.headers['user-agent'],
+      metadata: { userId }
+    });
 
     return reply.send({ ok: true });
   });
