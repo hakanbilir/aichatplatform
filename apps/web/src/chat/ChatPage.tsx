@@ -28,6 +28,8 @@ import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
 import { useParams } from 'react-router-dom';
+import { useSpeechToText } from '../hooks/useSpeechToText';
+import { VoiceModeOverlay } from './VoiceModeOverlay';
 
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
@@ -90,6 +92,18 @@ export const ChatPage: React.FC = () => {
   
   const { user } = useAuth();
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
+
+  const { isListening, transcript, startListening, stopListening, resetTranscript, supported: speechSupported } = useSpeechToText();
+
+  useEffect(() => {
+    if (!isListening && transcript) {
+      setMessageInputValue(prev => {
+        const spacer = prev && !prev.endsWith(' ') ? ' ' : '';
+        return prev + spacer + transcript;
+      });
+      resetTranscript();
+    }
+  }, [isListening, transcript, resetTranscript]);
 
   // Listen for conversation selection/creation events from sidebar
   useEffect(() => {
@@ -294,8 +308,18 @@ export const ChatPage: React.FC = () => {
           onSend={handleSend}
           value={messageInputValue}
           onChange={setMessageInputValue}
+          isListening={isListening}
+          transcript={transcript}
+          onStartListening={speechSupported ? startListening : undefined}
+          onStopListening={stopListening}
         />
       </GlassPanel>
+
+      <VoiceModeOverlay
+        isListening={isListening}
+        transcript={transcript}
+        onStop={stopListening}
+      />
 
       {/* Settings drawer */}
       <ConversationSettingsDrawer
