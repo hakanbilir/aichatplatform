@@ -509,6 +509,7 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
       select: {
         id: true,
         orgId: true,
+        userId: true,
       },
     });
 
@@ -645,8 +646,9 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
     }
 
     // Verify access
+    let userRole: string | null = null;
     if (conversation.orgId) {
-      await assertOrgPermission(
+      userRole = await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         conversation.orgId,
         'conversation:chat'
@@ -662,6 +664,20 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
 
     if (!message) {
       return reply.code(404).send({ error: request.i18n.t('errors.messageNotFound') });
+    }
+
+    // Authorization: Only allow if:
+    // 1. User is Superadmin
+    // 2. User is Org Owner or Admin
+    // 3. User is the creator of the conversation
+    // 4. User is the author of the message
+    const isSuperadmin = payload.isSuperadmin;
+    const isOrgAdmin = userRole === 'OWNER' || userRole === 'ADMIN';
+    const isConversationOwner = conversation.userId === payload.userId;
+    const isMessageAuthor = message.authorId === payload.userId;
+
+    if (!isSuperadmin && !isOrgAdmin && !isConversationOwner && !isMessageAuthor) {
+      return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
     }
 
     await prisma.message.delete({
