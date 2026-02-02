@@ -21,6 +21,10 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useConversationSearch } from '../search/useConversationSearch';
 import { ConversationSearchHit } from '../api/search';
+import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 const gradientBg =
   'radial-gradient(circle at top left, rgba(56,189,248,0.12), transparent 55%), ' +
@@ -29,15 +33,16 @@ const gradientBg =
 interface ConversationHitCardProps {
   hit: ConversationSearchHit;
   onOpen: () => void;
+  isEcoMode: boolean;
 }
 
-const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen }) => {
+const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, isEcoMode }) => {
   const { t } = useTranslation('inbox');
   const firstSnippet = hit.messages[0]?.snippet || '';
 
   return (
-    <Paper
-      elevation={0}
+    <GlassPanel
+      refractive={!isEcoMode}
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -48,9 +53,6 @@ const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen }
       tabIndex={0}
       sx={{
         p: 1.5,
-        borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: 'divider',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
@@ -66,12 +68,12 @@ const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen }
         <Typography
           variant="subtitle2"
           noWrap
-          sx={{ maxWidth: '70%' }}
+          sx={{ flex: 1, minWidth: 0 }}
         >
           {hit.conversationTitle}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {new Date(hit.updatedAt).toLocaleString()}
+        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, ml: 1 }}>
+          {new Date(hit.updatedAt).toLocaleDateString()}
         </Typography>
       </Box>
 
@@ -100,7 +102,7 @@ const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen }
           {hit.hasFiles && <Chip size="small" label={t('files')} variant="outlined" />}
         </Box>
       </Box>
-    </Paper>
+    </GlassPanel>
   );
 };
 
@@ -109,6 +111,7 @@ export const ConversationInboxPage: React.FC = () => {
   const { orgId } = useParams<{ orgId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { isEcoMode } = useEcoMode();
 
   const {
     state,
@@ -172,7 +175,7 @@ export const ConversationInboxPage: React.FC = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <AutoAwesomeIcon fontSize="small" />
           <Box>
-            <Typography variant="h6">{t('title')}</Typography>
+            <KineticTypography variant="h6" component="h1">{t('title')}</KineticTypography>
             <Typography variant="caption" color="text.secondary">
               {t('subtitle')}
             </Typography>
@@ -261,28 +264,27 @@ export const ConversationInboxPage: React.FC = () => {
         )}
 
         {!loading && !error && hits.length > 0 && (
-          <Box
+          <BentoGrid
             sx={{
-              display: 'grid',
               gridTemplateColumns: {
                 xs: '1fr',
                 md: 'repeat(2, minmax(0, 1fr))',
                 lg: 'repeat(3, minmax(0, 1fr))'
-              },
-              gap: 1.5
+              }
             }}
           >
             {hits.map((hit) => (
               <ConversationHitCard
                 key={hit.conversationId}
                 hit={hit}
+                isEcoMode={isEcoMode}
                 onOpen={() => {
                   if (!orgId) return;
                   navigate(`/app/orgs/${orgId}/chat/${hit.conversationId}`);
                 }}
               />
             ))}
-          </Box>
+          </BentoGrid>
         )}
       </Box>
 
