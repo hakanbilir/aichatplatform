@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { Box, Typography, Tabs, Tab } from '@mui/material';
 import { Code, Visibility } from '@mui/icons-material';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
@@ -52,7 +53,12 @@ export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
                   title="artifact-preview"
                 />
              ) : (
-                <div dangerouslySetInnerHTML={{ __html: code }} style={{ maxWidth: '100%', maxHeight: '100%', overflow: 'auto' }} />
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(code),
+                  }}
+                  style={{ maxWidth: '100%', maxHeight: '100%', overflow: 'auto' }}
+                />
              )}
            </Box>
         )}
