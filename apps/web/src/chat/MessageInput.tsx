@@ -142,26 +142,30 @@ const MessageInputComponent = ({
           onChange={handleFileSelect}
         />
         <Tooltip title={t('messageInput.attach', 'Attach image')}>
-          <IconButton
-            disabled={disabled || isStreaming}
-            onClick={() => fileInputRef.current?.click()}
-            aria-label={t('messageInput.attach', 'Attach image')}
-            sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'rgba(33,150,243,0.08)' } }}
-          >
-            <AttachFileIcon />
-          </IconButton>
+          <span>
+            <IconButton
+              disabled={disabled || isStreaming}
+              onClick={() => fileInputRef.current?.click()}
+              aria-label={t('messageInput.attach', 'Attach image')}
+              sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'rgba(33,150,243,0.08)' } }}
+            >
+              <AttachFileIcon />
+            </IconButton>
+          </span>
         </Tooltip>
 
         {speechSupported && (
           <Tooltip title={isListening ? t('messageInput.stopListening', 'Stop listening') : t('messageInput.startListening', 'Voice input')}>
-            <IconButton
-              disabled={disabled || isStreaming}
-              onClick={isListening ? stopListening : startListening}
-              color={isListening ? 'error' : 'default'}
-              sx={{ color: isListening ? 'error.main' : 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(244,67,54,0.08)' } }}
-            >
-              {isListening ? <MicOffIcon /> : <MicIcon />}
-            </IconButton>
+            <span>
+              <IconButton
+                disabled={disabled || isStreaming}
+                onClick={isListening ? stopListening : startListening}
+                color={isListening ? 'error' : 'default'}
+                sx={{ color: isListening ? 'error.main' : 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(244,67,54,0.08)' } }}
+              >
+                {isListening ? <MicOffIcon /> : <MicIcon />}
+              </IconButton>
+            </span>
           </Tooltip>
         )}
 
@@ -170,6 +174,7 @@ const MessageInputComponent = ({
           multiline
           maxRows={5}
           placeholder={t('messageInput.placeholder')}
+          inputProps={{ 'aria-label': t('messageInput.placeholder') }}
           value={value}
           onChange={(e) => {
             const newValue = e.target.value;
