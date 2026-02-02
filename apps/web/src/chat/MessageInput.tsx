@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent } from 'react';
+import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent, ClipboardEvent } from 'react';
 import { Box, IconButton, TextField, CircularProgress, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SendIcon from '@mui/icons-material/Send';
@@ -96,6 +96,26 @@ const MessageInputComponent = ({
     }
   };
 
+  const handlePaste = (e: ClipboardEvent<HTMLDivElement>) => {
+    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+      const files = Array.from(e.clipboardData.files);
+      const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        imageFiles.forEach((file) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              setImages((prev) => [...prev, reader.result as string]);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }
+  };
+
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -190,6 +210,7 @@ const MessageInputComponent = ({
             setValue(newValue);
           }}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           disabled={disabled && !isStreaming}
           variant="outlined"
           size="small"
