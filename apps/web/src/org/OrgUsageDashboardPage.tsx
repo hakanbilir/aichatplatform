@@ -130,81 +130,83 @@ export const OrgUsageDashboardPage: React.FC = () => {
         </FormControl>
       </Box>
 
-      {usage && (
-        <BentoGrid>
-          <GlassPanel refractive={!isEcoMode}>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                Total requests
-              </Typography>
-              <KineticTypography variant="h3">{usage.totals.requestCount.toLocaleString()}</KineticTypography>
-            </CardContent>
-          </GlassPanel>
-          <GlassPanel refractive={!isEcoMode}>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                Total tokens
-              </Typography>
-              <KineticTypography variant="h3">
-                {(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()}
-              </KineticTypography>
-              <Typography variant="caption" color="text.secondary">
-                {usage.totals.inputTokens.toLocaleString()} in ·{' '}
-                {usage.totals.outputTokens.toLocaleString()} out
-              </Typography>
-            </CardContent>
-          </GlassPanel>
-          <GlassPanel refractive={!isEcoMode}>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                Estimated cost
-              </Typography>
-              <KineticTypography variant="h3">{formatCost(usage.totals.estimatedCostMicros)}</KineticTypography>
-            </CardContent>
-          </GlassPanel>
-        </BentoGrid>
-      )}
+      <BentoGrid>
+        {usage && (
+          <>
+            <GlassPanel refractive={!isEcoMode}>
+              <CardContent>
+                <Typography variant="subtitle2" gutterBottom>
+                  Total requests
+                </Typography>
+                <KineticTypography variant="h3">{usage.totals.requestCount.toLocaleString()}</KineticTypography>
+              </CardContent>
+            </GlassPanel>
+            <GlassPanel refractive={!isEcoMode}>
+              <CardContent>
+                <Typography variant="subtitle2" gutterBottom>
+                  Total tokens
+                </Typography>
+                <KineticTypography variant="h3">
+                  {(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()}
+                </KineticTypography>
+                <Typography variant="caption" color="text.secondary">
+                  {usage.totals.inputTokens.toLocaleString()} in ·{' '}
+                  {usage.totals.outputTokens.toLocaleString()} out
+                </Typography>
+              </CardContent>
+            </GlassPanel>
+            <GlassPanel refractive={!isEcoMode}>
+              <CardContent>
+                <Typography variant="subtitle2" gutterBottom>
+                  Estimated cost
+                </Typography>
+                <KineticTypography variant="h3">{formatCost(usage.totals.estimatedCostMicros)}</KineticTypography>
+              </CardContent>
+            </GlassPanel>
+          </>
+        )}
 
-      <GlassPanel refractive={!isEcoMode} sx={{ flex: 1 }}>
-        <CardContent>
-          <KineticTypography variant="h5" gutterBottom>
-            Top users
-          </KineticTypography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell align="right">Requests</TableCell>
-                <TableCell align="right">Tokens</TableCell>
-                <TableCell align="right">Cost</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {topUsers.length === 0 && (
+        <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: '1 / -1', minHeight: 400 }}>
+          <CardContent>
+            <KineticTypography variant="h5" gutterBottom>
+              Top users
+            </KineticTypography>
+            <Table size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={4}>
-                    <Typography variant="body2" color="text.secondary">
-                      No usage data yet.
-                    </Typography>
-                  </TableCell>
+                  <TableCell>User</TableCell>
+                  <TableCell align="right">Requests</TableCell>
+                  <TableCell align="right">Tokens</TableCell>
+                  <TableCell align="right">Cost</TableCell>
                 </TableRow>
-              )}
-              {topUsers.map((u) => (
-                <TableRow key={u.userId}>
-                  <TableCell>
-                    {u.user?.name || u.user?.email || `User ${u.userId.slice(0, 8)}`}
-                  </TableCell>
-                  <TableCell align="right">{u.requestCount.toLocaleString()}</TableCell>
-                  <TableCell align="right">
-                    {(u.inputTokens + u.outputTokens).toLocaleString()}
-                  </TableCell>
-                  <TableCell align="right">{formatCost(u.estimatedCostMicros)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </GlassPanel>
+              </TableHead>
+              <TableBody>
+                {topUsers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4}>
+                      <Typography variant="body2" color="text.secondary">
+                        No usage data yet.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {topUsers.map((u) => (
+                  <TableRow key={u.userId}>
+                    <TableCell>
+                      {u.user?.name || u.user?.email || `User ${u.userId.slice(0, 8)}`}
+                    </TableCell>
+                    <TableCell align="right">{u.requestCount.toLocaleString()}</TableCell>
+                    <TableCell align="right">
+                      {(u.inputTokens + u.outputTokens).toLocaleString()}
+                    </TableCell>
+                    <TableCell align="right">{formatCost(u.estimatedCostMicros)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </GlassPanel>
+      </BentoGrid>
     </Box>
   );
 };
