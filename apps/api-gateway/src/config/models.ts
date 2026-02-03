@@ -1,6 +1,6 @@
 // apps/api-gateway/src/config/models.ts
 
-export type ModelProviderId = 'ollama' | 'openai' | 'local';
+export type ModelProviderId = 'ollama' | 'openai' | 'anthropic' | 'local';
 
 export interface ModelConfig {
   /** Fully qualified id as used by clients & Conversation.model, e.g. "ollama:llama3" */
@@ -75,6 +75,30 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     label: 'o1 Preview (Reasoning)',
     providerModel: 'o1-preview',
     defaultTemperature: 1.0,
+    supportsTools: true,
+  },
+  {
+    id: 'anthropic:claude-3-5-sonnet-20240620',
+    provider: 'anthropic',
+    label: 'Claude 3.5 Sonnet',
+    providerModel: 'claude-3-5-sonnet-20240620',
+    defaultTemperature: 0.7,
+    supportsTools: true,
+  },
+  {
+    id: 'anthropic:claude-3-opus-20240229',
+    provider: 'anthropic',
+    label: 'Claude 3 Opus',
+    providerModel: 'claude-3-opus-20240229',
+    defaultTemperature: 0.7,
+    supportsTools: true,
+  },
+  {
+    id: 'anthropic:claude-3-haiku-20240307',
+    provider: 'anthropic',
+    label: 'Claude 3 Haiku',
+    providerModel: 'claude-3-haiku-20240307',
+    defaultTemperature: 0.7,
     supportsTools: true,
   },
   // You can extend this registry with openai:*, local:* etc.

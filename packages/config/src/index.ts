@@ -105,6 +105,9 @@ const baseSchema = z.object({
   // OpenAI
   OPENAI_API_KEY: z.string().optional(),
 
+  // Anthropic
+  ANTHROPIC_API_KEY: z.string().optional(),
+
   // Auth & Security
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters long'),
   JWT_EXPIRES_IN: z.string().default('1h'), // Short-lived access tokens

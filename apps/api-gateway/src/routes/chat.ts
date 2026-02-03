@@ -13,6 +13,7 @@ const sendMessageBodySchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
   maxTokens: z.number().int().positive().optional(),
+  images: z.array(z.string()).optional(),
 });
 
 export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
@@ -32,7 +33,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, model, temperature, topP, maxTokens, images } = parseBody.data;
 
     // Verify access rights
     const memberships = await prisma.orgMember.findMany({
@@ -77,6 +78,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         userId: payload.userId,
         content,
+        images,
         overrides: {
           model,
           temperature,
@@ -135,7 +137,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
     }
 
-    const { content, model, temperature, topP, maxTokens } = parseBody.data;
+    const { content, model, temperature, topP, maxTokens, images } = parseBody.data;
 
     // Verify access rights
     const memberships = await prisma.orgMember.findMany({
@@ -196,6 +198,7 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         conversationId: conversation.id,
         userId: payload.userId,
         content,
+        images,
         overrides: {
           model,
           temperature,

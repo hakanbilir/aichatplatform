@@ -6,6 +6,7 @@ import { prisma } from '@ai-chat/db';
 
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
+import { MODEL_REGISTRY } from '../config/models';
 
 const upsertModelSchema = z.object({
   provider: z.string().min(1),
@@ -44,14 +45,37 @@ export default async function modelRegistryRoutes(
 
     const merged = new Map<string, any>();
 
-    for (const e of globalEntries) {
-      const key = `${e.provider}:${e.modelName}`;
-      merged.set(key, { scope: 'global', ...e });
+    // 1. Start with hardcoded defaults
+    for (const def of MODEL_REGISTRY) {
+      // MODEL_REGISTRY id is typically "provider:model"
+      const key = def.id;
+      merged.set(key, {
+        id: def.id,
+        orgId: null,
+        provider: def.provider,
+        modelName: def.providerModel,
+        displayName: def.label,
+        description: 'System default',
+        isEnabled: true,
+        isDefault: false,
+        capabilities: def.supportsTools ? ['chat', 'tools'] : ['chat'],
+        // Defaults if not specified
+        contextWindow: 8192,
+        maxOutputTokens: 4096,
+        scope: 'system'
+      });
     }
 
+    // 2. Overlay DB global entries
+    for (const e of globalEntries) {
+      const key = `${e.provider}:${e.modelName}`;
+      merged.set(key, { ...merged.get(key), scope: 'global', ...e });
+    }
+
+    // 3. Overlay DB org entries
     for (const e of orgEntries) {
       const key = `${e.provider}:${e.modelName}`;
-      merged.set(key, { scope: 'org', ...e });
+      merged.set(key, { ...merged.get(key), scope: 'org', ...e });
     }
 
     const models = Array.from(merged.values()).map((e) => ({
