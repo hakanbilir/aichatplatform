@@ -8,7 +8,7 @@ import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 import { generateOrgApiKey } from '../apiKeys/utils';
 import { writeAuditLog } from '../services/audit';
-import { ALL_PERMISSIONS } from '../rbac/roles';
+import { ALL_PERMISSIONS, roleHasPermission, OrgPermission } from '../rbac/roles';
 
 const createKeySchema = z.object({
   name: z.string().min(1).max(128),
@@ -60,7 +60,7 @@ export default async function orgApiKeysRoutes(app: FastifyInstance, _opts: Fast
     const payload = request.user as JwtPayload;
     const orgId = (request.params as any).orgId as string;
 
-    await assertOrgPermission(
+    const role = await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'org:admin:api-keys:write'
@@ -69,6 +69,14 @@ export default async function orgApiKeysRoutes(app: FastifyInstance, _opts: Fast
     const parsed = createKeySchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
+    }
+
+    // Security fix: Ensure user cannot create key with permissions they don't have
+    if (role) {
+      const allowed = parsed.data.scopes.every((scope) => roleHasPermission(role, scope as OrgPermission));
+      if (!allowed) {
+        return reply.code(403).send({ error: request.i18n.t('errors.unauthorizedScope') });
+      }
     }
 
     const { raw, hash } = generateOrgApiKey(orgId);
@@ -106,7 +114,7 @@ export default async function orgApiKeysRoutes(app: FastifyInstance, _opts: Fast
     const payload = request.user as JwtPayload;
     const { orgId, keyId } = request.params as any;
 
-    await assertOrgPermission(
+    const role = await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
       'org:admin:api-keys:write'
@@ -115,6 +123,14 @@ export default async function orgApiKeysRoutes(app: FastifyInstance, _opts: Fast
     const parsed = updateKeySchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
+    }
+
+    // Security fix: Ensure user cannot update key with permissions they don't have
+    if (role && parsed.data.scopes) {
+      const allowed = parsed.data.scopes.every((scope) => roleHasPermission(role, scope as OrgPermission));
+      if (!allowed) {
+        return reply.code(403).send({ error: request.i18n.t('errors.unauthorizedScope') });
+      }
     }
 
     await prisma.orgApiKey.updateMany({
