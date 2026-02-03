@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, MenuItem, Select, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+
 import type { OrganizationSummary } from '../api/auth';
 import { getOrganizations } from '../api/auth';
 import { useAuth } from '../auth/AuthContext';

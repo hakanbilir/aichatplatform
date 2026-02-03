@@ -1,6 +1,8 @@
 // apps/web/src/theme/orgTheme.ts
 
-import { createTheme, Theme } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
+import type { Theme } from '@mui/material';
+
 import { OrgBrandingConfigDto } from '../api/orgBranding';
 
 export function createOrgTheme(branding: OrgBrandingConfigDto | null): Theme {

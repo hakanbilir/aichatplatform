@@ -1,7 +1,8 @@
 // Responsive utility functions for breakpoint helpers and responsive value generators
 // Kırılma noktası yardımcıları ve duyarlı değer üreticileri için duyarlı yardımcı fonksiyonlar
 
-import { useTheme, useMediaQuery, Breakpoint } from '@mui/material';
+import { useTheme, useMediaQuery } from '@mui/material';
+import type { Breakpoint } from '@mui/material';
 
 // Breakpoint values matching Material-UI theme
 // Material-UI temasıyla eşleşen kırılma noktası değerleri
@@ -19,11 +20,11 @@ export const breakpoints = {
 export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
   
-  if (breakpoint === 'xxl') {
-    return useMediaQuery(`(min-width:${breakpoints.xxl}px)`);
-  }
-  
-  return useMediaQuery(theme.breakpoints.up(breakpoint));
+  const query = breakpoint === 'xxl'
+    ? `(min-width:${breakpoints.xxl}px)`
+    : theme.breakpoints.up(breakpoint);
+
+  return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is below a breakpoint
@@ -31,11 +32,11 @@ export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
 export const useBreakpointDown = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
   
-  if (breakpoint === 'xxl') {
-    return useMediaQuery(`(max-width:${breakpoints.xxl - 1}px)`);
-  }
-  
-  return useMediaQuery(theme.breakpoints.down(breakpoint));
+  const query = breakpoint === 'xxl'
+    ? `(max-width:${breakpoints.xxl - 1}px)`
+    : theme.breakpoints.down(breakpoint);
+
+  return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is between two breakpoints

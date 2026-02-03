@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { Button, ButtonProps } from '@mui/material';
+import { Button } from '@mui/material';
+import type { ButtonProps } from '@mui/material';
 
 export const SpecularButton: React.FC<ButtonProps> = ({ children, className, sx, ...props }) => {
   const btnRef = useRef<HTMLButtonElement>(null);

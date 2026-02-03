@@ -1,9 +1,10 @@
 // apps/web/src/hooks/useOrgBranding.ts
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import { fetchOrgBranding, OrgBrandingConfigDto } from '../api/orgBranding';
-import { useParams } from 'react-router-dom';
 
 // Type guard function / Tip koruma fonksiyonu
 function isNonEmptyString(value: string | null | undefined): value is string {

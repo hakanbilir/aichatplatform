@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   fetchBillingPlans,
@@ -56,6 +57,7 @@ export const OrgBillingPage: React.FC = () => {
   const handleChangePlan = async (planId: string) => {
     if (!token || !orgId) return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof window !== 'undefined' && !(window as any).PayTR) {
         setError("Payment gateway not initialized. Please try again later.");
         return;
@@ -64,7 +66,9 @@ export const OrgBillingPage: React.FC = () => {
     try {
         const res = await requestPlanChange(token, orgId, planId);
         // Redirect to PAYTR checkout
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (typeof window !== 'undefined' && (window as any).PayTR) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (window as any).PayTR.Checkout(res.checkoutToken);
         }
     } catch (err) {
@@ -94,7 +98,7 @@ export const OrgBillingPage: React.FC = () => {
         <Box>
           <Typography variant="h6">Billing & subscription</Typography>
           <Typography variant="caption" color="text.secondary">
-            Manage your organization's subscription plan and billing.
+            Manage your organization&apos;s subscription plan and billing.
           </Typography>
         </Box>
       </Box>

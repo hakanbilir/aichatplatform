@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { Typography, TypographyProps } from '@mui/material';
+import { Typography } from '@mui/material';
+import type { TypographyProps } from '@mui/material';
 
 export const KineticTypography: React.FC<TypographyProps & { component?: React.ElementType }> = ({ children, className, ...props }) => {
   const textRef = useRef<HTMLElement>(null);

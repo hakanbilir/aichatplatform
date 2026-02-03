@@ -1,6 +1,7 @@
 // apps/web/src/chat/useToolsPanel.ts
 
 import { useEffect, useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   ExecuteToolResponse,

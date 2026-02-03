@@ -1,6 +1,7 @@
 // apps/web/src/audit/useAuditLog.ts
 
 import { useEffect, useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import { AuditEvent, AuditLogResponse, AuditLogQuery, fetchAuditLog } from '../api/auditLog';
 

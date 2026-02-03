@@ -1,6 +1,7 @@
 // apps/web/src/prompts/usePromptTemplates.ts
 
 import { useEffect, useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   PromptTemplate,

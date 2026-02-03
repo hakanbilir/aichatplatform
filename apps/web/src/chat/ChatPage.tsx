@@ -6,9 +6,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
-import { ChatSettingsBar } from './ChatSettingsBar';
-import { ToolsPanel } from './ToolsPanel';
+import { useParams } from 'react-router-dom';
+
 import { PromptLibraryDrawer } from '../prompts/PromptLibraryDrawer';
 import { PromptTemplateEditorDialog } from '../prompts/PromptTemplateEditorDialog';
 import { useAuth } from '../auth/AuthContext';
@@ -18,8 +17,6 @@ import {
   createConversation,
   updateConversation,
 } from '../api/conversations';
-import { ChatView } from './ChatView';
-import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
 import { useChat } from '../hooks/useChat';
@@ -27,8 +24,13 @@ import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
-import { useParams } from 'react-router-dom';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+
+import { MessageInput } from './MessageInput';
+import { ChatView } from './ChatView';
+import { ToolsPanel } from './ToolsPanel';
+import { ChatSettingsBar } from './ChatSettingsBar';
+import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
 import { VoiceModeOverlay } from './VoiceModeOverlay';
 
 function clampTemperature(value: number): number {

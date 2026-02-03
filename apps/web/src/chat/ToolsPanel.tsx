@@ -19,6 +19,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import TerminalIcon from '@mui/icons-material/Terminal';
+
 import { useToolsPanel } from './useToolsPanel';
 
 export interface ToolsPanelProps {

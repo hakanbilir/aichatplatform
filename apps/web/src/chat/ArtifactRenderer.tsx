@@ -2,6 +2,7 @@ import { useState } from 'react';
 import DOMPurify from 'dompurify';
 import { Box, Typography, Tabs, Tab } from '@mui/material';
 import { Code, Visibility } from '@mui/icons-material';
+
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 
 interface ArtifactRendererProps {

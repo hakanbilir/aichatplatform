@@ -3,10 +3,12 @@ import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { ThinkingBubble } from './ThinkingBubble';
-import { ArtifactRenderer } from './ArtifactRenderer';
+
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { useEcoMode } from '../hooks/useEcoMode';
+
+import { ThinkingBubble } from './ThinkingBubble';
+import { ArtifactRenderer } from './ArtifactRenderer';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'tool';

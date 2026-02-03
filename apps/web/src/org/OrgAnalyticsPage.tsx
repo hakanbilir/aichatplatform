@@ -7,14 +7,16 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  SelectChangeEvent,
   Typography,
 } from '@mui/material';
+// eslint-disable-next-line import/named
+import { SelectChangeEvent } from '@mui/material/Select';
 import { useTranslation } from 'react-i18next';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import ChatIcon from '@mui/icons-material/Chat';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import StorageIcon from '@mui/icons-material/Storage';
+
 import {
   MetricCard,
   DashboardLayout,
@@ -27,6 +29,7 @@ import {
   EmptyState,
 } from '../components/dashboard';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+
 import { useOrgAnalytics } from './useOrgAnalytics';
 
 export interface OrgAnalyticsPageProps {

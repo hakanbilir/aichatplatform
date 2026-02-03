@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, IconButton, Typography, Fade } from '@mui/material';
 import StopIcon from '@mui/icons-material/Stop';
 import { useTranslation } from 'react-i18next';
+
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 
 interface VoiceModeOverlayProps {

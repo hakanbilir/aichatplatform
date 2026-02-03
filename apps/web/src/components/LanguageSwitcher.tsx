@@ -1,5 +1,7 @@
 import React from 'react';
-import { Select, MenuItem, FormControl, SelectChangeEvent } from '@mui/material';
+import { Select, MenuItem, FormControl } from '@mui/material';
+// eslint-disable-next-line import/named
+import { SelectChangeEvent } from '@mui/material/Select';
 import { useTranslation } from 'react-i18next';
 
 export const LanguageSwitcher: React.FC = () => {

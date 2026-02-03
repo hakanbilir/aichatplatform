@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
+import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   ConversationSettings,
@@ -22,8 +24,8 @@ import {
   getConversationSettings,
   updateConversationSettings,
 } from '../api/conversationSettings';
+
 import { ConversationRagSettingsPanel } from './ConversationRagSettings';
-import { useParams } from 'react-router-dom';
 
 export interface ConversationSettingsDrawerProps {
   open: boolean;

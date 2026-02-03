@@ -3,12 +3,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 export function useSpeechToText() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [supported, setSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSupported(true);
         const recognition = new SpeechRecognition();
         recognition.continuous = false; // Stop after silence
         recognition.interimResults = true;
@@ -52,5 +55,5 @@ export function useSpeechToText() {
 
   const resetTranscript = useCallback(() => setTranscript(''), []);
 
-  return { isListening, transcript, startListening, stopListening, resetTranscript, supported: !!recognitionRef.current };
+  return { isListening, transcript, startListening, stopListening, resetTranscript, supported };
 }

@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, List, Typography, Skeleton } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { ConversationListItemView } from './ConversationListItemView';
+
 import { listConversations, ConversationListItem } from '../api/conversations';
 import { useAuth } from '../auth/AuthContext';
+
+import { ConversationListItemView } from './ConversationListItemView';
 
 interface ConversationListProps {}
 
