@@ -18,7 +18,7 @@ mock.module('@ai-chat/db', () => {
 // Mock guards
 mock.module('../src/rbac/guards', () => {
   return {
-    assertOrgPermission: mock(() => Promise.resolve(true)),
+    assertOrgPermission: mock(() => Promise.resolve('OWNER')),
   };
 });
 
