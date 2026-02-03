@@ -30,7 +30,7 @@ export interface ToolsPanelProps {
 
 const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, conversationId, orgId }) => {
   const { t } = useTranslation('chat');
-  const { tools, loadingTools, toolsError, runs, executing, executeError, runTool } = useToolsPanel(
+  const { tools, loadingTools, toolsError, runs, executing, executeError, runTool, refetchTools } = useToolsPanel(
     conversationId,
     orgId,
   );
@@ -110,9 +110,9 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, convers
                 <span>
                   <IconButton
                     size="small"
-                    onClick={undefined}
-                    disabled
-                    sx={{ opacity: 0.3, cursor: 'default' }}
+                    onClick={refetchTools}
+                    disabled={loadingTools}
+                    sx={{ opacity: loadingTools ? 0.5 : 1 }}
                   >
                     <RefreshIcon fontSize="small" />
                   </IconButton>

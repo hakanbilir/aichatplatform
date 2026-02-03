@@ -1,5 +1,6 @@
 import React from 'react';
-import { ListItemButton, ListItemText } from '@mui/material';
+import { ListItemButton, ListItemText, ListItemSecondaryAction, IconButton, TextField, Tooltip } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useTranslation } from 'react-i18next';
 import { ConversationListItem } from '../api/conversations';
 
@@ -7,9 +8,25 @@ interface ConversationListItemViewProps {
   item: ConversationListItem;
   selected: boolean;
   onSelect: (id: string) => void;
+  onMenuOpen: (event: React.MouseEvent<HTMLElement>, id: string) => void;
+  isEditing?: boolean;
+  editingTitle?: string;
+  onEditChange?: (value: string) => void;
+  onEditKeyDown?: (e: React.KeyboardEvent) => void;
+  onEditBlur?: () => void;
 }
 
-export const ConversationListItemView = React.memo<ConversationListItemViewProps>(({ item, selected, onSelect }) => {
+export const ConversationListItemView = React.memo<ConversationListItemViewProps>(({
+  item,
+  selected,
+  onSelect,
+  onMenuOpen,
+  isEditing,
+  editingTitle,
+  onEditChange,
+  onEditKeyDown,
+  onEditBlur
+}) => {
   const { t } = useTranslation('chat');
 
   return (
@@ -33,12 +50,53 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
         }
       }}
     >
-      <ListItemText
-        primary={item.title || t('sidebar.untitled')}
-        secondary={new Date(item.updatedAt).toLocaleTimeString()}
-        primaryTypographyProps={{ noWrap: true, fontSize: 13 }}
-        secondaryTypographyProps={{ noWrap: true, fontSize: 11 }}
-      />
+      {isEditing ? (
+        <TextField
+          autoFocus
+          size="small"
+          value={editingTitle}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => onEditChange?.(e.target.value)}
+          onKeyDown={onEditKeyDown}
+          onBlur={onEditBlur}
+          variant="outlined"
+          fullWidth
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              height: 32,
+              fontSize: 13,
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              '& fieldset': { border: 'none' },
+            },
+            '& .MuiInputBase-input': {
+               color: 'white',
+               p: '4px 8px',
+            }
+          }}
+        />
+      ) : (
+        <ListItemText
+          primary={item.title || t('sidebar.untitled')}
+          secondary={new Date(item.updatedAt).toLocaleTimeString()}
+          primaryTypographyProps={{ noWrap: true, fontSize: 13, fontWeight: item.pinned ? 600 : 400 }}
+          secondaryTypographyProps={{ noWrap: true, fontSize: 11, color: 'rgba(255,255,255,0.6)' }}
+        />
+      )}
+      {!isEditing && (
+        <ListItemSecondaryAction>
+            <Tooltip title={t('sidebar.moreActions')}>
+                <IconButton
+                    size="small"
+                    edge="end"
+                    aria-label={t('sidebar.moreActions')}
+                    onClick={(e) => onMenuOpen(e, item.id)}
+                    sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: 'white' } }}
+                >
+                    <MoreVertIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
+        </ListItemSecondaryAction>
+      )}
     </ListItemButton>
   );
 });
