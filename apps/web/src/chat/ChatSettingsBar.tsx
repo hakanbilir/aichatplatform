@@ -154,6 +154,7 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
                 onClick={onOpenTools}
                 disabled={!conversationId}
                 aria-label={t('settings.toolsPanel')}
+                data-ai-action="open-tools"
               >
                 <ExtensionIcon fontSize="small" />
               </IconButton>
@@ -166,6 +167,7 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
                 onClick={onOpenSettings}
                 disabled={!conversationId}
                 aria-label={t('settings.advancedSettings')}
+                data-ai-action="open-settings"
               >
                 <SettingsIcon fontSize="small" />
               </IconButton>
@@ -178,6 +180,7 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
                 onClick={onResetSettings}
                 disabled={!conversationId}
                 aria-label={t('settings.resetSettings')}
+                data-ai-action="reset-settings"
               >
                 <RestartAltIcon fontSize="small" />
               </IconButton>
@@ -191,6 +194,7 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
                 onClick={onSaveSettings}
                 disabled={!dirty || saving || !conversationId}
                 aria-label={dirty ? t('settings.saveSettings') : t('settings.settingsUpToDate')}
+                data-ai-action="save-settings"
               >
                 <SaveIcon fontSize="small" />
               </IconButton>

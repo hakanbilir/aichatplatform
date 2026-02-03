@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  AppBar,
   Toolbar,
   Typography,
   Box,
@@ -63,13 +62,16 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <AppBar
-      position="static"
-      elevation={0}
-      className="gradient-header"
+    <GlassPanel
+      refractive={!isEcoMode}
+      component="header"
       sx={{
         mb: 1,
         transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+        position: 'static',
+        width: '100%',
+        zIndex: 1100,
+        borderRadius: 0,
       }}
     >
       <Toolbar
@@ -121,7 +123,7 @@ export const TopBar: React.FC = () => {
 
         {/* Search bar (hidden on mobile) / Arama çubuğu (mobilde gizli) */}
         {!isMobile && orgId && (
-          <Box flex={1} maxWidth={400} mx={2} component="form" onSubmit={handleSearchSubmit}>
+          <Box flex={1} maxWidth={400} mx={2} component="form" onSubmit={handleSearchSubmit} data-ai-action="search">
             <TextField
               fullWidth
               size="small"
@@ -148,6 +150,7 @@ export const TopBar: React.FC = () => {
                     <IconButton
                       size="small"
                       onClick={handleSearchClear}
+                      data-ai-action="clear-search"
                       sx={{
                         color: 'text.secondary',
                         '&:hover': { color: 'text.primary' },
@@ -193,6 +196,7 @@ export const TopBar: React.FC = () => {
               onClick={toggleEcoMode}
               color={isEcoMode ? "success" : "inherit"}
               size="small"
+              data-ai-action="toggle-eco-mode"
             >
               <EnergySavingsLeafIcon fontSize="small" />
             </IconButton>
@@ -237,6 +241,7 @@ export const TopBar: React.FC = () => {
             size="small"
             onClick={logout}
             title={t('logout')}
+            data-ai-action="logout"
             sx={{
               minWidth: 44,
               minHeight: 44,
@@ -254,6 +259,6 @@ export const TopBar: React.FC = () => {
           </IconButton>
         </Box>
       </Toolbar>
-    </AppBar>
+    </GlassPanel>
   );
 };

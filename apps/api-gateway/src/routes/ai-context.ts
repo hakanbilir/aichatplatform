@@ -4,6 +4,7 @@ import { prisma } from '@ai-chat/db';
 import { JwtPayload } from '../auth/types';
 
 export default async function aiContextRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  // Context-Aware Endpoint for Agentic Middleware
   app.get('/ai-context', { preHandler: [app.authenticate] }, async (request, reply) => {
     const payload = request.user as JwtPayload;
 
@@ -46,10 +47,18 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
         type: 'conversation',
         id: c.id,
         title: c.title,
-        timestamp: c.updatedAt,
+        last_active: c.updatedAt,
         model: c.model
       })),
-      primary_intent: primaryIntent
+      primary_intent: primaryIntent,
+      suggested_actions: [
+        ...(recentConversations.length > 0 ? [{
+          label: 'Resume Chat',
+          action: 'resume',
+          target_id: recentConversations[0].id
+        }] : []),
+        { label: 'New Task', action: 'create_conversation' }
+      ]
     });
   });
 }

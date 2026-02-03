@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, Typography, Drawer, IconButton, useTheme } from '@mui/material';
+import { Box, Drawer, IconButton, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -7,6 +7,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import { OrgSwitcher } from './OrgSwitcher';
 import { ConversationList } from '../chat/ConversationList';
 import { useIsMobile } from '../utils/responsive';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 interface SideNavProps {
   onCreateConversation: () => void;
@@ -16,6 +20,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
   const { t } = useTranslation('chat');
   const theme = useTheme();
   const isMobile = useIsMobile();
+  const { isEcoMode } = useEcoMode();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -23,8 +28,8 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
   };
 
   const sidebarContent = (
-    <Box
-      className="gradient-sidebar"
+    <GlassPanel
+      refractive={!isEcoMode}
       sx={{
         width: { xs: 280, sm: 280 },
         height: '100%',
@@ -34,10 +39,11 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
         color: 'white',
         borderRight: '1px solid rgba(255,255,255,0.15)',
         transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+        borderRadius: 0, // Reset border radius for full height sidebar
       }}
     >
       <OrgSwitcher />
-      <Button
+      <SpecularButton
         variant="contained"
         startIcon={<AddIcon />}
         size="small"
@@ -45,6 +51,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
           onCreateConversation();
           if (isMobile) setMobileOpen(false);
         }}
+        data-ai-action="create-conversation"
         sx={{
           mb: 2,
           minHeight: 44,
@@ -59,8 +66,8 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
         }}
       >
         {t('conversation.new')}
-      </Button>
-      <Typography
+      </SpecularButton>
+      <KineticTypography
         variant="caption"
         sx={{
           mb: 1,
@@ -72,7 +79,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
         }}
       >
         {t('conversation.recent')}
-      </Typography>
+      </KineticTypography>
       <Box
         flex={1}
         overflow="auto"
@@ -95,7 +102,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
       >
         <ConversationList />
       </Box>
-    </Box>
+    </GlassPanel>
   );
 
   if (isMobile) {
