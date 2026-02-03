@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { Box, IconButton, Typography, Fade } from '@mui/material';
 import StopIcon from '@mui/icons-material/Stop';
 import { useTranslation } from 'react-i18next';
+
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 
 interface VoiceModeOverlayProps {
@@ -10,7 +11,7 @@ interface VoiceModeOverlayProps {
   onStop: () => void;
 }
 
-export const VoiceModeOverlay: React.FC<VoiceModeOverlayProps> = ({
+const VoiceModeOverlayComponent: React.FC<VoiceModeOverlayProps> = ({
   isListening,
   transcript,
   onStop,
@@ -97,3 +98,7 @@ export const VoiceModeOverlay: React.FC<VoiceModeOverlayProps> = ({
     </Fade>
   );
 };
+
+// Optimized with React.memo to prevent unnecessary re-renders during chat streaming,
+// as the parent ChatPage re-renders heavily on every token but voice state remains stable.
+export const VoiceModeOverlay = memo(VoiceModeOverlayComponent);
