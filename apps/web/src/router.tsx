@@ -65,6 +65,10 @@ const router = createBrowserRouter([
         element: <ChatPage />,
       },
       {
+        path: 'chat/:conversationId',
+        element: <ChatPage />,
+      },
+      {
         path: 'orgs/:orgId/knowledge',
         element: <KnowledgeBaseRouteWrapper />,
       },

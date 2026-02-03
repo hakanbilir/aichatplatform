@@ -1,6 +1,6 @@
 // apps/web/src/chat/useToolsPanel.ts
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import {
   ExecuteToolResponse,
@@ -31,38 +31,26 @@ export function useToolsPanel(conversationId: string | null, orgId: string | nul
   const [executing, setExecuting] = useState(false);
   const [executeError, setExecuteError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadTools = useCallback(async () => {
     if (!token) return;
-
-    let cancelled = false;
-
-    async function load() {
-      if (!token) return; // Type guard / Tip koruması
-      setLoadingTools(true);
-      setToolsError(null);
-      try {
-        const res: ListToolsResponse = await listTools(token, {
-          conversationId: conversationId ?? undefined,
-          orgId: orgId ?? undefined,
-        });
-        if (cancelled) return;
-        setTools(res.tools);
-      } catch (err) {
-        if (cancelled) return;
-        setToolsError((err as Error).message || 'Failed to load tools');
-      } finally {
-        if (!cancelled) {
-          setLoadingTools(false);
-        }
-      }
+    setLoadingTools(true);
+    setToolsError(null);
+    try {
+      const res: ListToolsResponse = await listTools(token, {
+        conversationId: conversationId ?? undefined,
+        orgId: orgId ?? undefined,
+      });
+      setTools(res.tools);
+    } catch (err) {
+      setToolsError((err as Error).message || 'Failed to load tools');
+    } finally {
+      setLoadingTools(false);
     }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
   }, [token, conversationId, orgId]);
+
+  useEffect(() => {
+    void loadTools();
+  }, [loadTools]);
 
   const runTool = async (tool: string, argsJson: string): Promise<ExecuteToolResponse | null> => {
     if (!token) return null;
@@ -119,6 +107,6 @@ export function useToolsPanel(conversationId: string | null, orgId: string | nul
     executing,
     executeError,
     runTool,
+    refetchTools: loadTools
   };
 }
-

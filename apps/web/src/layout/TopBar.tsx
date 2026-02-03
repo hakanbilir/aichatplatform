@@ -19,6 +19,7 @@ import { useAuth } from '../auth/AuthContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { useIsMobile } from '../utils/responsive';
 import { useEcoMode } from '../hooks/useEcoMode';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 
 export const TopBar: React.FC = () => {
   const { user, logout } = useAuth();

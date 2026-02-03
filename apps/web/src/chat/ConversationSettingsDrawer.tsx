@@ -247,7 +247,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                   <Divider sx={{ my: 2 }} />
                   <ConversationRagSettingsPanel
                     conversationId={conversationId}
-                    value={(settings as any)?.kbConfig?.rag}
+                    value={settings?.kbConfig?.rag}
                     onChange={() => {
                       // RAG settings are saved automatically by the component
                     }}
