@@ -13,12 +13,29 @@ export class OpenAIProvider implements ModelProvider {
   }
 
   private mapMessages(messages: ProviderMessage[]) {
-    return messages.map((m) => ({
-      role: m.role === 'tool' ? 'tool' : (m.role as 'system' | 'user' | 'assistant'),
-      content: m.content,
-      // Note: OpenAI tool messages require tool_call_id, but our simple provider abstraction might not pass it in 'meta' yet.
-      // Ideally ProviderMessage should have 'meta' too. For now, we assume simple text.
-    }));
+    return messages.map((m) => {
+      const role = m.role === 'tool' ? 'tool' : (m.role as 'system' | 'user' | 'assistant');
+
+      if (typeof m.content === 'string') {
+        return { role, content: m.content };
+      }
+
+      // Handle multimodal content
+      return {
+        role,
+        content: m.content.map((part) => {
+          if (part.type === 'text') {
+            return { type: 'text', text: part.text };
+          }
+          return {
+            type: 'image_url',
+            image_url: {
+              url: part.data
+            }
+          };
+        })
+      };
+    });
   }
 
   async chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult> {

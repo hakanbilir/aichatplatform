@@ -6,7 +6,7 @@ import { prisma } from '@ai-chat/db';
 import type { Prisma } from '@prisma/client';
 import { ChatStreamEvent } from '@ai-chat/core-types';
 
-import { ProviderMessage, ProviderUsage } from '../providers/base';
+import { ProviderMessage, ProviderUsage, ContentPart } from '../providers/base';
 import { getModelConfig, resolveModelId } from '../config/models';
 import { ToolCallEnvelope, ToolContext } from '../tools/types';
 import { logger } from '../observability/logger';
@@ -28,6 +28,7 @@ export interface RunConversationTurnInput {
   conversationId: string;
   userId: string;
   content: string; // latest user message content
+  images?: string[];
   overrides?: {
     model?: string;
     temperature?: number;
@@ -55,7 +56,7 @@ function parseToolEnvelopeCandidate(text: string): ToolCallEnvelope | null {
   }
 }
 
-async function prepareConversationContext(conversationId: string, userId: string, content: string, overrides?: RunConversationTurnInput['overrides']) {
+async function prepareConversationContext(conversationId: string, userId: string, content: string, images?: string[], overrides?: RunConversationTurnInput['overrides']) {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: {
@@ -98,7 +99,7 @@ async function prepareConversationContext(conversationId: string, userId: string
       conversationId: conversation.id,
       role: 'USER',
       content,
-      meta: {},
+      meta: images && images.length > 0 ? { images } : {},
       orgId: conversation.orgId ?? undefined,
     },
   });
@@ -131,6 +132,7 @@ async function prepareConversationContext(conversationId: string, userId: string
     select: {
       role: true,
       content: true,
+      meta: true,
     },
   });
 
@@ -239,7 +241,19 @@ async function prepareConversationContext(conversationId: string, userId: string
 
   for (const msg of history) {
     const role = (msg.role as ChatRole) || 'USER';
-    baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: msg.content });
+    const meta = msg.meta as any;
+
+    if (meta?.images && Array.isArray(meta.images) && meta.images.length > 0) {
+      const contentParts: ContentPart[] = [
+        { type: 'text', text: msg.content }
+      ];
+      for (const img of meta.images) {
+        contentParts.push({ type: 'image', data: img });
+      }
+      baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: contentParts });
+    } else {
+      baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: msg.content });
+    }
   }
 
   const ctx: ToolContext = {
@@ -381,7 +395,7 @@ export async function runConversationTurn(
 ): Promise<RunConversationTurnResult> {
   const startedAt = process.hrtime.bigint();
   const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
-    await prepareConversationContext(input.conversationId, input.userId, input.content, input.overrides);
+    await prepareConversationContext(input.conversationId, input.userId, input.content, input.images, input.overrides);
 
   // Tools Logic
   if (structuredToolsEnabled) {
@@ -483,7 +497,7 @@ export async function* streamConversationTurn(
 ): AsyncGenerator<ChatStreamEvent, void, unknown> {
   const startedAt = process.hrtime.bigint();
   const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
-    await prepareConversationContext(input.conversationId, input.userId, input.content, input.overrides);
+    await prepareConversationContext(input.conversationId, input.userId, input.content, input.images, input.overrides);
 
   if (!provider.chatStream) {
     throw new Error('Provider does not support streaming');

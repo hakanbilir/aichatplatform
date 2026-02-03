@@ -2,9 +2,13 @@
 
 export type ProviderRole = 'system' | 'user' | 'assistant' | 'tool';
 
+export type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image'; mimeType?: string; data: string };
+
 export interface ProviderMessage {
   role: ProviderRole;
-  content: string;
+  content: string | ContentPart[];
 }
 
 export interface ProviderUsage {
