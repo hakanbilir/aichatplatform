@@ -28,7 +28,7 @@ export interface ToolsPanelProps {
   orgId: string | null;
 }
 
-export const ToolsPanel: React.FC<ToolsPanelProps> = ({ open, onClose, conversationId, orgId }) => {
+const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, conversationId, orgId }) => {
   const { t } = useTranslation('chat');
   const { tools, loadingTools, toolsError, runs, executing, executeError, runTool } = useToolsPanel(
     conversationId,
@@ -271,3 +271,5 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({ open, onClose, conversat
   );
 };
 
+// Optimized with React.memo to prevent unnecessary re-renders when parent updates.
+export const ToolsPanel = React.memo(ToolsPanelComponent);
