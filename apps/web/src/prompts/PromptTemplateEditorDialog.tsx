@@ -28,7 +28,7 @@ interface PromptTemplateEditorDialogProps {
   onSave: (input: CreatePromptTemplateInput, existingId?: string) => Promise<void>;
 }
 
-export const PromptTemplateEditorDialog: React.FC<PromptTemplateEditorDialogProps> = ({
+const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogProps> = ({
   open,
   onClose,
   initialTemplate,
@@ -250,3 +250,5 @@ export const PromptTemplateEditorDialog: React.FC<PromptTemplateEditorDialogProp
   );
 };
 
+// Optimized with React.memo to prevent unnecessary re-renders.
+export const PromptTemplateEditorDialog = React.memo(PromptTemplateEditorDialogComponent);

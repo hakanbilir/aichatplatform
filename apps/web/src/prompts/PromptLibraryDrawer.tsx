@@ -58,7 +58,7 @@ function isOrgTemplate(t: PromptTemplate, currentUserId: string): boolean {
   return t.isOrgShared && t.createdById !== currentUserId;
 }
 
-export const PromptLibraryDrawer: React.FC<PromptLibraryDrawerProps> = ({
+const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
   orgId,
   open,
   onClose,
@@ -285,3 +285,5 @@ export const PromptLibraryDrawer: React.FC<PromptLibraryDrawerProps> = ({
   );
 };
 
+// Optimized with React.memo to prevent unnecessary re-renders.
+export const PromptLibraryDrawer = React.memo(PromptLibraryDrawerComponent);

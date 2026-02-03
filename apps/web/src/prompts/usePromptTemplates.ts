@@ -1,6 +1,6 @@
 // apps/web/src/prompts/usePromptTemplates.ts
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import {
   PromptTemplate,
@@ -51,24 +51,24 @@ export function usePromptTemplates(orgId: string | null) {
     };
   }, [token, orgId]);
 
-  async function createTemplate(input: CreatePromptTemplateInput) {
+  const createTemplate = useCallback(async (input: CreatePromptTemplateInput) => {
     if (!token || !orgId) return;
     const created = await createPromptTemplateApi(token, orgId, input);
     setTemplates((prev) => [...prev, created]);
-  }
+  }, [token, orgId]);
 
-  async function updateTemplate(templateId: string, data: Partial<CreatePromptTemplateInput>) {
+  const updateTemplate = useCallback(async (templateId: string, data: Partial<CreatePromptTemplateInput>) => {
     if (!token || !orgId) return;
     await updatePromptTemplateApi(token, orgId, templateId, data);
     const next = await fetchPromptTemplates(token, orgId);
     setTemplates(next);
-  }
+  }, [token, orgId]);
 
-  async function deleteTemplate(templateId: string) {
+  const deleteTemplate = useCallback(async (templateId: string) => {
     if (!token || !orgId) return;
     await deletePromptTemplateApi(token, orgId, templateId);
     setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-  }
+  }, [token, orgId]);
 
   return {
     templates,

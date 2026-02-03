@@ -21,3 +21,7 @@
 ## 2026-07-20 - Streaming Message Child Component Performance
 **Learning:** In a streaming chat UI, the `MessageBubble` component re-renders on every token. Child components like `ThinkingBubble` re-render unnecessarily even if their content (`thought`) is stable, because `React.memo` is missing. This adds significant overhead during long generations.
 **Action:** Memoize child components of frequently updating parents, especially if the children render DOM elements or have their own internal state/animations.
+
+## 2026-08-15 - ChatPage Child Component Performance
+**Learning:** In a high-frequency update component like `ChatPage` (streaming), all heavy child components (Drawers, Panels) must be memoized. Crucially, any callbacks passed to them must be stabilized with `useCallback`, and any hooks (like `usePromptTemplates`) returning functions passed to these callbacks must also stabilize their return values.
+**Action:** Wrap child components in `React.memo`, wrap handlers in `useCallback`, and ensure custom hooks return memoized functions.

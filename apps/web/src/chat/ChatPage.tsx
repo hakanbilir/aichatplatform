@@ -231,6 +231,31 @@ export const ChatPage: React.FC = () => {
   const handleOpenTools = useCallback(() => setToolsOpen(true), []);
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
 
+  const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
+  const handleCloseTools = useCallback(() => setToolsOpen(false), []);
+  const handleClosePromptLibrary = useCallback(() => setPromptLibraryOpen(false), []);
+  const handleCloseTemplateEditor = useCallback(() => setTemplateEditorOpen(false), []);
+  const handleCloseExport = useCallback(() => setExportDialogOpen(false), []);
+  const handleCloseShare = useCallback(() => setShareDialogOpen(false), []);
+
+  const handleApplyPrompt = useCallback((content: string) => {
+    setMessageInputValue(content);
+    setPromptLibraryOpen(false);
+  }, []);
+
+  const handleNewTemplate = useCallback(() => {
+    setTemplateEditorOpen(true);
+    setPromptLibraryOpen(false);
+  }, []);
+
+  const handleSaveTemplate = useCallback(async (input: CreatePromptTemplateInput, existingId?: string) => {
+    if (existingId) {
+      await updateTemplate(existingId, input);
+    } else {
+      await createTemplate(input);
+    }
+  }, [updateTemplate, createTemplate]);
+
   const currentTitle = conversation?.title || t('conversation.new');
 
   return (
@@ -324,14 +349,14 @@ export const ChatPage: React.FC = () => {
       {/* Settings drawer */}
       <ConversationSettingsDrawer
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={handleCloseSettings}
         conversationId={conversationId}
       />
 
       {/* Tools panel */}
       <ToolsPanel
         open={toolsOpen}
-        onClose={() => setToolsOpen(false)}
+        onClose={handleCloseTools}
         conversationId={conversationId}
         orgId={conversation?.orgId ?? null}
       />
@@ -341,16 +366,10 @@ export const ChatPage: React.FC = () => {
         <PromptLibraryDrawer
           orgId={conversation.orgId}
           open={promptLibraryOpen}
-          onClose={() => setPromptLibraryOpen(false)}
+          onClose={handleClosePromptLibrary}
           currentUserId={user.id}
-          onApplyPrompt={(content) => {
-            setMessageInputValue(content);
-            setPromptLibraryOpen(false);
-          }}
-          onNewTemplate={() => {
-            setTemplateEditorOpen(true);
-            setPromptLibraryOpen(false);
-          }}
+          onApplyPrompt={handleApplyPrompt}
+          onNewTemplate={handleNewTemplate}
         />
       )}
 
@@ -358,15 +377,9 @@ export const ChatPage: React.FC = () => {
       {conversation?.orgId && (
         <PromptTemplateEditorDialog
           open={templateEditorOpen}
-          onClose={() => setTemplateEditorOpen(false)}
+          onClose={handleCloseTemplateEditor}
           initialTemplate={null}
-          onSave={async (input: CreatePromptTemplateInput, existingId?: string) => {
-            if (existingId) {
-              await updateTemplate(existingId, input);
-            } else {
-              await createTemplate(input);
-            }
-          }}
+          onSave={handleSaveTemplate}
         />
       )}
 
@@ -374,7 +387,7 @@ export const ChatPage: React.FC = () => {
       {conversation && conversationId && conversation.orgId && (
         <ConversationExportDialog
           open={exportDialogOpen}
-          onClose={() => setExportDialogOpen(false)}
+          onClose={handleCloseExport}
           orgId={conversation.orgId}
           conversationId={conversationId}
         />
@@ -384,7 +397,7 @@ export const ChatPage: React.FC = () => {
       {conversation && conversationId && conversation.orgId && (
         <ConversationShareDialog
           open={shareDialogOpen}
-          onClose={() => setShareDialogOpen(false)}
+          onClose={handleCloseShare}
           orgId={conversation.orgId}
           conversationId={conversationId}
           basePublicUrl={window.location.origin}
