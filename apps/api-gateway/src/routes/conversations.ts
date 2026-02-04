@@ -519,11 +519,23 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
 
     // Verify access: if org conversation, check org permission; if personal, allow owner
     if (existingConversation.orgId) {
-      await assertOrgPermission(
+      const userRole = await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         existingConversation.orgId,
         'conversation:chat'
       );
+
+      // IDOR Prevention: Only allow update if:
+      // 1. User is Superadmin
+      // 2. User is Org OWNER or ADMIN
+      // 3. User is the creator of the conversation
+      const isSuperadmin = payload.isSuperadmin;
+      const isOrgAdmin = userRole === 'OWNER' || userRole === 'ADMIN';
+      const isConversationOwner = existingConversation.userId === payload.userId;
+
+      if (!isSuperadmin && !isOrgAdmin && !isConversationOwner) {
+        return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
+      }
     } else {
       // Personal conversation - verify ownership
       // Reuse orgIds from above (line 339)
