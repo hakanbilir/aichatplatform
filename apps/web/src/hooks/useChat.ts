@@ -13,9 +13,10 @@ export interface UseChatOptions {
   conversationId: string | null;
   onBeforeSend?: () => void;
   onError?: (error: Error) => void;
+  retryCount?: number;
 }
 
-export function useChat({ conversationId, onBeforeSend, onError }: UseChatOptions) {
+export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 }: UseChatOptions) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [streamingText, setStreamingText] = useState('');
@@ -138,7 +139,8 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
              if (onError) onError(new Error(event.error));
           }
         },
-        controller.signal
+        controller.signal,
+        retryCount
       );
     } catch (err) {
       if (onError) onError(err as Error);
@@ -149,7 +151,7 @@ export function useChat({ conversationId, onBeforeSend, onError }: UseChatOption
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversation-usage', conversationId] });
     }
-  }, [token, conversationId, onBeforeSend, onError, stop, queryClient]);
+  }, [token, conversationId, onBeforeSend, onError, stop, queryClient, retryCount]);
 
   const regenerate = useCallback(async () => {
     if (!token || !conversationId || !conversation) return;
