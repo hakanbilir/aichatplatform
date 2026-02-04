@@ -6,20 +6,16 @@ import {
 import { useTranslation } from 'react-i18next';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
-import { ChatSettingsBar } from './ChatSettingsBar';
-import { ToolsPanel } from './ToolsPanel';
-import { PromptLibraryDrawer } from '../prompts/PromptLibraryDrawer';
-import { PromptTemplateEditorDialog } from '../prompts/PromptTemplateEditorDialog';
+import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
+import { useOrgModels } from '../hooks/useOrgModels';
 import { usePromptTemplates } from '../prompts/usePromptTemplates';
 import { CreatePromptTemplateInput } from '../api/prompts';
 import {
   createConversation,
   updateConversation,
 } from '../api/conversations';
-import { ChatView } from './ChatView';
-import { MessageInput } from './MessageInput';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
 import { useChat } from '../hooks/useChat';
@@ -27,8 +23,15 @@ import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
-import { useParams } from 'react-router-dom';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import { PromptLibraryDrawer } from '../prompts/PromptLibraryDrawer';
+import { PromptTemplateEditorDialog } from '../prompts/PromptTemplateEditorDialog';
+
+import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
+import { ChatSettingsBar } from './ChatSettingsBar';
+import { ToolsPanel } from './ToolsPanel';
+import { ChatView } from './ChatView';
+import { MessageInput } from './MessageInput';
 import { VoiceModeOverlay } from './VoiceModeOverlay';
 
 function clampTemperature(value: number): number {
@@ -49,7 +52,7 @@ export const ChatPage: React.FC = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
   const { isEcoMode } = useEcoMode();
-  const { conversationId: paramConversationId } = useParams();
+  const { conversationId: paramConversationId, orgId: paramOrgId } = useParams();
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -90,7 +93,19 @@ export const ChatPage: React.FC = () => {
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
   
-  const { user } = useAuth();
+  const { user, activeOrg } = useAuth();
+
+  const effectiveOrgId = conversation?.orgId ?? paramOrgId ?? activeOrg?.id ?? null;
+  const { data: orgModels } = useOrgModels(effectiveOrgId || '');
+
+  const modelOptions = React.useMemo(() => {
+    if (!orgModels) return [];
+    return orgModels.map(m => ({
+      value: m.modelName,
+      label: m.displayName
+    }));
+  }, [orgModels]);
+
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
 
   const { isListening, transcript, startListening, stopListening, resetTranscript, supported: speechSupported } = useSpeechToText();
@@ -264,6 +279,7 @@ export const ChatPage: React.FC = () => {
       <ChatSettingsBar
         title={currentTitle}
         model={model}
+        models={modelOptions}
         temperature={temperature}
         topP={topP}
         dirty={dirty}
@@ -351,6 +367,7 @@ export const ChatPage: React.FC = () => {
         open={settingsOpen}
         onClose={handleCloseSettings}
         conversationId={conversationId}
+        models={modelOptions}
       />
 
       {/* Tools panel */}
