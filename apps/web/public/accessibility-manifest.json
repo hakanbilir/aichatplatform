@@ -1,46 +1,45 @@
 {
-  "version": "2026.1.0",
-  "timestamp": "2026-02-03T16:22:01.577Z",
-  "standard": "WCAG 2.1 AA + Kinetic 2026",
+  "version": "1.0",
+  "generatedAt": "2026-02-04T16:12:50.850Z",
   "components": [
     {
-      "name": "BentoGrid",
-      "roles": [
-        "grid",
-        "presentation"
-      ],
-      "contrast": "N/A (Layout)",
-      "notes": "Grid gap (24px) ensures clear separation of content.",
-      "status": "Audited"
-    },
-    {
       "name": "GlassPanel",
-      "roles": [
-        "region"
-      ],
-      "contrast": "4.5:1 (calculated for glass)",
-      "notes": "Ensure backdrop-filter is disabled in high-contrast/eco mode.",
-      "status": "Audited"
-    },
-    {
-      "name": "KineticTypography",
-      "roles": [
-        "heading",
-        "text"
-      ],
-      "contrast": "AAA Pass",
-      "notes": "Variable font weight changes do not affect layout shift significantly.",
-      "status": "Audited"
+      "role": "region",
+      "description": "A container with refractive glass effect",
+      "accessibility": {
+        "contrastRatio": "AAA (when on dark background)",
+        "prefersReducedMotion": "Supported (Eco Mode disables blur)",
+        "ariaLabel": "Content panel"
+      }
     },
     {
       "name": "SpecularButton",
-      "roles": [
-        "button"
-      ],
-      "contrast": "AA Pass",
-      "notes": "Interactive highlights do not interfere with text legibility. Focus states preserved.",
-      "status": "Audited"
+      "role": "button",
+      "description": "Button with kinetic highlight",
+      "accessibility": {
+        "keyboardNavigable": true,
+        "focusIndicator": "2px solid blue",
+        "contrastRatio": "4.5:1"
+      }
+    },
+    {
+      "name": "BentoGrid",
+      "role": "grid",
+      "description": "Layout grid",
+      "accessibility": {
+        "readingOrder": "Left-to-right, Top-to-bottom",
+        "responsive": true
+      }
     }
   ],
-  "summary": "Kinetic design system accessibility manifest generated."
+  "globalFeatures": {
+    "ecoMode": {
+      "enabled": true,
+      "description": "Disables blur and animations for accessibility and battery saving"
+    },
+    "kineticTypography": {
+      "enabled": true,
+      "description": "Variable font weight adjustments based on interaction"
+    }
+  }
 }

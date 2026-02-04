@@ -6,9 +6,12 @@ import { SideNav } from './SideNav';
 import { useIsMobile } from '../utils/responsive';
 import { LoadingState } from '../components/dashboard/LoadingState';
 import { RefractionFilter } from '../components/ui/RefractionFilter';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 export const Shell: React.FC = () => {
   const isMobile = useIsMobile();
+  const { isEcoMode } = useEcoMode();
 
   const handleCreateConversation = () => {
     const event = new CustomEvent('create-conversation');
@@ -19,52 +22,55 @@ export const Shell: React.FC = () => {
     <Box
       className="gradient-shell"
       sx={{
-        minHeight: '100vh',
-        display: 'flex',
+        height: '100vh',
+        display: isMobile ? 'flex' : 'grid',
         flexDirection: 'column',
+        // Bento Grid Layout
+        gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr',
+        gridTemplateRows: 'auto 1fr',
+        gap: isMobile ? 0 : 'var(--bento-gap)',
+        padding: isMobile ? 0 : 'var(--bento-gap)',
         transition: 'background 300ms ease',
+        overflow: 'hidden'
       }}
     >
       <RefractionFilter />
-      <TopBar />
-      <Box
+
+      {/* Header - Spans full width */}
+      <Box sx={{ gridColumn: '1 / -1', zIndex: 10 }}>
+         <TopBar />
+      </Box>
+
+      {/* Sidebar - Desktop */}
+      {!isMobile && (
+        <Box sx={{ height: '100%', overflow: 'hidden' }}>
+          <SideNav onCreateConversation={handleCreateConversation} />
+        </Box>
+      )}
+
+      {/* Mobile Drawer (SideNav handles its own visibility via state) */}
+      {isMobile && <SideNav onCreateConversation={handleCreateConversation} />}
+
+      {/* Main content area - Bento Cell */}
+      <GlassPanel
+        refractive={!isEcoMode && !isMobile}
         sx={{
-          flex: 1,
+          gridColumn: isMobile ? '1' : '2',
           display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
           overflow: 'hidden',
-          position: 'relative',
+          // On mobile, reset glass effects for full screen
+          borderRadius: isMobile ? 0 : 'var(--bento-radius)',
+          border: isMobile ? 'none' : undefined,
+          background: isMobile ? 'transparent' : undefined,
+          backdropFilter: isMobile ? 'none' : undefined,
         }}
       >
-        {/* Sidebar - hidden on mobile, shown via drawer / Sidebar - mobilde gizli, drawer ile gösterilir */}
-        {!isMobile && (
-          <Box
-            sx={{
-              flexShrink: 0,
-              transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-          >
-            <SideNav onCreateConversation={handleCreateConversation} />
-          </Box>
-        )}
-        {isMobile && <SideNav onCreateConversation={handleCreateConversation} />}
-        
-        {/* Main content area / Ana içerik alanı */}
-        <Box
-          flex={1}
-          display="flex"
-          flexDirection="column"
-          sx={{
-            minWidth: 0,
-            overflow: 'hidden',
-            transition: 'margin 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        >
-          <Suspense fallback={<LoadingState fullWidth />}>
-            <Outlet />
-          </Suspense>
-        </Box>
-      </Box>
+        <Suspense fallback={<LoadingState fullWidth />}>
+          <Outlet />
+        </Suspense>
+      </GlassPanel>
     </Box>
   );
 };
-

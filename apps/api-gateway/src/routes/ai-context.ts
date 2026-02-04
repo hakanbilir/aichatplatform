@@ -41,7 +41,8 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
       state: {
         currentOrgId: (request.headers['x-org-id'] as string) || null,
         theme: 'kinetic-glass', // 2026 standard
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        active_features: ['bento-grid', 'kinetic-refraction', 'agentic-middleware']
       },
       navigation_history: recentConversations.map((c: any) => ({
         type: 'conversation',

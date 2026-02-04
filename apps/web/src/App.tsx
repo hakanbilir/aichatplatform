@@ -10,6 +10,7 @@ import { useFavicon } from './hooks/useFavicon';
 import { EcoModeProvider, useEcoMode } from './hooks/useEcoMode';
 import './styles/gradients.css';
 import './styles/animations.css';
+import './theme2026.css';
 
 const queryClient = new QueryClient();
 

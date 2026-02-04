@@ -39,7 +39,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
         color: 'white',
         borderRight: '1px solid rgba(255,255,255,0.15)',
         transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-        borderRadius: 0, // Reset border radius for full height sidebar
+        borderRadius: isMobile ? 0 : 'var(--bento-radius)',
       }}
     >
       <OrgSwitcher />
