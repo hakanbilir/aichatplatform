@@ -16,12 +16,14 @@ import SaveIcon from '@mui/icons-material/Save';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ExtensionIcon from '@mui/icons-material/Extension';
+
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 
 interface ChatSettingsBarProps {
   title: string;
   model: string;
+  models: { value: string; label: string }[];
   temperature: number;
   topP: number;
   dirty: boolean;
@@ -45,6 +47,7 @@ interface ChatSettingsBarProps {
 export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
   title,
   model,
+  models,
   temperature,
   topP,
   dirty,
@@ -62,13 +65,6 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
   onOpenSettings,
 }) => {
   const { t } = useTranslation('chat');
-
-  // Get model options with translations
-  const MODEL_OPTIONS: { value: string; label: string }[] = [
-    { value: 'llama3.1', label: t('models.llama3.1') },
-    { value: 'llama3.1:8b', label: t('models.llama3.1:8b') },
-    { value: 'qwen2.5-coder', label: t('models.qwen2.5-coder') },
-  ];
 
   const creativityLabel =
     temperature < 0.4
@@ -105,11 +101,23 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
             value={model}
             onChange={(e) => onChangeModel(e.target.value)}
           >
-            {MODEL_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
+            {models.length > 0 ? (
+              models.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))
+            ) : (
+              <MenuItem value="" disabled>
+                {t('models.loading', 'Loading models...')}
               </MenuItem>
-            ))}
+            )}
+            {/* Fallback if current model is not in list but set */}
+            {model && models.length > 0 && !models.find(m => m.value === model) && (
+               <MenuItem value={model} disabled>
+                  {model} (Unavailable)
+               </MenuItem>
+            )}
           </Select>
         </FormControl>
 

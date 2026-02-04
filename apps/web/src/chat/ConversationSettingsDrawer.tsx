@@ -6,15 +6,21 @@ import {
   Button,
   Divider,
   Drawer,
+  FormControl,
   FormControlLabel,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Slider,
   Switch,
   TextField,
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import CloseIcon from '@mui/icons-material/Close';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   ConversationSettings,
@@ -22,13 +28,14 @@ import {
   getConversationSettings,
   updateConversationSettings,
 } from '../api/conversationSettings';
+
 import { ConversationRagSettingsPanel } from './ConversationRagSettings';
-import { useParams } from 'react-router-dom';
 
 export interface ConversationSettingsDrawerProps {
   open: boolean;
   onClose: () => void;
   conversationId: string | null;
+  models: { value: string; label: string }[];
 }
 
 const marks = [
@@ -43,6 +50,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
   open,
   onClose,
   conversationId,
+  models,
 }) => {
   const { t } = useTranslation(['chat', 'common']);
   const { token } = useAuth();
@@ -169,14 +177,35 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                 <Typography variant="subtitle2" gutterBottom>
                   {t('settings.model')}
                 </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t('settings.modelKey')}
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  helperText={t('settings.modelKeyHelper')}
-                />
+                <FormControl fullWidth size="small">
+                  <InputLabel id="drawer-model-select-label">{t('settings.modelKey')}</InputLabel>
+                  <Select
+                    labelId="drawer-model-select-label"
+                    label={t('settings.modelKey')}
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                  >
+                     {models.length > 0 ? (
+                      models.map((opt) => (
+                        <MenuItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem value="" disabled>
+                        {t('models.loading', 'Loading models...')}
+                      </MenuItem>
+                    )}
+                    {model && models.length > 0 && !models.find(m => m.value === model) && (
+                       <MenuItem value={model} disabled>
+                          {model} (Unavailable)
+                       </MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
+                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  {t('settings.modelKeyHelper')}
+                </Typography>
               </Box>
 
               {/* Temperature */}
