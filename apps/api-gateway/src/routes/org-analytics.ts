@@ -314,22 +314,50 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
     reply.raw.write(`data: "processing"\n\n`);
 
     try {
-      // Use the existing service to get the full data structure needed by the UI
-      const { getOrgAnalytics } = await import('../services/orgAnalytics');
-      const result = await getOrgAnalytics({
-        orgId,
-        windowDays: parsedQuery.data.windowDays
+      // Offload to worker thread for Kinetic performance
+      // Use import.meta.url to resolve worker path in ESM
+      const workerPath = new URL('../workers/analytics.worker.ts', import.meta.url);
+
+      const worker = new Worker(workerPath, {
+        workerData: {
+          orgId,
+          windowDays: parsedQuery.data.windowDays
+        },
+        // Ensure we can run TS files if we are in dev mode
+        execArgv: process.env.NODE_ENV !== 'production' ? ['--import', 'tsx/esm'] : undefined
       });
 
-      reply.raw.write(`data: ${JSON.stringify(result)}\n\n`);
+      worker.on('message', (result) => {
+        if (result.error) {
+           reply.raw.write(`event: error\ndata: ${JSON.stringify(result)}\n\n`);
+        } else {
+           reply.raw.write(`data: ${JSON.stringify(result)}\n\n`);
+        }
+        reply.raw.end();
+      });
+
+      worker.on('error', (err) => {
+        request.log.error(err, 'Worker error');
+        reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+        reply.raw.end();
+      });
+
+      worker.on('exit', (code) => {
+        if (code !== 0) {
+           request.log.error(`Worker stopped with exit code ${code}`);
+           if (!reply.raw.writableEnded) {
+               reply.raw.end();
+           }
+        }
+      });
+
     } catch (err) {
       request.log.error(err, 'Streaming analytics error');
       reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: (err as Error).message })}\n\n`);
-    } finally {
       reply.raw.end();
     }
 
-    return new Promise(() => {}); // Prevent immediate closure
+    return new Promise(() => {}); // Keep connection open until worker finishes
   });
 
   // Enhanced analytics endpoint with detailed breakdowns
