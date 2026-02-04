@@ -56,6 +56,18 @@ async function assertSuperadmin(payload: JwtPayload, i18n: any): Promise<void> {
     (error as any).statusCode = 403;
     throw error;
   }
+
+  // Security Fix: Verify superadmin status from DB to handle revocation immediately
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { isSuperadmin: true },
+  });
+
+  if (!user || !user.isSuperadmin) {
+    const error = new Error(i18n.t('errors.superadminRequired'));
+    (error as any).statusCode = 403;
+    throw error;
+  }
 }
 
 export default async function superadminRoutes(
