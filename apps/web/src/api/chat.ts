@@ -77,55 +77,90 @@ export async function streamMessage(
   },
   onEvent: (event: StreamEvent) => void,
   signal?: AbortSignal,
+  retryCount: number = 0,
 ): Promise<void> {
   // Use relative path in production to avoid CORS issues / CORS sorunlarını önlemek için üretimde göreli yol kullan
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
   const url = `${API_BASE_URL}/conversations/${conversationId}/stream`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-    signal,
-  });
+  let attempt = 0;
+  while (attempt <= retryCount) {
+    try {
+      if (signal?.aborted) return;
 
-  if (!response.ok || !response.body) {
-    onEvent({ type: 'error', error: `HTTP ${response.status} ${response.statusText}` });
-    return;
-  }
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+        signal,
+      });
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
+      if (!response.ok) {
+        // Retry on 5xx errors
+        if (response.status >= 500 && attempt < retryCount) {
+           throw new Error(`HTTP ${response.status}`);
+        }
 
-  onEvent({ type: 'start' });
-
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith('data:')) continue;
-      const jsonPart = trimmed.slice('data:'.length).trim();
-      if (!jsonPart) continue;
-
-      try {
-        const evt = JSON.parse(jsonPart) as StreamEvent;
-        onEvent(evt);
-      } catch (err) {
-        onEvent({ type: 'error', error: (err as Error).message });
+        // Non-retryable error
+        onEvent({ type: 'error', error: `HTTP ${response.status} ${response.statusText}` });
+        return;
       }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      onEvent({ type: 'start' });
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const jsonPart = trimmed.slice('data:'.length).trim();
+          if (!jsonPart) continue;
+
+          try {
+            const evt = JSON.parse(jsonPart) as StreamEvent;
+            onEvent(evt);
+          } catch (err) {
+            onEvent({ type: 'error', error: (err as Error).message });
+          }
+        }
+      }
+
+      // Success, break retry loop
+      return;
+
+    } catch (err) {
+      const isAbort = (err as Error).name === 'AbortError' || signal?.aborted;
+      if (isAbort) return;
+
+      if (attempt < retryCount) {
+        attempt++;
+        // Exponential backoff: 1s, 2s, 4s...
+        const delay = 1000 * Math.pow(2, attempt - 1);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+
+      onEvent({ type: 'error', error: (err as Error).message });
+      return;
     }
   }
 }
-

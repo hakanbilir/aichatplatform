@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 
+export type TtsState = 'idle' | 'playing' | 'paused';
+
 export function useTextToSpeech() {
-  const [speaking, setSpeaking] = useState(false);
+  const [state, setState] = useState<TtsState>('idle');
   const [supported, setSupported] = useState(false);
 
   useEffect(() => {
@@ -17,9 +19,11 @@ export function useTextToSpeech() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
+    utterance.onstart = () => setState('playing');
+    utterance.onend = () => setState('idle');
+    utterance.onerror = () => setState('idle');
+    utterance.onpause = () => setState('paused');
+    utterance.onresume = () => setState('playing');
 
     window.speechSynthesis.speak(utterance);
   }, [supported]);
@@ -27,8 +31,26 @@ export function useTextToSpeech() {
   const stop = useCallback(() => {
     if (!supported) return;
     window.speechSynthesis.cancel();
-    setSpeaking(false);
+    setState('idle');
   }, [supported]);
 
-  return { speak, stop, speaking, supported };
+  const pause = useCallback(() => {
+    if (!supported) return;
+    window.speechSynthesis.pause();
+  }, [supported]);
+
+  const resume = useCallback(() => {
+    if (!supported) return;
+    window.speechSynthesis.resume();
+  }, [supported]);
+
+  return {
+    speak,
+    stop,
+    pause,
+    resume,
+    state,
+    speaking: state === 'playing',
+    supported
+  };
 }
