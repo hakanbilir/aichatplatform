@@ -2,6 +2,7 @@ import React from 'react';
 import { ListItemButton, ListItemText, ListItemSecondaryAction, IconButton, TextField, Tooltip } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useTranslation } from 'react-i18next';
+
 import { ConversationListItem } from '../api/conversations';
 
 interface ConversationListItemViewProps {
@@ -12,8 +13,8 @@ interface ConversationListItemViewProps {
   isEditing?: boolean;
   editingTitle?: string;
   onEditChange?: (value: string) => void;
-  onEditKeyDown?: (e: React.KeyboardEvent) => void;
-  onEditBlur?: () => void;
+  onSave?: (id: string, title: string) => void;
+  onCancel?: () => void;
 }
 
 export const ConversationListItemView = React.memo<ConversationListItemViewProps>(({
@@ -24,10 +25,23 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
   isEditing,
   editingTitle,
   onEditChange,
-  onEditKeyDown,
-  onEditBlur
+  onSave,
+  onCancel
 }) => {
   const { t } = useTranslation('chat');
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onSave?.(item.id, editingTitle || '');
+    }
+    if (e.key === 'Escape') {
+      onCancel?.();
+    }
+  };
+
+  const handleBlur = () => {
+    onSave?.(item.id, editingTitle || '');
+  };
 
   return (
     <ListItemButton
@@ -57,8 +71,8 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
           value={editingTitle}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onEditChange?.(e.target.value)}
-          onKeyDown={onEditKeyDown}
-          onBlur={onEditBlur}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           variant="outlined"
           fullWidth
           sx={{

@@ -14,6 +14,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   ConversationListItem,
@@ -24,6 +25,7 @@ import {
   createOrgConversation,
   createConversation,
 } from '../api/conversations';
+
 import { ConversationListItemView } from './ConversationListItemView';
 
 interface ConversationListProps {}
@@ -128,7 +130,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     };
 
     // Also listen for selection events from other components
-    const handleSelect = (e: Event) => {
+    const handleSelectListener = (e: Event) => {
         const id = (e as CustomEvent<string>).detail;
         if (id) setSelectedId(id);
     };
@@ -154,17 +156,17 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     };
 
     window.addEventListener('conversation-created', handleCreated);
-    window.addEventListener('select-conversation', handleSelect);
+    window.addEventListener('select-conversation', handleSelectListener);
     window.addEventListener('create-conversation', handleCreate);
 
     return () => {
       window.removeEventListener('conversation-created', handleCreated);
-      window.removeEventListener('select-conversation', handleSelect);
+      window.removeEventListener('select-conversation', handleSelectListener);
       window.removeEventListener('create-conversation', handleCreate);
     };
   }, [token, orgId, navigate, t, load]);
 
-  const handleSelect = (id: string) => {
+  const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
     if (orgId) {
         navigate(`/app/orgs/${orgId}/chat/${id}`);
@@ -173,13 +175,13 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     }
     // Dispatch global event for other components listening (e.g. mobile drawer)
     window.dispatchEvent(new CustomEvent('select-conversation', { detail: id }));
-  };
+  }, [orgId, navigate]);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: string) => {
+  const handleMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>, id: string) => {
     event.stopPropagation();
     setMenuAnchorEl(event.currentTarget);
     setMenuConversationId(id);
-  };
+  }, []);
 
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
@@ -192,7 +194,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
     handleMenuClose();
   };
 
-  const handleSaveTitle = async (id: string, title: string) => {
+  const handleSaveTitle = useCallback(async (id: string, title: string) => {
     if (!token) return;
     const trimmed = title.trim();
     const newTitle = trimmed || t('sidebar.untitledChat');
@@ -213,7 +215,11 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
       setEditingConversationId(null);
       setEditingTitle('');
     }
-  };
+  }, [token, t]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingConversationId(null);
+  }, []);
 
   const handleTogglePinned = async (item: ConversationListItem) => {
     if (!token) return;
@@ -333,13 +339,10 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                     onSelect={handleSelect}
                     onMenuOpen={handleMenuOpen}
                     isEditing={item.id === editingConversationId}
-                    editingTitle={editingTitle}
+                    editingTitle={item.id === editingConversationId ? editingTitle : undefined}
                     onEditChange={setEditingTitle}
-                    onEditKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveTitle(item.id, editingTitle);
-                        if (e.key === 'Escape') setEditingConversationId(null);
-                    }}
-                    onEditBlur={() => handleSaveTitle(item.id, editingTitle)}
+                    onSave={handleSaveTitle}
+                    onCancel={handleCancelEdit}
                   />
                 ))}
                 <Divider sx={{ my: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
@@ -372,13 +375,10 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                 onSelect={handleSelect}
                 onMenuOpen={handleMenuOpen}
                 isEditing={item.id === editingConversationId}
-                editingTitle={editingTitle}
+                editingTitle={item.id === editingConversationId ? editingTitle : undefined}
                 onEditChange={setEditingTitle}
-                onEditKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveTitle(item.id, editingTitle);
-                    if (e.key === 'Escape') setEditingConversationId(null);
-                }}
-                onEditBlur={() => handleSaveTitle(item.id, editingTitle)}
+                onSave={handleSaveTitle}
+                onCancel={handleCancelEdit}
               />
             ))}
 
