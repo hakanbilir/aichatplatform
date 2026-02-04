@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
-import { Box, Typography, Tabs, Tab } from '@mui/material';
-import { Code, Visibility } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
+import { Box, Typography, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
+import { Code, Visibility, ContentCopy, Check } from '@mui/icons-material';
+
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 
 interface ArtifactRendererProps {
@@ -11,7 +13,19 @@ interface ArtifactRendererProps {
 }
 
 export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
+  const { t } = useTranslation('chat');
   const [activeTab, setActiveTab] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
   return (
     <GlassPanel sx={{ mt: 2, mb: 2, overflow: 'hidden', borderRadius: 2 }}>
@@ -63,7 +77,24 @@ export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
            </Box>
         )}
         {activeTab === 1 && (
-           <Box sx={{ p: 2, bgcolor: '#1e1e1e', height: '100%', overflow: 'auto' }}>
+           <Box sx={{ p: 2, bgcolor: '#1e1e1e', height: '100%', overflow: 'auto', position: 'relative' }}>
+              <Tooltip title={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}>
+                <IconButton
+                  onClick={handleCopy}
+                  aria-label={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    color: 'white',
+                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                    '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
+                  }}
+                  size="small"
+                >
+                  {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
+                </IconButton>
+              </Tooltip>
               <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.8rem', color: '#d4d4d4', whiteSpace: 'pre-wrap' }}>
                 {code}
               </pre>
