@@ -1,15 +1,38 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+
 import { MessageBubble } from './MessageBubble';
 
 interface ChatViewProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: Array<{ id: string; role: string; content: string; images?: string[]; meta?: any }>;
   streamingAssistantText: string;
   toolStatus?: string | null;
   thinkingText?: string;
   isThinking?: boolean;
 }
+
+// Optimized component to prevent re-rendering the entire list during streaming
+const MessageList = React.memo(({ messages }: { messages: ChatViewProps['messages'] }) => {
+  return (
+    <>
+      {messages.map((m) => (
+        <MessageBubble
+          key={m.id}
+          role={m.role === 'USER' || m.role === 'user' ? 'user' : (m.role === 'TOOL' || m.role === 'tool' ? 'tool' : 'assistant')}
+          content={m.content}
+          images={m.images}
+          meta={m.meta}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          thinkingText={(m as any).thinkingText}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          isThinking={(m as any).isThinking}
+        />
+      ))}
+    </>
+  );
+});
 
 const ChatViewComponent: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, toolStatus, thinkingText, isThinking }) => {
   const { t } = useTranslation('chat');
@@ -39,17 +62,7 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({ messages, streamingAssista
 
   return (
     <Box flex={1} overflow="auto" px={3} py={2}>
-      {messages.map((m) => (
-        <MessageBubble
-          key={m.id}
-          role={m.role === 'USER' || m.role === 'user' ? 'user' : (m.role === 'TOOL' || m.role === 'tool' ? 'tool' : 'assistant')}
-          content={m.content}
-          images={m.images}
-          meta={m.meta}
-          thinkingText={(m as any).thinkingText}
-          isThinking={(m as any).isThinking}
-        />
-      ))}
+      <MessageList messages={messages} />
       {hasStreaming && (
         <MessageBubble
           key="streaming"
