@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
@@ -12,7 +12,9 @@ interface ArtifactRendererProps {
   code: string;
 }
 
-export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
+// Optimized with React.memo to prevent unnecessary re-renders when parent updates.
+// Also uses useMemo for sanitization to avoid expensive DOMPurify calls on tab switches.
+function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps) {
   const { t } = useTranslation('chat');
   const [activeTab, setActiveTab] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -26,6 +28,11 @@ export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
       console.error('Failed to copy text: ', err);
     }
   };
+
+  const sanitizedCode = useMemo(() => {
+    if (type === 'html') return ''; // HTML type uses srcDoc, no need to sanitize here
+    return DOMPurify.sanitize(code);
+  }, [code, type]);
 
   return (
     <GlassPanel sx={{ mt: 2, mb: 2, overflow: 'hidden', borderRadius: 2 }}>
@@ -69,7 +76,7 @@ export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
              ) : (
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(code),
+                    __html: sanitizedCode,
                   }}
                   style={{ maxWidth: '100%', maxHeight: '100%', overflow: 'auto' }}
                 />
@@ -104,3 +111,5 @@ export function ArtifactRenderer({ title, type, code }: ArtifactRendererProps) {
     </GlassPanel>
   );
 }
+
+export const ArtifactRenderer = memo(ArtifactRendererComponent);
