@@ -1,27 +1,22 @@
 // apps/web/src/chat/ConversationSidebar.tsx
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Box,
   Button,
   CircularProgress,
-  IconButton,
   InputAdornment,
   List,
-  ListItemButton,
-  ListItemSecondaryAction,
-  ListItemText,
   Menu,
   MenuItem,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   ConversationListItem,
@@ -30,6 +25,7 @@ import {
   listOrgConversations,
   updateConversation,
 } from '../api/conversations';
+import { ConversationSidebarItem } from './ConversationSidebarItem';
 
 interface ConversationSidebarProps {
   selectedConversationId?: string;
@@ -54,7 +50,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [menuConversationId, setMenuConversationId] = useState<string | null>(null);
 
-  const load = async (opts: { append: boolean; cursor?: string; search?: string }) => {
+  const load = useCallback(async (opts: { append: boolean; cursor?: string; search?: string }) => {
     if (!token || !orgId) return;
 
     if (opts.append) {
@@ -87,13 +83,13 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
         setLoading(false);
       }
     }
-  };
+  }, [token, orgId, search]);
 
   useEffect(() => {
     // Initial load
     void load({ append: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, orgId]);
+  }, [token, orgId]); // Keep load dependency out to avoid loops if load changes too often, though load is now memoized properly if search is stable
 
   const handleSearchSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
@@ -112,21 +108,21 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
     }
   };
 
-  const handleSelect = (id: string) => {
+  const handleSelect = useCallback((id: string) => {
     if (!orgId) return;
     navigate(`/app/orgs/${orgId}/chat/${id}`);
-  };
+  }, [orgId, navigate]);
 
-  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, conversationId: string) => {
+  const handleOpenMenu = useCallback((event: React.MouseEvent<HTMLElement>, conversationId: string) => {
     event.stopPropagation();
     setMenuAnchorEl(event.currentTarget);
     setMenuConversationId(conversationId);
-  };
+  }, []);
 
-  const handleCloseMenu = () => {
+  const handleCloseMenu = useCallback(() => {
     setMenuAnchorEl(null);
     setMenuConversationId(null);
-  };
+  }, []);
 
   const handleBeginRename = (item: ConversationListItem) => {
     setEditingConversationId(item.id);
@@ -134,7 +130,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
     handleCloseMenu();
   };
 
-  const handleSaveTitle = async (conversationId: string, title: string) => {
+  const handleSaveTitle = useCallback(async (conversationId: string, title: string) => {
     if (!token) return;
     const trimmed = title.trim();
     const newTitle = trimmed || t('sidebar.untitledChat');
@@ -158,7 +154,12 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
       setEditingConversationId(null);
       setEditingTitle('');
     }
-  };
+  }, [token, t]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingConversationId(null);
+    setEditingTitle('');
+  }, []);
 
   const handleTogglePinned = async (item: ConversationListItem) => {
     if (!token) return;
@@ -293,82 +294,20 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
                   {t('sidebar.pinned')}
                 </Typography>
                 <List dense disablePadding>
-                  {pinned.map((item) => {
-                    const isSelected = item.id === selectedConversationId;
-                    const isEditing = item.id === editingConversationId;
-
-                    return (
-                      <ListItemButton
-                        key={item.id}
-                        selected={isSelected}
-                        onClick={() => handleSelect(item.id)}
-                        sx={{
-                          borderRadius: 2,
-                          mb: 0.5,
-                          '&.Mui-selected': {
-                            background: 'linear-gradient(90deg, rgba(124,77,255,0.35), rgba(3,218,198,0.25))',
-                          },
-                          '&:hover': {
-                            backgroundColor: 'rgba(30,64,175,0.45)',
-                          },
-                        }}
-                      >
-                        {isEditing ? (
-                          <TextField
-                            autoFocus
-                            size="small"
-                            value={editingTitle}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                (e.currentTarget as HTMLInputElement).blur();
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault();
-                                setEditingConversationId(null);
-                                setEditingTitle('');
-                              }
-                            }}
-                            onBlur={() => {
-                              if (!editingConversationId) return;
-                              void handleSaveTitle(editingConversationId, editingTitle);
-                            }}
-                            variant="outlined"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                height: 32,
-                                fontSize: 14,
-                              },
-                            }}
-                          />
-                        ) : (
-                          <ListItemText
-                            primary={item.title || t('sidebar.untitled')}
-                            secondary={item.lastActivityAt ? new Date(item.lastActivityAt).toLocaleString() : ''}
-                            primaryTypographyProps={{
-                              noWrap: true,
-                              fontSize: 14,
-                            }}
-                            secondaryTypographyProps={{
-                              noWrap: true,
-                              fontSize: 11,
-                              color: 'rgba(148,163,184,0.9)',
-                            }}
-                          />
-                        )}
-                        {!isEditing && (
-                          <ListItemSecondaryAction>
-                            <Tooltip title={t('sidebar.moreActions')}>
-                              <IconButton size="small" edge="end" onClick={(e) => handleOpenMenu(e, item.id)}>
-                                <MoreVertIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </ListItemSecondaryAction>
-                        )}
-                      </ListItemButton>
-                    );
-                  })}
+                  {pinned.map((item) => (
+                    <ConversationSidebarItem
+                      key={item.id}
+                      item={item}
+                      selected={item.id === selectedConversationId}
+                      isEditing={item.id === editingConversationId}
+                      editingTitle={item.id === editingConversationId ? editingTitle : ''}
+                      onSelect={handleSelect}
+                      onMenuOpen={handleOpenMenu}
+                      onEditChange={setEditingTitle}
+                      onSaveTitle={handleSaveTitle}
+                      onCancelEdit={handleCancelEdit}
+                    />
+                  ))}
                 </List>
               </>
             )}
@@ -391,79 +330,20 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
                 </Typography>
                 )}
                 <List dense disablePadding>
-                  {others.map((item) => {
-                    const isSelected = item.id === selectedConversationId;
-                    const isEditing = item.id === editingConversationId;
-
-                    return (
-                      <ListItemButton
-                        key={item.id}
-                        selected={isSelected}
-                        onClick={() => handleSelect(item.id)}
-                        sx={{
-                          borderRadius: 2,
-                          mb: 0.5,
-                          '&.Mui-selected': {
-                            background: 'linear-gradient(90deg, rgba(56,189,248,0.25), rgba(94,234,212,0.25))',
-                          },
-                          '&:hover': {
-                            backgroundColor: 'rgba(15,23,42,0.85)',
-                          },
-                        }}
-                      >
-                        {isEditing ? (
-                          <TextField
-                            autoFocus
-                            size="small"
-                            value={editingTitle}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                (e.currentTarget as HTMLInputElement).blur();
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault();
-                                setEditingConversationId(null);
-                                setEditingTitle('');
-                              }
-                            }}
-                            onBlur={() => {
-                              if (!editingConversationId) return;
-                              void handleSaveTitle(editingConversationId, editingTitle);
-                            }}
-                            variant="outlined"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                height: 32,
-                                fontSize: 14,
-                              },
-                            }}
-                          />
-                        ) : (
-                          <ListItemText
-                            primary={item.title || t('sidebar.untitled')}
-                            secondary={item.lastActivityAt ? new Date(item.lastActivityAt).toLocaleString() : ''}
-                            primaryTypographyProps={{ noWrap: true, fontSize: 14 }}
-                            secondaryTypographyProps={{
-                              noWrap: true,
-                              fontSize: 11,
-                              color: 'rgba(148,163,184,0.9)',
-                            }}
-                          />
-                        )}
-                        {!isEditing && (
-                          <ListItemSecondaryAction>
-                            <Tooltip title={t('sidebar.moreActions')}>
-                              <IconButton size="small" edge="end" onClick={(e) => handleOpenMenu(e, item.id)}>
-                                <MoreVertIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </ListItemSecondaryAction>
-                        )}
-                      </ListItemButton>
-                    );
-                  })}
+                  {others.map((item) => (
+                    <ConversationSidebarItem
+                      key={item.id}
+                      item={item}
+                      selected={item.id === selectedConversationId}
+                      isEditing={item.id === editingConversationId}
+                      editingTitle={item.id === editingConversationId ? editingTitle : ''}
+                      onSelect={handleSelect}
+                      onMenuOpen={handleOpenMenu}
+                      onEditChange={setEditingTitle}
+                      onSaveTitle={handleSaveTitle}
+                      onCancelEdit={handleCancelEdit}
+                    />
+                  ))}
                 </List>
               </>
             )}
