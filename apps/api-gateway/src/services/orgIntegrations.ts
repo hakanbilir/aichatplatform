@@ -41,11 +41,15 @@ export async function createOrgIntegration(input: CreateOrgIntegrationInput) {
     },
   });
 
-  return integration;
+  // Redact credentials in response
+  return {
+    ...integration,
+    credentials: {},
+  };
 }
 
 export async function listOrgIntegrations(orgId: string) {
-  return prisma.orgIntegration.findMany({
+  const integrations = await prisma.orgIntegration.findMany({
     where: { orgId },
     include: {
       provider: true,
@@ -54,6 +58,12 @@ export async function listOrgIntegrations(orgId: string) {
       createdAt: 'asc',
     },
   });
+
+  // Redact credentials in response
+  return integrations.map((integration) => ({
+    ...integration,
+    credentials: {},
+  }));
 }
 
 export async function updateOrgIntegration(
