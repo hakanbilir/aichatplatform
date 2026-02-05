@@ -1,13 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useReducer } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getConversation,
   getConversationUsage,
   deleteMessage,
   ConversationDetails,
+  ConversationUsageSummary,
 } from '../api/conversations';
 import { streamMessage, StreamEvent } from '../api/chat';
 import { useAuth } from '../auth/AuthContext';
+import { chatReducer, initialChatState, ChatStatus } from './chatReducer';
 
 export interface UseChatOptions {
   conversationId: string | null;
@@ -16,14 +18,30 @@ export interface UseChatOptions {
   retryCount?: number;
 }
 
-export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 }: UseChatOptions) {
+export interface UseChatReturn {
+  conversation: ConversationDetails | null;
+  usage: ConversationUsageSummary | null;
+  messages: ConversationDetails['messages'];
+  streamingText: string;
+  thinkingText: string;
+  isThinking: boolean;
+  toolStatus: string | null;
+  status: ChatStatus;
+  isStreaming: boolean;
+  isLoading: boolean;
+  error: Error | null;
+  sendMessage: (content: string, images?: string[], options?: { model?: string; temperature?: number; topP?: number }) => Promise<void>;
+  regenerate: () => Promise<void>;
+  editMessage: (messageId: string, newContent: string) => Promise<void>;
+  stop: () => void;
+  refetch: () => void;
+}
+
+export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 }: UseChatOptions): UseChatReturn {
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const [streamingText, setStreamingText] = useState('');
-  const [thinkingText, setThinkingText] = useState('');
-  const [isThinking, setIsThinking] = useState(false);
-  const [toolStatus, setToolStatus] = useState<string | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
+
+  const [state, dispatch] = useReducer(chatReducer, initialChatState);
   const abortRef = useRef<AbortController | null>(null);
 
   // Queries
@@ -43,13 +61,10 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
   const conversation = conversationData?.conversation || null;
   const usage = usageData || null;
 
-  // Optimistic messages handling
-  const [optimisticMessages, setOptimisticMessages] = useState<ConversationDetails['messages']>([]);
-
   // Sync optimistic messages with server data
   useEffect(() => {
     if (conversation?.messages) {
-      setOptimisticMessages(conversation.messages);
+      dispatch({ type: 'SET_MESSAGES', messages: conversation.messages });
     }
   }, [conversation]);
 
@@ -58,14 +73,20 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
       abortRef.current.abort();
       abortRef.current = null;
     }
-    setIsStreaming(false);
+    dispatch({ type: 'RESET_STREAM' });
   }, []);
 
   const sendMessage = useCallback(async (content: string, images?: string[], options?: { model?: string; temperature?: number; topP?: number }) => {
     if (!token || !conversationId) return;
 
     if (onBeforeSend) onBeforeSend();
-    stop(); // Stop any pending stream
+    // Stop any pending stream but don't reset fully if we are appending?
+    // Actually stop() calls RESET_STREAM which clears streamingText.
+    // We want to clear streamingText for the *new* message.
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
 
     const userMessageId = `local-${Date.now()}`;
     const userMessage = {
@@ -76,12 +97,7 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
       createdAt: new Date().toISOString(),
     };
 
-    // Optimistic update
-    setOptimisticMessages((prev) => [...prev, userMessage]);
-    setStreamingText('');
-    setThinkingText('');
-    setIsThinking(false);
-    setIsStreaming(true);
+    dispatch({ type: 'START_STREAM', userMessage });
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -97,45 +113,29 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
         },
         (event: StreamEvent) => {
            if (event.type === 'token') {
-            setToolStatus(null);
-            // If we receive a token, we are done thinking (if we were)
-            // But usually thought_end comes before token.
-            // Just in case:
-            if (isThinking) setIsThinking(false);
-            setStreamingText((prev) => prev + event.token);
+             dispatch({ type: 'TOKEN', token: event.token });
           } else if (event.type === 'thought_start') {
-             setIsThinking(true);
-             setThinkingText('');
+             dispatch({ type: 'THOUGHT_START' });
           } else if (event.type === 'thought_token') {
-             setThinkingText((prev) => prev + event.token);
+             dispatch({ type: 'THOUGHT_TOKEN', token: event.token });
           } else if (event.type === 'thought_end') {
-             setIsThinking(false);
+             dispatch({ type: 'THOUGHT_END' });
           } else if (event.type === 'tool_start') {
-            setToolStatus(`Using tool: ${event.toolName}...`);
+             dispatch({ type: 'TOOL_START', toolName: event.toolName });
           } else if (event.type === 'tool_end') {
-             // Keep status or clear? Usually clear when tokens start, or immediately.
-             // If we clear immediately, it might flash too fast.
-             // But 'token' event clears it.
+             dispatch({ type: 'TOOL_END' });
           } else if (event.type === 'end') {
-            setStreamingText('');
-            setThinkingText('');
-            setIsThinking(false);
-            setToolStatus(null);
-            // The final message is handled by invalidation mostly, but we can append it optimistically if we want smooth transition
-            // However, usually 'end' event means backend has saved it.
-            // But to avoid flicker until revalidation, we can append it.
-             if (event.finalMessage) {
-                 setOptimisticMessages((prev) => [
-                  ...prev,
-                  {
+             dispatch({
+               type: 'STREAM_END',
+               finalMessage: event.finalMessage ? {
                     id: `assistant-${Date.now()}`,
                     role: 'ASSISTANT',
-                    content: event.finalMessage!.content,
+                    content: event.finalMessage.content,
                     createdAt: new Date().toISOString(),
-                  }
-                ]);
-             }
+               } : undefined
+             });
           } else if (event.type === 'error') {
+             dispatch({ type: 'ERROR', error: new Error(event.error) });
              if (onError) onError(new Error(event.error));
           }
         },
@@ -143,20 +143,23 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
         retryCount
       );
     } catch (err) {
-      if (onError) onError(err as Error);
+      const error = err as Error;
+      if (error.name !== 'AbortError') {
+        dispatch({ type: 'ERROR', error });
+        if (onError) onError(error);
+      }
     } finally {
-      setIsStreaming(false);
       abortRef.current = null;
       // Invalidate queries to sync with backend
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversation-usage', conversationId] });
     }
-  }, [token, conversationId, onBeforeSend, onError, stop, queryClient, retryCount]);
+  }, [token, conversationId, onBeforeSend, onError, queryClient, retryCount]);
 
   const regenerate = useCallback(async () => {
     if (!token || !conversationId || !conversation) return;
 
-    const messages = optimisticMessages;
+    const messages = state.optimisticMessages;
     if (messages.length === 0) return;
 
     const lastMsg = messages[messages.length - 1];
@@ -167,7 +170,7 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
     const userMsg = messages[userMsgIndex];
 
     // Optimistically remove last two messages
-    setOptimisticMessages((prev) => prev.slice(0, userMsgIndex));
+    dispatch({ type: 'DELETE_MESSAGES_AFTER', index: userMsgIndex });
 
     try {
         // Delete from backend if real IDs
@@ -191,23 +194,23 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
         queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
     }
 
-  }, [token, conversationId, conversation, optimisticMessages, sendMessage, onError, queryClient]);
+  }, [token, conversationId, conversation, state.optimisticMessages, sendMessage, onError, queryClient]);
 
   const editMessage = useCallback(async (messageId: string, newContent: string) => {
     if (!token || !conversationId) return;
 
     // Find message index
-    const msgIndex = optimisticMessages.findIndex((m) => m.id === messageId);
+    const msgIndex = state.optimisticMessages.findIndex((m) => m.id === messageId);
     if (msgIndex === -1) return;
 
-    const message = optimisticMessages[msgIndex];
+    const message = state.optimisticMessages[msgIndex];
     if (message.role.toLowerCase() !== 'user') return; // Can only edit user messages for now
 
     // Identify messages to delete (this one and all subsequent)
-    const messagesToDelete = optimisticMessages.slice(msgIndex);
+    const messagesToDelete = state.optimisticMessages.slice(msgIndex);
 
     // Optimistic update: keep only messages before this one
-    setOptimisticMessages((prev) => prev.slice(0, msgIndex));
+    dispatch({ type: 'DELETE_MESSAGES_AFTER', index: msgIndex });
 
     try {
       // Delete from backend in sequence
@@ -234,18 +237,20 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
         queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
     }
 
-  }, [token, conversationId, optimisticMessages, sendMessage, conversation, onError, queryClient]);
+  }, [token, conversationId, state.optimisticMessages, sendMessage, conversation, onError, queryClient]);
 
   return {
     conversation,
     usage,
-    messages: optimisticMessages,
-    streamingText,
-    thinkingText,
-    isThinking,
-    toolStatus,
-    isStreaming,
+    messages: state.optimisticMessages,
+    streamingText: state.streamingText,
+    thinkingText: state.thinkingText,
+    isThinking: state.isThinking,
+    toolStatus: state.toolStatus,
+    status: state.status,
+    isStreaming: state.status === 'streaming' || state.status === 'connecting',
     isLoading: isLoadingConversation,
+    error: state.error,
     sendMessage,
     regenerate,
     editMessage,
