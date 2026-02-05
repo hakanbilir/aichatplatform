@@ -3,12 +3,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 export interface UseSpeechToTextOptions {
   continuous?: boolean;
   silenceTimeoutMs?: number;
+  lang?: string;
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
-  const { continuous = true, silenceTimeoutMs = 2000 } = options;
+  const { continuous = true, silenceTimeoutMs = 2000, lang } = options;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<any>(null);
 
@@ -29,7 +31,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
         const recognition = new SpeechRecognition();
         recognition.continuous = continuous;
         recognition.interimResults = true;
-        recognition.lang = 'en-US'; // Should ideally be configurable or detected
+        // Default to provided lang, or navigator language, or fallback to 'en-US'
+        recognition.lang = lang || navigator.language || 'en-US';
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -37,6 +40,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
 
         recognition.onend = () => {
           setIsListening(false);
+          setInterimTranscript(''); // Clear interim on end
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
             silenceTimerRef.current = null;
@@ -55,17 +59,22 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
             }, silenceTimeoutMs);
           }
 
-          let finalTranscript = '';
+          let finalChunk = '';
+          let currentInterim = '';
 
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript;
+              finalChunk += event.results[i][0].transcript;
+            } else {
+              currentInterim += event.results[i][0].transcript;
             }
           }
 
-          if (finalTranscript) {
+          setInterimTranscript(currentInterim);
+
+          if (finalChunk) {
               setTranscript(prev => {
-                  const cleaned = finalTranscript.trim();
+                  const cleaned = finalChunk.trim();
                   if (!cleaned) return prev;
                   return prev ? `${prev} ${cleaned}` : cleaned;
               });
@@ -77,14 +86,19 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
     }
     return () => {
        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+       if (recognitionRef.current) {
+         try {
+           recognitionRef.current.abort();
+         } catch {
+           // ignore
+         }
+       }
     };
-  }, [continuous, silenceTimeoutMs, stopListening]);
+  }, [continuous, silenceTimeoutMs, stopListening, lang]);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current) {
         try {
-            // Reset transcript on start? Usually yes for a new session, or manual reset.
-            // Existing behavior didn't reset automatically on start, so we keep it.
             recognitionRef.current.start();
         } catch (e) {
             console.error(e);
@@ -92,7 +106,18 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
     }
   }, []);
 
-  const resetTranscript = useCallback(() => setTranscript(''), []);
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
+    setInterimTranscript('');
+  }, []);
 
-  return { isListening, transcript, startListening, stopListening, resetTranscript, supported: !!recognitionRef.current };
+  return {
+    isListening,
+    transcript,
+    interimTranscript,
+    startListening,
+    stopListening,
+    resetTranscript,
+    supported: !!recognitionRef.current
+  };
 }
