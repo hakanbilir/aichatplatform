@@ -4,6 +4,7 @@ import {
   Button,
   CircularProgress,
   Divider,
+  IconButton,
   InputAdornment,
   List,
   Menu,
@@ -12,6 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -112,6 +114,10 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
       }
     }
   }, [token, orgId, search]); // search dependency for client-side filtering logic if needed
+
+  const handleClearSearch = useCallback(() => {
+    setSearch('');
+  }, []);
 
   // Debounced search effect
   useEffect(() => {
@@ -280,6 +286,19 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                 <SearchIcon fontSize="small" sx={{ color: 'rgba(255,255,255,0.5)' }} />
               </InputAdornment>
             ),
+            endAdornment: search ? (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  aria-label={t('sidebar.clearSearch')}
+                  onClick={handleClearSearch}
+                  edge="end"
+                  sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: 'white' } }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
           }}
           sx={{
             '& .MuiOutlinedInput-root': {

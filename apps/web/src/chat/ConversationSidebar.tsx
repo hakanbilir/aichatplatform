@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  IconButton,
   InputAdornment,
   List,
   Menu,
@@ -14,6 +15,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -95,6 +97,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
     e.preventDefault();
     void load({ append: false, search });
   };
+
+  const handleClearSearch = useCallback(() => {
+    setSearch('');
+  }, []);
 
   const handleNewChat = async () => {
     if (!token || !orgId) return;
@@ -245,6 +251,19 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ select
                   <SearchIcon fontSize="small" />
                 </InputAdornment>
               ),
+              endAdornment: search ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    aria-label={t('sidebar.clearSearch')}
+                    onClick={handleClearSearch}
+                    edge="end"
+                    sx={{ color: 'rgba(148,163,184,0.8)', '&:hover': { color: 'white' } }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null
             }}
             variant="outlined"
             sx={{
