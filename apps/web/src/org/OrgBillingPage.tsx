@@ -57,7 +57,7 @@ export const OrgBillingPage: React.FC = () => {
     if (!token || !orgId) return;
 
     if (typeof window !== 'undefined' && !(window as any).PayTR) {
-        setError("Payment gateway not initialized. Please try again later.");
+        setError("Payment integration script is missing. Please contact support.");
         return;
     }
 

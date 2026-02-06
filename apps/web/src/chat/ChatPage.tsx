@@ -96,7 +96,8 @@ export const ChatPage: React.FC = () => {
   const { user, activeOrg } = useAuth();
 
   const effectiveOrgId = conversation?.orgId ?? paramOrgId ?? activeOrg?.id ?? null;
-  const { data: orgModels } = useOrgModels(effectiveOrgId || '');
+  const { data: orgModelsData } = useOrgModels(effectiveOrgId || '');
+  const orgModels = orgModelsData?.models;
 
   const modelOptions = React.useMemo(() => {
     if (!orgModels) return [];
@@ -179,8 +180,14 @@ export const ChatPage: React.FC = () => {
             setTemperature(nextTemp);
             setTopP(nextTopP);
         }
+    } else if (orgModels && orgModels.length > 0 && !dirty) {
+        // If new conversation and current default model is invalid, pick first available
+        const isCurrentValid = orgModels.some(m => m.modelName === model);
+        if (!isCurrentValid) {
+            setModel(orgModels[0].modelName);
+        }
     }
-  }, [conversation, dirty]);
+  }, [conversation, dirty, orgModels, model]);
 
   // Auto-clear the "Saved" chip after some time
   useEffect(() => {
