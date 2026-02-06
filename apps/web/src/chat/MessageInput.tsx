@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent, ClipboardEvent } from 'react';
-import { Box, IconButton, TextField, CircularProgress, Tooltip } from '@mui/material';
+import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent, ClipboardEvent, DragEvent } from 'react';
+import { Box, IconButton, TextField, CircularProgress, Tooltip, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SendIcon from '@mui/icons-material/Send';
 import StopIcon from '@mui/icons-material/Stop';
@@ -36,6 +36,7 @@ const MessageInputComponent = ({
   const [internalValue, setInternalValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice logic moved to parent
@@ -137,8 +138,76 @@ const MessageInputComponent = ({
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+
+      if (imageFiles.length > 0) {
+        imageFiles.forEach((file) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              setImages((prev) => [...prev, reader.result as string]);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }
+  };
+
   return (
-    <Box display="flex" flexDirection="column">
+    <Box
+      display="flex"
+      flexDirection="column"
+      position="relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      sx={{
+        borderRadius: 3,
+        transition: 'all 0.2s ease',
+        outline: isDragging ? '2px dashed #2196F3' : '2px dashed transparent',
+        outlineOffset: '-4px',
+        bgcolor: isDragging ? 'rgba(33, 150, 243, 0.08)' : 'transparent',
+      }}
+    >
+      {isDragging && (
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          zIndex={10}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          bgcolor="rgba(0,0,0,0.6)"
+          borderRadius={3}
+          sx={{ backdropFilter: 'blur(2px)' }}
+        >
+          <Typography variant="h6" color="white" fontWeight="bold">
+            {t('messageInput.dropToAttach', 'Drop to attach')}
+          </Typography>
+        </Box>
+      )}
+
       {/* Image Previews */}
       {images.length > 0 && (
         <Box display="flex" gap={1} px={2} pt={1} overflow="auto">
