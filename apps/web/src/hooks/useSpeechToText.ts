@@ -4,10 +4,11 @@ export interface UseSpeechToTextOptions {
   continuous?: boolean;
   silenceTimeoutMs?: number;
   lang?: string;
+  interimResults?: boolean;
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
-  const { continuous = true, silenceTimeoutMs = 2000, lang } = options;
+  const { continuous = true, silenceTimeoutMs = 2000, lang, interimResults = true } = options;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -30,7 +31,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = continuous;
-        recognition.interimResults = true;
+        recognition.interimResults = interimResults;
         // Default to provided lang, or navigator language, or fallback to 'en-US'
         recognition.lang = lang || navigator.language || 'en-US';
 
@@ -70,7 +71,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
             }
           }
 
-          setInterimTranscript(currentInterim);
+          if (interimResults) {
+            setInterimTranscript(currentInterim);
+          }
 
           if (finalChunk) {
               setTranscript(prev => {
@@ -94,7 +97,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
          }
        }
     };
-  }, [continuous, silenceTimeoutMs, stopListening, lang]);
+  }, [continuous, silenceTimeoutMs, stopListening, lang, interimResults]);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current) {
