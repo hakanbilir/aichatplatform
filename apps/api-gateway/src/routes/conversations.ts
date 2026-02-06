@@ -737,42 +737,26 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
       return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
     }
 
-    const messages = await prisma.message.findMany({
-      where: {
-        conversationId,
-        role: 'ASSISTANT',
-      },
-      select: {
-        meta: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+    // Optimized aggregation using raw SQL to avoid fetching all message bodies
+    // This is significantly faster for long conversations as it avoids transferring
+    // large JSON payloads and processing them in the application layer.
+    const result: any[] = await prisma.$queryRaw`
+      SELECT
+        COALESCE(SUM(CASE WHEN meta->'usage'->>'promptTokens' ~ '^[0-9]+$' THEN CAST(meta->'usage'->>'promptTokens' AS INTEGER) ELSE 0 END), 0) as "promptTokens",
+        COALESCE(SUM(CASE WHEN meta->'usage'->>'completionTokens' ~ '^[0-9]+$' THEN CAST(meta->'usage'->>'completionTokens' AS INTEGER) ELSE 0 END), 0) as "completionTokens",
+        COUNT(CASE WHEN meta->'usage' IS NOT NULL THEN 1 END) as "completions",
+        MAX("createdAt") as "lastMessageAt"
+      FROM "Message"
+      WHERE "conversationId" = ${conversationId}
+        AND "role" = 'ASSISTANT'
+    `;
 
-    let totalPromptTokens = 0;
-    let totalCompletionTokens = 0;
-    let completions = 0;
-    let lastMessageAt: Date | null = null;
-
-    for (const m of messages) {
-      const meta: any = m.meta ?? {};
-      const usage = meta?.usage;
-
-      if (usage && typeof usage === 'object') {
-        const promptTokens = typeof usage.promptTokens === 'number' ? usage.promptTokens : 0;
-        const completionTokens = typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
-
-        totalPromptTokens += promptTokens;
-        totalCompletionTokens += completionTokens;
-        completions += 1;
-
-        if (!lastMessageAt || m.createdAt > lastMessageAt) {
-          lastMessageAt = m.createdAt;
-        }
-      }
-    }
+    const row = result[0] || {};
+    // Prisma/Postgres returns BigInt for aggregations, so we must convert to Number
+    const totalPromptTokens = Number(row.promptTokens || 0);
+    const totalCompletionTokens = Number(row.completionTokens || 0);
+    const completions = Number(row.completions || 0);
+    const lastMessageAt = row.lastMessageAt ? new Date(row.lastMessageAt) : null;
 
     const totalTokens = totalPromptTokens + totalCompletionTokens;
 
