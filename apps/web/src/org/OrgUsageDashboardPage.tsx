@@ -38,16 +38,16 @@ export const OrgUsageDashboardPage: React.FC = () => {
   useEffect(() => {
     if (!token || !orgId) return;
 
-    // Fetch top users (static)
-    fetchTopUsers(token, orgId, {
-      feature: featureFilter === 'all' ? undefined : featureFilter
-    }).then(t => setTopUsers(t.topUsers));
-
-    // Stream analytics (kinetic)
+    // Kinetic Streaming
     let active = true;
-    const fetchStream = async () => {
+
+    // Stream Top Users
+    const fetchTopUsersStream = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/orgs/${orgId}/analytics/stream`, {
+        const query = new URLSearchParams();
+        if (featureFilter !== 'all') query.set('feature', featureFilter);
+
+        const response = await fetch(`${API_BASE_URL}/orgs/${orgId}/analytics/top-users/stream?${query.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -61,7 +61,6 @@ export const OrgUsageDashboardPage: React.FC = () => {
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n\n');
-          // Keep the last partial chunk in buffer
           buffer = lines.pop() || '';
 
           for (const line of lines) {
@@ -70,20 +69,60 @@ export const OrgUsageDashboardPage: React.FC = () => {
                if (jsonStr === '"processing"') continue;
                try {
                  const data = JSON.parse(jsonStr);
-                 // Check if it's the full analytics object
-                 if (data.totals) setUsage(data);
+                 if (data.topUsers) setTopUsers(data.topUsers);
                } catch (e) {
-                 console.error('Stream parse error', e);
+                 console.error('TopUsers Stream parse error', e);
                }
             }
           }
         }
       } catch (err) {
-        console.error('Stream error', err);
+        console.error('TopUsers Stream error', err);
       }
     };
 
-    fetchStream();
+    // Stream Usage Analytics
+    const fetchUsageStream = async () => {
+      try {
+        const query = new URLSearchParams();
+        if (featureFilter !== 'all') query.set('feature', featureFilter);
+
+        const response = await fetch(`${API_BASE_URL}/orgs/${orgId}/analytics/stream?${query.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.body) return;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (active) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+               const jsonStr = line.substring(6);
+               if (jsonStr === '"processing"') continue;
+               try {
+                 const data = JSON.parse(jsonStr);
+                 if (data.totals) setUsage(data);
+               } catch (e) {
+                 console.error('Usage Stream parse error', e);
+               }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Usage Stream error', err);
+      }
+    };
+
+    fetchUsageStream();
+    fetchTopUsersStream();
 
     return () => {
       active = false;

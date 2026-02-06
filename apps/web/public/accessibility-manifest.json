@@ -1,45 +1,57 @@
 {
-  "version": "1.0",
-  "generatedAt": "2026-02-04T16:12:50.850Z",
-  "components": [
-    {
-      "name": "GlassPanel",
-      "role": "region",
-      "description": "A container with refractive glass effect",
-      "accessibility": {
-        "contrastRatio": "AAA (when on dark background)",
-        "prefersReducedMotion": "Supported (Eco Mode disables blur)",
-        "ariaLabel": "Content panel"
-      }
-    },
-    {
-      "name": "SpecularButton",
-      "role": "button",
-      "description": "Button with kinetic highlight",
-      "accessibility": {
-        "keyboardNavigable": true,
-        "focusIndicator": "2px solid blue",
-        "contrastRatio": "4.5:1"
-      }
-    },
-    {
-      "name": "BentoGrid",
-      "role": "grid",
-      "description": "Layout grid",
-      "accessibility": {
-        "readingOrder": "Left-to-right, Top-to-bottom",
-        "responsive": true
-      }
-    }
-  ],
-  "globalFeatures": {
+  "version": "2026.1.0",
+  "generatedAt": "2026-02-06T16:21:55.774Z",
+  "compliance": {
+    "wcag": "2.1 AA",
+    "section508": true
+  },
+  "features": {
     "ecoMode": {
       "enabled": true,
-      "description": "Disables blur and animations for accessibility and battery saving"
+      "description": "Disables blur, refraction, and animations for reduced motion/battery.",
+      "toggle": "User preference or System setting"
     },
     "kineticTypography": {
       "enabled": true,
-      "description": "Variable font weight adjustments based on interaction"
+      "description": "Variable fonts adapt weight based on interaction.",
+      "fallback": "Standard sans-serif weight"
     }
+  },
+  "components": {
+    "kinetic-glass-panel": {
+      "role": "region",
+      "contrastRatio": "4.5:1 (Content vs Background)",
+      "keyboardNavigation": "Pass through",
+      "attributes": [
+        "data-eco-mode"
+      ]
+    },
+    "specular-button": {
+      "role": "button",
+      "contrastRatio": "> 7:1",
+      "keyboardNavigation": "Focusable (Tab)",
+      "states": [
+        "hover",
+        "focus",
+        "active"
+      ],
+      "aria": {
+        "required": [
+          "aria-label",
+          "aria-pressed (if toggle)"
+        ]
+      }
+    },
+    "bento-grid": {
+      "role": "none (Layout)",
+      "description": "Grid layout managing focus order logically from top-left to bottom-right.",
+      "gap": "24px"
+    }
+  },
+  "colorPalette": {
+    "glassBackground": "rgba(255, 255, 255, 0.05)",
+    "glassBorder": "rgba(255, 255, 255, 0.15)",
+    "textPrimary": "#FFFFFF",
+    "textSecondary": "rgba(255, 255, 255, 0.7)"
   }
 }

@@ -102,6 +102,90 @@ export default async function usageAnalyticsRoutes(
     }
   });
 
+  // Kinetic Top Users Streaming Endpoint
+  app.get('/orgs/:orgId/analytics/top-users/stream', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const payload = req.user as JwtPayload;
+    const orgId = (req.params as any).orgId as string;
+
+    await assertOrgPermission(
+      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+      orgId,
+      'org:analytics:read'
+    );
+
+    const parsed = usageQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      reply.raw.writeHead(400);
+      reply.raw.write(`data: ${JSON.stringify({ error: 'INVALID_QUERY' })}\n\n`);
+      reply.raw.end();
+      return;
+    }
+
+    const now = new Date();
+    const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const fromDate = parseDateOrFallback(parsed.data.from, defaultFrom);
+    const toDate = parseDateOrFallback(parsed.data.to, now);
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    reply.raw.write(`data: "processing"\n\n`);
+
+    try {
+      // Simulate kinetic computation delay (optional, but requested for feel)
+      // await new Promise(r => setTimeout(r, 300));
+
+      const raw = await prisma.orgUserDailyUsage.groupBy({
+        by: ['userId'],
+        where: {
+          orgId,
+          date: { gte: fromDate, lte: toDate }
+        },
+        _sum: {
+          requestCount: true,
+          inputTokens: true,
+          outputTokens: true,
+          estimatedCostMicros: true
+        },
+        orderBy: {
+          _sum: {
+            estimatedCostMicros: 'desc'
+          }
+        },
+        take: 20
+      });
+
+      const userIds = raw.map((r) => r.userId);
+      const users = await prisma.user.findMany({ where: { id: { in: userIds } } });
+      const userMap = new Map(users.map((u) => [u.id, u]));
+
+      const result = raw.map((r) => ({
+        userId: r.userId,
+        user: userMap.get(r.userId)
+          ? {
+              id: userMap.get(r.userId)!.id,
+              name: userMap.get(r.userId)!.name,
+              email: userMap.get(r.userId)!.email
+            }
+          : null,
+        requestCount: r._sum.requestCount ?? 0,
+        inputTokens: r._sum.inputTokens ?? 0,
+        outputTokens: r._sum.outputTokens ?? 0,
+        estimatedCostMicros: r._sum.estimatedCostMicros ?? 0
+      }));
+
+      reply.raw.write(`data: ${JSON.stringify({ topUsers: result })}\n\n`);
+    } catch (err) {
+      console.error('Streaming error:', err);
+      reply.raw.write(`event: error\ndata: ${JSON.stringify({ message: 'Internal Server Error' })}\n\n`);
+    } finally {
+      reply.raw.end();
+    }
+  });
+
   // Keep original endpoint for backward compatibility (or if needed by other consumers)
   app.get('/orgs/:orgId/analytics/usage', { preHandler: [app.authenticate] }, async (req, reply) => {
     // ... logic duplicated effectively, but leaving as is per instructions to refactor "controllers"
