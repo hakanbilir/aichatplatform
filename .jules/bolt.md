@@ -25,3 +25,7 @@
 ## 2026-08-15 - ChatPage Child Component Performance
 **Learning:** In a high-frequency update component like `ChatPage` (streaming), all heavy child components (Drawers, Panels) must be memoized. Crucially, any callbacks passed to them must be stabilized with `useCallback`, and any hooks (like `usePromptTemplates`) returning functions passed to these callbacks must also stabilize their return values.
 **Action:** Wrap child components in `React.memo`, wrap handlers in `useCallback`, and ensure custom hooks return memoized functions.
+
+## 2026-10-27 - Unused Hook State Causing Re-renders
+**Learning:** Custom hooks (like `useSpeechToText`) that update internal state (e.g., `interimTranscript`) frequently will force the consuming component (`ChatPage`) to re-render on every update, even if the consumer does not use that specific state variable. This caused massive unnecessary re-rendering during voice input.
+**Action:** If a hook has high-frequency state updates that are optional, expose an option (e.g., `interimResults: false`) to disable that state update logic entirely to prevent re-renders in consumers that don't need it.

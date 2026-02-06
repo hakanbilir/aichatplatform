@@ -108,7 +108,10 @@ export const ChatPage: React.FC = () => {
 
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
 
-  const { isListening, transcript, startListening, stopListening, resetTranscript, supported: speechSupported } = useSpeechToText();
+  // Performance optimization: Disable interim results to prevent excessive re-renders of ChatPage
+  const { isListening, transcript, startListening, stopListening, resetTranscript, supported: speechSupported } = useSpeechToText({
+    interimResults: false
+  });
 
   useEffect(() => {
     if (!isListening && transcript) {
