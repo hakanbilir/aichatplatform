@@ -29,3 +29,7 @@
 ## 2026-10-27 - Unused Hook State Causing Re-renders
 **Learning:** Custom hooks (like `useSpeechToText`) that update internal state (e.g., `interimTranscript`) frequently will force the consuming component (`ChatPage`) to re-render on every update, even if the consumer does not use that specific state variable. This caused massive unnecessary re-rendering during voice input.
 **Action:** If a hook has high-frequency state updates that are optional, expose an option (e.g., `interimResults: false`) to disable that state update logic entirely to prevent re-renders in consumers that don't need it.
+
+## 2026-12-16 - JSON Aggregation in Prisma
+**Learning:** Prisma's standard `aggregate` functions do not support aggregation on JSON fields (e.g., summing `meta->'usage'->>'promptTokens'`). Fetching all records to aggregate in the application layer causes significant performance degradation (O(N) memory and IO).
+**Action:** Use `prisma.$queryRaw` with database-specific SQL (e.g., Postgres `CAST(json->>field AS INTEGER)`) to perform aggregation in the database, reducing data transfer and memory usage to O(1).
