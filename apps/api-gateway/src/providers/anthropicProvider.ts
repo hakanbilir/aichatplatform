@@ -183,7 +183,7 @@ export class AnthropicProvider implements ModelProvider {
                  }
              }
 
-          } catch (e) {
+          } catch {
              // Ignore parse errors for non-JSON data lines
           }
         }

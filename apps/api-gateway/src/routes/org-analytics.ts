@@ -1,7 +1,6 @@
 // apps/api-gateway/src/routes/org-analytics.ts
 
 import { Worker } from 'worker_threads';
-import { join } from 'path';
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { prisma } from '@ai-chat/db';

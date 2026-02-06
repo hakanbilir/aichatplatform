@@ -30,7 +30,7 @@ async function authPlugin(app: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       try {
         await request.jwtVerify();
-      } catch (err) {
+      } catch {
         reply.code(401).send({ error: 'Unauthorized' });
       }
     },

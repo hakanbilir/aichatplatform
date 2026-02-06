@@ -176,7 +176,7 @@ export default async function orgAdminMembersRoutes(
       }
     }
 
-    const updated = await prisma.orgMember.update({
+    const _updated = await prisma.orgMember.update({
       where: { id: member.id },
       data: { role: parsed.data.role as any }
     });
@@ -223,7 +223,7 @@ export default async function orgAdminMembersRoutes(
       }
     }
 
-    const updated = await prisma.orgMember.update({
+    const _updated = await prisma.orgMember.update({
       where: { id: member.id },
       data: { isDisabled: parsed.data.disabled }
     });

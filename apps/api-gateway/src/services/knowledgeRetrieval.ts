@@ -23,7 +23,7 @@ export async function retrieveRelevantChunks(params: {
   try {
     const embeddings = await provider.embed([params.query]);
     queryEmbedding = embeddings[0];
-  } catch (err) {
+  } catch {
     // If embedding fails, return empty results
     return [];
   }

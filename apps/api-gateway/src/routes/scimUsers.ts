@@ -24,7 +24,7 @@ export default async function scimUsersRoutes(
     }
 
     // Filter parameter reserved for future SCIM filtering support
-    // @ts-ignore - intentionally unused, reserved for future use
+    // @ts-expect-error - intentionally unused, reserved for future use
     const _filter = (req.query as any).filter;
     void _filter; // Suppress unused variable warning
     const startIndex = parseInt((req.query as any).startIndex || '1', 10);

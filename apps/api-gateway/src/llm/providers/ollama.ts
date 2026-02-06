@@ -113,7 +113,7 @@ export class OllamaChatProvider implements LlmChatProvider {
               delta: token || null,
               done: doneChunk
             };
-          } catch (err) {
+          } catch {
             // Ignore malformed lines
           }
         }

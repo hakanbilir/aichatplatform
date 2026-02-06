@@ -216,7 +216,7 @@ export default async function baseModelsRoutes(app: FastifyInstance, _opts: Fast
           const baseModel = await prisma.baseModel.create({ data: model });
           created.push(baseModel);
         }
-      } catch (error) {
+      } catch {
         // Skip if already exists
       }
     }

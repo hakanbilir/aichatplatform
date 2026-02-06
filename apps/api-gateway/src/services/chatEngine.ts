@@ -17,7 +17,6 @@ import { recordUsage } from '../usage/usageTracker';
 import { getProviderForModel } from './modelRouter';
 import { listToolsForContext, executeToolEnvelope } from './toolEngine';
 import { buildToolsSystemPrompt } from './chatEngineToolsPrompt';
-import { dispatchWebhookEvent } from './webhookDispatch';
 import { retrieveRelevantChunks } from './knowledgeRetrieval';
 import { getOrgAiPolicy } from './orgAiPolicy';
 

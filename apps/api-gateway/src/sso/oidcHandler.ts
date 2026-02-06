@@ -13,7 +13,7 @@ export async function handleOidcCallback(
   const clientSecret = config.clientSecret as string;
   const tokenEndpoint = config.tokenEndpoint as string;
   const redirectUri = config.redirectUri as string;
-  // @ts-ignore - intentionally unused, reserved for future use
+  // @ts-expect-error - intentionally unused, reserved for future use
   const _issuer = config.issuer as string; // Reserved for future issuer validation
   void _issuer; // Suppress unused variable warning
 
