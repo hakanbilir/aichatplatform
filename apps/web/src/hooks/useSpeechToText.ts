@@ -8,7 +8,7 @@ export interface UseSpeechToTextOptions {
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
-  const { continuous = true, silenceTimeoutMs = 2000, lang, interimResults = true } = options;
+  const { continuous = true, silenceTimeoutMs = 2000, lang = 'en-US', interimResults = true } = options;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -17,12 +17,33 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignore errors if already stopped
+      }
     }
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
+    setIsListening(false);
+  }, []);
+
+  const startListening = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error('Failed to start speech recognition:', e);
+      }
+    }
+  }, []);
+
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
+    setInterimTranscript('');
   }, []);
 
   useEffect(() => {
@@ -32,8 +53,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
         const recognition = new SpeechRecognition();
         recognition.continuous = continuous;
         recognition.interimResults = interimResults;
-        // Default to provided lang, or navigator language, or fallback to 'en-US'
-        recognition.lang = lang || navigator.language || 'en-US';
+        recognition.lang = lang;
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -41,15 +61,19 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
 
         recognition.onend = () => {
           setIsListening(false);
-          setInterimTranscript(''); // Clear interim on end
+          setInterimTranscript('');
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
             silenceTimerRef.current = null;
           }
         };
 
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error', event.error);
+          setIsListening(false);
+        };
+
         recognition.onresult = (event: any) => {
-          // Reset silence timer on any activity
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
           }
@@ -76,17 +100,18 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
           }
 
           if (finalChunk) {
-              setTranscript(prev => {
-                  const cleaned = finalChunk.trim();
-                  if (!cleaned) return prev;
-                  return prev ? `${prev} ${cleaned}` : cleaned;
-              });
+            setTranscript((prev) => {
+              const cleaned = finalChunk.trim();
+              if (!cleaned) return prev;
+              return prev ? `${prev} ${cleaned}` : cleaned;
+            });
           }
         };
 
         recognitionRef.current = recognition;
       }
     }
+
     return () => {
        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
        if (recognitionRef.current) {
@@ -95,24 +120,10 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
          } catch {
            // ignore
          }
+         recognitionRef.current = null;
        }
     };
-  }, [continuous, silenceTimeoutMs, stopListening, lang, interimResults]);
-
-  const startListening = useCallback(() => {
-    if (recognitionRef.current) {
-        try {
-            recognitionRef.current.start();
-        } catch (e) {
-            console.error(e);
-        }
-    }
-  }, []);
-
-  const resetTranscript = useCallback(() => {
-    setTranscript('');
-    setInterimTranscript('');
-  }, []);
+  }, [continuous, silenceTimeoutMs, lang, interimResults, stopListening]);
 
   return {
     isListening,
@@ -121,6 +132,6 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
     startListening,
     stopListening,
     resetTranscript,
-    supported: !!recognitionRef.current
+    supported: typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
   };
 }

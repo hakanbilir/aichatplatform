@@ -56,20 +56,25 @@ export const OrgBillingPage: React.FC = () => {
   const handleChangePlan = async (planId: string) => {
     if (!token || !orgId) return;
 
+    // Check if PayTR is available before making any requests
+    // Herhangi bir istek yapmadan önce PayTR'ın mevcut olup olmadığını kontrol et
     if (typeof window !== 'undefined' && !(window as any).PayTR) {
-        setError("Payment integration script is missing. Please contact support.");
-        return;
+      setError("Payment gateway not initialized. Please refresh the page or contact support.");
+      return;
     }
 
     try {
-        const res = await requestPlanChange(token, orgId, planId);
-        // Redirect to PAYTR checkout
-        if (typeof window !== 'undefined' && (window as any).PayTR) {
-          (window as any).PayTR.Checkout(res.checkoutToken);
-        }
+      const res = await requestPlanChange(token, orgId, planId);
+
+      // Double check before invoking checkout
+      if (typeof window !== 'undefined' && (window as any).PayTR) {
+        (window as any).PayTR.Checkout(res.checkoutToken);
+      } else {
+        throw new Error("Payment gateway lost connection.");
+      }
     } catch (err) {
-        console.error(err);
-        setError("Failed to initiate plan change.");
+      console.error(err);
+      setError((err as Error).message || "Failed to initiate plan change.");
     }
   };
 
