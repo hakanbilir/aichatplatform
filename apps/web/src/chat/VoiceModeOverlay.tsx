@@ -30,7 +30,7 @@ const VoiceModeOverlayComponent: React.FC<VoiceModeOverlayProps> = ({
   }, [isListening]);
 
   return (
-    <Fade in={isListening}>
+    <Fade in={isListening} unmountOnExit>
       <Box
         sx={{
           position: 'fixed',
