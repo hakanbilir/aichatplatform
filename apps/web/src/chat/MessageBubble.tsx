@@ -1,17 +1,20 @@
-import { useState, memo } from 'react';
+import { useState, memo, useMemo } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { ThinkingBubble } from './ThinkingBubble';
-import { ArtifactRenderer } from './ArtifactRenderer';
+
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { useEcoMode } from '../hooks/useEcoMode';
+
+import { ThinkingBubble } from './ThinkingBubble';
+import { ArtifactRenderer } from './ArtifactRenderer';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'tool';
   content: string;
   images?: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   meta?: any;
   thinkingText?: string;
   isThinking?: boolean;
@@ -32,30 +35,39 @@ const MessageBubbleComponent = ({ role, content, images, meta, thinkingText, isT
   };
 
   // Artifact detection
-  let artifact = null;
-  if (isTool) {
-      try {
-          // Tool content is usually stringified JSON
-          const json = JSON.parse(content);
-          // Check for array of results or single result
-          // The structure from chatEngine is usually `[{ tool: 'name', result: ... }]` (array of ToolExecutionResult)
-          // BUT executeToolEnvelope returns array.
-          // And chatEngine saves: `content: JSON.stringify(toolResults, null, 2)`
-          // So it is an array.
-          // I need to find the generate_ui result in the array.
+  // Optimized: useMemo avoids re-parsing JSON on every render (e.g. EcoMode toggle, copy state)
+  const artifact = useMemo(() => {
+    if (!isTool) return null;
+    try {
+        // Tool content is usually stringified JSON
+        const json = JSON.parse(content);
+        // Check for array of results or single result
+        // The structure from chatEngine is usually `[{ tool: 'name', result: ... }]` (array of ToolExecutionResult)
+        // BUT executeToolEnvelope returns array.
+        // And chatEngine saves: `content: JSON.stringify(toolResults, null, 2)`
+        // So it is an array.
+        // I need to find the generate_ui result in the array.
 
-          const results = Array.isArray(json) ? json : [json];
-          const uiResult = results.find((r: any) => r.tool === 'generate_ui' && r.result?.status === 'generated');
+        const results = Array.isArray(json) ? json : [json];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const uiResult = results.find((r: any) => r.tool === 'generate_ui' && r.result?.status === 'generated');
 
-          if (uiResult) {
-              artifact = uiResult.result;
-          }
-      } catch (e) {
-          // not json
-      }
-  }
+        if (uiResult) {
+            return uiResult.result;
+        }
+    } catch {
+        // not json
+    }
+    return null;
+  }, [isTool, content]);
 
   const thought = thinkingText || (meta && meta.thought);
+
+  // Optimized: useMemo prevents expensive regex operations on every render
+  const cleanContent = useMemo(() => {
+    if (artifact) return '';
+    return content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  }, [content, artifact]);
 
   const renderContent = () => {
     if (artifact) {
@@ -78,9 +90,6 @@ const MessageBubbleComponent = ({ role, content, images, meta, thinkingText, isT
             <ThinkingBubble key="thought" text={thought || ''} isThinking={!!isThinking} />
         );
     }
-
-    // Strip <think> tags from content if present (backward compatibility or if leaked)
-    const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
     if (cleanContent) {
         elements.push(
