@@ -568,15 +568,12 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
       where: { id: parsedParams.data.versionId },
       data: {
         primaryFileId: datasetFile.id,
-        status: 'PROCESSING', // Will be updated by job processor
+        status: 'READY',
       },
       include: {
         files: true,
       },
     });
-
-    // TODO: Enqueue dataset ingest job when queue system is available
-    // await datasetIngestQueue.add('ingest', { orgId, datasetVersionId: parsedParams.data.versionId });
 
     return reply.send(updatedVersion);
   });

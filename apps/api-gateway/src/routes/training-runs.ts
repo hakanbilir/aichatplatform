@@ -212,6 +212,10 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
       return reply.code(400).send({ error: 'Dataset does not belong to this project' });
     }
 
+    if (datasetVersion.status !== 'READY') {
+      return reply.code(400).send({ error: 'Dataset version is not ready for training' });
+    }
+
     // Verify aux dataset version if provided
     if (parseBody.data.auxDatasetVersionId) {
       const auxDatasetVersion = await prisma.datasetVersion.findUnique({
@@ -225,6 +229,10 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
 
       if (auxDatasetVersion.dataset.orgId !== orgId || auxDatasetVersion.dataset.projectId !== projectId) {
         return reply.code(400).send({ error: 'Auxiliary dataset does not belong to this project' });
+      }
+
+      if (auxDatasetVersion.status !== 'READY') {
+        return reply.code(400).send({ error: 'Auxiliary dataset version is not ready for training' });
       }
     }
 
@@ -258,9 +266,6 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
         },
       },
     });
-
-    // TODO: Enqueue training job when queue system is available
-    // await trainingQueue.add('train', { orgId, projectId, trainingRunId: trainingRun.id });
 
     return reply.code(201).send(trainingRun);
   });
@@ -340,14 +345,6 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
     if (trainingRun.status !== 'QUEUED' && trainingRun.status !== 'RUNNING') {
       return reply.code(400).send({ error: 'Training run cannot be cancelled' });
     }
-
-    // TODO: Remove job from queue when queue system is available
-    // if (trainingRun.jobId) {
-    //   const job = await trainingQueue.getJob(trainingRun.jobId);
-    //   if (job) {
-    //     await job.remove();
-    //   }
-    // }
 
     const updated = await prisma.trainingRun.update({
       where: { id: parsedParams.data.id },
