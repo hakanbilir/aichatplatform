@@ -39,13 +39,14 @@
   right: 0;
   bottom: 0;
   background: radial-gradient(
-    circle at var(--mouse-x) var(--mouse-y),
-    rgba(255, 255, 255, 0.3),
-    transparent 120px
+    circle at var(--local-x, 50%) var(--local-y, 50%),
+    rgba(255, 255, 255, 0.4),
+    transparent 100px
   );
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
   pointer-events: none;
+  mix-blend-mode: overlay;
 }
 
 .specular-button:hover::before {
@@ -53,8 +54,24 @@
 }
 
 .kinetic-typography {
-  font-variation-settings: 'wght' var(--mouse-dist);
-  transition: font-variation-settings 0.1s ease-out;
+  /* Base weight 400, increases up to 700 based on scroll progress */
+  --target-weight: calc(400 + (300 * var(--scroll-progress, 0)));
+  font-variation-settings: 'wght' var(--target-weight);
+  transition: font-variation-settings 0.3s ease-out;
+}
+
+h1, h2 {
+  transition: font-variation-settings 0.3s ease, font-weight 0.3s ease;
+  /* Apply logic implicitly if class is missing, but prefer explicit class */
+}
+
+h1.kinetic-typography, h2.kinetic-typography {
+  font-variation-settings: 'wght' var(--target-weight);
+}
+
+h1:hover, h2:hover {
+  font-variation-settings: 'wght' 700;
+  font-weight: 700;
 }
 
 /* Eco Mode override */
