@@ -151,7 +151,13 @@ const MessageBubbleComponent = ({ role, content, images, meta, thinkingText, isT
           <Box display="flex" gap={1} mb={1} flexWrap="wrap">
             {images.map((img, idx) => (
               <Box key={idx} sx={{ borderRadius: 2, overflow: 'hidden', maxWidth: '100%' }}>
-                <img src={img} alt="attachment" style={{ maxWidth: '100%', maxHeight: 300, display: 'block' }} />
+                <img
+                  src={img}
+                  alt="attachment"
+                  loading="lazy"
+                  decoding="async"
+                  style={{ maxWidth: '100%', maxHeight: 300, display: 'block' }}
+                />
               </Box>
             ))}
           </Box>
