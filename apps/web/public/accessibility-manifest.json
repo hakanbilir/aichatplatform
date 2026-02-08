@@ -1,6 +1,12 @@
 {
-  "version": "2026.1.0",
-  "generatedAt": "2026-02-06T16:21:55.774Z",
+  "version": "2026.1.1",
+  "generatedAt": "2026-02-08T16:28:02.740Z",
+  "auditStats": {
+    "filesScanned": 78,
+    "ariaLabelsFound": 24,
+    "glassComponentsDetected": 66,
+    "kineticTypographyUsage": 1
+  },
   "compliance": {
     "wcag": "2.1 AA",
     "section508": true

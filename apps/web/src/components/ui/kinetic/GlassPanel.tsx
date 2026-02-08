@@ -1,11 +1,18 @@
 import React from 'react';
 import { Box, BoxProps } from '@mui/material';
 
+import { useEcoMode } from '../../../hooks/useEcoMode';
+
 interface GlassPanelProps extends BoxProps {
   refractive?: boolean;
 }
 
-export const GlassPanel: React.FC<GlassPanelProps> = ({ children, className, refractive = false, sx, ...props }) => {
+export const GlassPanel: React.FC<GlassPanelProps> = ({ children, className, refractive, sx, ...props }) => {
+  const { isEcoMode } = useEcoMode();
+
+  // Default to refractive unless eco mode is on. If refractive prop is explicitly provided, respect it but disable if eco mode is on.
+  const isRefractive = (refractive ?? true) && !isEcoMode;
+
   return (
     <Box
       // Outer container handles layout and positioning
@@ -22,7 +29,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({ children, className, ref
           position: 'absolute',
           inset: 0,
           zIndex: 0,
-          filter: refractive ? 'url(#refraction)' : undefined,
+          filter: isRefractive ? 'url(#refraction)' : undefined,
           pointerEvents: 'none', // Ensure background doesn't block interaction
           // Ensure the background layer takes the shape
           width: '100%',

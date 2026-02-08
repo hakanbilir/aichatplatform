@@ -7,6 +7,7 @@ import { assertOrgPermission } from '../rbac/guards';
 import { emitEvent } from '../events/emitter';
 import { renderSystemPromptFromProfile } from '../promptStudio/render';
 import { resolveModelForOrg } from '../llm/modelRegistryService';
+import { localEmitter } from '../events/localEmitter';
 
 const createConversationBodySchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -59,6 +60,50 @@ async function getUserOrgIds(userId: string): Promise<string[]> {
 }
 
 export default async function conversationsRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+  // Real-time updates for conversations (SSE)
+  // Konuşmalar için gerçek zamanlı güncellemeler (SSE)
+  app.get('/conversations/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const payload = request.user as JwtPayload;
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+
+    const sendEvent = (data: any) => {
+      if (!reply.raw.writableEnded) {
+        reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    };
+
+    // Heartbeat to keep connection alive
+    const interval = setInterval(() => {
+      sendEvent({ type: 'heartbeat', timestamp: new Date().toISOString() });
+    }, 30000);
+
+    const handleEvent = (event: any) => {
+      // Filter events visible to this user
+      // Bu kullanıcı tarafından görülebilen olayları filtrele
+      const isOwner = event.context?.userId === payload.userId;
+      const isOrgMember = event.context?.orgId && payload.orgId === event.context.orgId; // Simplified check
+
+      if (isOwner || isOrgMember) {
+        sendEvent(event);
+      }
+    };
+
+    localEmitter.on('event', handleEvent);
+
+    request.raw.on('close', () => {
+      clearInterval(interval);
+      localEmitter.off('event', handleEvent);
+    });
+
+    return new Promise(() => {}); // Keep connection open
+  });
+
   // List conversations for an org (non-archived by default)
   app.get('/orgs/:orgId/conversations', {
     preHandler: [app.authenticate],

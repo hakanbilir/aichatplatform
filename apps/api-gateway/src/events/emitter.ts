@@ -3,6 +3,7 @@
 import { prisma } from '@ai-chat/db';
 
 import { EmitEventParams } from './types';
+import { localEmitter } from './localEmitter';
 
 function matchesEventType(eventType: string, pattern: string): boolean {
   // simple prefix match: "conversation." matches "conversation.message_sent"
@@ -21,6 +22,13 @@ export async function emitEvent(params: EmitEventParams): Promise<void> {
       messageId: context.messageId ?? null,
       metadata: metadata ?? {}
     }
+  });
+
+  // Broadcast to local listeners (e.g., SSE)
+  localEmitter.emit('event', {
+    ...params,
+    eventId: event.id,
+    createdAt: event.createdAt
   });
 
   // Find matching webhook subscriptions and enqueue deliveries

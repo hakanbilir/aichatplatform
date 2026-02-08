@@ -6,6 +6,15 @@
     <title>AI Chat Platform</title>
   </head>
   <body>
+    <!-- Global SVG Filter for Refraction (Liquid Glass) -->
+    <svg style="visibility: hidden; position: absolute;" width="0" height="0">
+      <defs>
+        <filter id="refraction">
+          <feTurbulence type="fractalNoise" baseFrequency="0.005" numOctaves="2" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" />
+        </filter>
+      </defs>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

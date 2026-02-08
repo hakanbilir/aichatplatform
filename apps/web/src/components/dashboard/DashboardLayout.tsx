@@ -23,25 +23,28 @@ export interface DashboardLayoutProps {
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
-  columns = { xs: 1, sm: 2, md: 2, lg: 3, xl: 4 },
+  columns,
   gap = 3, // Default to 24px (theme.spacing(3)) for Bento
   sx,
 }) => {
   const theme = useTheme();
 
+  const gridTemplateColumns = columns
+    ? {
+        xs: `repeat(${columns.xs || 1}, 1fr)`,
+        sm: `repeat(${columns.sm || 2}, 1fr)`,
+        md: `repeat(${columns.md || 2}, 1fr)`,
+        lg: `repeat(${columns.lg || 3}, 1fr)`,
+        xl: `repeat(${columns.xl || 4}, 1fr)`,
+      }
+    : 'repeat(auto-fit, minmax(280px, 1fr))'; // Bento default
+
   return (
     <Box
       className="bento-grid"
       sx={{
-        // Override bento-grid's auto-fit if specific columns are needed, but keep the gap variable
         display: 'grid',
-        gridTemplateColumns: {
-          xs: `repeat(${columns.xs || 1}, 1fr)`,
-          sm: `repeat(${columns.sm || 2}, 1fr)`,
-          md: `repeat(${columns.md || 2}, 1fr)`,
-          lg: `repeat(${columns.lg || 3}, 1fr)`,
-          xl: `repeat(${columns.xl || 4}, 1fr)`,
-        },
+        gridTemplateColumns,
         gap: theme.spacing(gap),
         width: '100%',
         ...sx,
@@ -51,4 +54,3 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     </Box>
   );
 };
-

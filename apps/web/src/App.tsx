@@ -26,10 +26,34 @@ const KineticController: React.FC = () => {
       // Update CSS variables for specularity and refraction
       document.body.style.setProperty('--mouse-x', `${e.clientX}px`);
       document.body.style.setProperty('--mouse-y', `${e.clientY}px`);
+
+      // Handle specular buttons local coordinates
+      const target = e.target as HTMLElement;
+      const btn = target.closest('.specular-button') as HTMLElement;
+      if (btn) {
+        const rect = btn.getBoundingClientRect();
+        btn.style.setProperty('--local-x', `${e.clientX - rect.left}px`);
+        btn.style.setProperty('--local-y', `${e.clientY - rect.top}px`);
+      }
+    };
+
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollProgress = Math.min(scrollY / (docHeight || 1), 1);
+
+      // Update scroll-based variables
+      document.body.style.setProperty('--scroll-y', `${scrollY}`);
+      document.body.style.setProperty('--scroll-progress', `${scrollProgress}`);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [isEcoMode]);
 
   return null;
