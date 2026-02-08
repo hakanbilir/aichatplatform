@@ -377,6 +377,7 @@ export const ChatPage: React.FC = () => {
         open={settingsOpen}
         onClose={handleCloseSettings}
         conversationId={conversationId}
+        orgId={effectiveOrgId}
         models={modelOptions}
       />
 
