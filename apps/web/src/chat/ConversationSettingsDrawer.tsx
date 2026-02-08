@@ -18,7 +18,6 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
 import CloseIcon from '@mui/icons-material/Close';
 
 import { useAuth } from '../auth/AuthContext';
@@ -35,6 +34,7 @@ export interface ConversationSettingsDrawerProps {
   open: boolean;
   onClose: () => void;
   conversationId: string | null;
+  orgId: string | null;
   models: { value: string; label: string }[];
 }
 
@@ -50,11 +50,11 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
   open,
   onClose,
   conversationId,
+  orgId,
   models,
 }) => {
   const { t } = useTranslation(['chat', 'common']);
   const { token } = useAuth();
-  const { orgId } = useParams<{ orgId: string }>();
 
   const [settings, setSettings] = useState<ConversationSettings | null>(null);
   const [loading, setLoading] = useState(false);
@@ -276,6 +276,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                   <Divider sx={{ my: 2 }} />
                   <ConversationRagSettingsPanel
                     conversationId={conversationId}
+                    orgId={orgId}
                     value={settings?.kbConfig?.rag}
                     onChange={() => {
                       // RAG settings are saved automatically by the component

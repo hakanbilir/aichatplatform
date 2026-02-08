@@ -14,7 +14,6 @@ import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '../auth/AuthContext';
 import { useKnowledgeSpaces } from '../knowledge/useKnowledgeSpaces';
-import { useParams } from 'react-router-dom';
 import { updateConversationSettings } from '../api/conversationSettings';
 
 interface ConversationRagSettings {
@@ -25,18 +24,19 @@ interface ConversationRagSettings {
 
 interface ConversationRagSettingsProps {
   conversationId: string;
+  orgId: string | null;
   value: ConversationRagSettings | undefined;
   onChange: (value: ConversationRagSettings) => void;
 }
 
 export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps> = ({
   conversationId,
+  orgId,
   value,
   onChange
 }) => {
   const { t } = useTranslation('rag');
   const { token } = useAuth();
-  const { orgId } = useParams<{ orgId: string }>();
   const { spaces } = useKnowledgeSpaces(orgId || null);
 
   const [local, setLocal] = useState<ConversationRagSettings>(() =>
