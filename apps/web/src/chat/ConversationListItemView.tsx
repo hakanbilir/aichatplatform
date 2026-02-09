@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ListItemButton, ListItemText, ListItemSecondaryAction, IconButton, TextField, Tooltip } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +11,6 @@ interface ConversationListItemViewProps {
   onSelect: (id: string) => void;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>, id: string) => void;
   isEditing?: boolean;
-  editingTitle?: string;
-  onEditChange?: (value: string) => void;
   onSave?: (id: string, title: string) => void;
   onCancel?: () => void;
 }
@@ -23,16 +21,27 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
   onSelect,
   onMenuOpen,
   isEditing,
-  editingTitle,
-  onEditChange,
   onSave,
   onCancel
 }) => {
   const { t } = useTranslation('chat');
+  const [localTitle, setLocalTitle] = useState(item.title || '');
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      setLocalTitle(item.title || '');
+      // Delay enabling blur save to prevent race condition with menu close focus restoration
+      const timer = setTimeout(() => setIsReady(true), 200);
+      return () => clearTimeout(timer);
+    } else {
+      setIsReady(false);
+    }
+  }, [isEditing, item.title]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      onSave?.(item.id, editingTitle || '');
+      onSave?.(item.id, localTitle || '');
     }
     if (e.key === 'Escape') {
       onCancel?.();
@@ -40,7 +49,9 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
   };
 
   const handleBlur = () => {
-    onSave?.(item.id, editingTitle || '');
+    if (isReady) {
+      onSave?.(item.id, localTitle || '');
+    }
   };
 
   return (
@@ -68,9 +79,9 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
         <TextField
           autoFocus
           size="small"
-          value={editingTitle}
+          value={localTitle}
           onClick={(e) => e.stopPropagation()}
-          onChange={(e) => onEditChange?.(e.target.value)}
+          onChange={(e) => setLocalTitle(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           variant="outlined"

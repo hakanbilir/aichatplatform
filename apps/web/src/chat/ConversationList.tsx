@@ -52,7 +52,6 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
 
   // Edit state
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState<string>('');
 
   // Handle URL changes to select conversation
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -196,7 +195,6 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
 
   const handleBeginRename = (item: ConversationListItem) => {
     setEditingConversationId(item.id);
-    setEditingTitle(item.title || '');
     handleMenuClose();
   };
 
@@ -219,7 +217,6 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
       setError((err as Error).message || 'Failed to rename conversation');
     } finally {
       setEditingConversationId(null);
-      setEditingTitle('');
     }
   }, [token, t]);
 
@@ -358,8 +355,6 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                     onSelect={handleSelect}
                     onMenuOpen={handleMenuOpen}
                     isEditing={item.id === editingConversationId}
-                    editingTitle={item.id === editingConversationId ? editingTitle : undefined}
-                    onEditChange={setEditingTitle}
                     onSave={handleSaveTitle}
                     onCancel={handleCancelEdit}
                   />
@@ -394,8 +389,6 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                 onSelect={handleSelect}
                 onMenuOpen={handleMenuOpen}
                 isEditing={item.id === editingConversationId}
-                editingTitle={item.id === editingConversationId ? editingTitle : undefined}
-                onEditChange={setEditingTitle}
                 onSave={handleSaveTitle}
                 onCancel={handleCancelEdit}
               />
