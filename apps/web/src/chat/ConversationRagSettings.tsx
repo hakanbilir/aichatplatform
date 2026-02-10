@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+
 import { useAuth } from '../auth/AuthContext';
 import { useKnowledgeSpaces } from '../knowledge/useKnowledgeSpaces';
 import { updateConversationSettings } from '../api/conversationSettings';
@@ -45,8 +46,10 @@ export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps
 
   useEffect(() => {
     if (value) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocal(value);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const handleSave = async (next: ConversationRagSettings) => {

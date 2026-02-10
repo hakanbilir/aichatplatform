@@ -1,4 +1,5 @@
 import React, { useSyncExternalStore } from 'react';
+
 import { StreamStore } from './StreamStore';
 import { MessageBubble } from './MessageBubble';
 

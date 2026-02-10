@@ -3,8 +3,9 @@
 import React from 'react';
 import { Box, Chip, Skeleton, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { useConversationPresets } from './useConversationPresets';
 import { useNavigate, useParams } from 'react-router-dom';
+
+import { useConversationPresets } from './useConversationPresets';
 
 export const PresetsQuickStrip: React.FC = () => {
   const { t } = useTranslation('presets');

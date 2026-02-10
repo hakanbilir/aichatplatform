@@ -19,11 +19,11 @@ export const breakpoints = {
 export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
   
-  if (breakpoint === 'xxl') {
-    return useMediaQuery(`(min-width:${breakpoints.xxl}px)`);
-  }
-  
-  return useMediaQuery(theme.breakpoints.up(breakpoint));
+  const query = breakpoint === 'xxl'
+    ? `(min-width:${breakpoints.xxl}px)`
+    : theme.breakpoints.up(breakpoint);
+
+  return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is below a breakpoint
@@ -31,11 +31,11 @@ export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
 export const useBreakpointDown = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
   
-  if (breakpoint === 'xxl') {
-    return useMediaQuery(`(max-width:${breakpoints.xxl - 1}px)`);
-  }
-  
-  return useMediaQuery(theme.breakpoints.down(breakpoint));
+  const query = breakpoint === 'xxl'
+    ? `(max-width:${breakpoints.xxl - 1}px)`
+    : theme.breakpoints.down(breakpoint);
+
+  return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is between two breakpoints
@@ -45,10 +45,14 @@ export const useBreakpointBetween = (
   end: Breakpoint | 'xxl'
 ) => {
   const theme = useTheme();
+  // Ensure we don't access theme.breakpoints.values with 'xxl'
+  // 'xxl' ile theme.breakpoints.values'e erişmediğimizden emin olun
   const startValue = start === 'xxl' ? breakpoints.xxl : theme.breakpoints.values[start];
   const endValue = end === 'xxl' ? breakpoints.xxl : theme.breakpoints.values[end];
   
-  return useMediaQuery(`(min-width:${startValue}px) and (max-width:${endValue - 1}px)`);
+  const query = `(min-width:${startValue}px) and (max-width:${endValue - 1}px)`;
+
+  return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is mobile
@@ -158,4 +162,3 @@ export const responsiveGridColumns = (
     xl: `repeat(${columns.xl || columns.lg || columns.md || columns.sm || columns.xs || 4}, 1fr)`,
   };
 };
-

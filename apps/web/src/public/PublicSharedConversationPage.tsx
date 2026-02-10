@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
+
 import {
   PublicSharedConversation,
   fetchPublicSharedConversation
@@ -186,6 +187,7 @@ export const PublicSharedConversationPage: React.FC = () => {
         <DialogTitle>{t('enterPassphrase')}</DialogTitle>
         <DialogContent>
           <TextField
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             label={t('passphrase')}
             type={showPassphrase ? 'text' : 'password'}

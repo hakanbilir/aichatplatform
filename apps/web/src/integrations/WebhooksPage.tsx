@@ -21,6 +21,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import LinkIcon from '@mui/icons-material/Link';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
+
 import { useWebhooks } from './useWebhooks';
 
 export const WebhooksPage: React.FC = () => {

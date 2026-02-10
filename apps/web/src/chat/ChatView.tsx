@@ -18,7 +18,7 @@ interface ChatViewProps {
 }
 
 // Optimized component to prevent re-rendering the entire list during streaming
-const MessageList = React.memo(({ messages }: { messages: ChatViewProps['messages'] }) => {
+const MessageList = React.memo(function MessageList({ messages }: { messages: ChatViewProps['messages'] }) {
   return (
     <>
       {messages.map((m) => (
@@ -79,6 +79,7 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({
         streamStore ? (
           <StreamedMessage
             key="streaming"
+            // eslint-disable-next-line jsx-a11y/aria-role
             role="assistant"
             streamStore={streamStore}
             isThinking={isThinking}
@@ -86,6 +87,7 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({
         ) : (
           <MessageBubble
             key="streaming"
+            // eslint-disable-next-line jsx-a11y/aria-role
             role="assistant"
             content={streamingAssistantText}
             thinkingText={thinkingText}

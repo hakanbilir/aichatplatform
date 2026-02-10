@@ -1,5 +1,6 @@
 import React from 'react';
-import { Select, MenuItem, FormControl, SelectChangeEvent } from '@mui/material';
+import { Select, MenuItem, FormControl } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 export const LanguageSwitcher: React.FC = () => {
@@ -34,4 +35,3 @@ export const LanguageSwitcher: React.FC = () => {
     </FormControl>
   );
 };
-

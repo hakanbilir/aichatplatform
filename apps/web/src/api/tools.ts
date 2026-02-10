@@ -19,7 +19,7 @@ export interface ToolExecutionResult {
   error?: string;
 }
 
-export interface ExecuteToolResponse extends ToolExecutionResult {}
+export type ExecuteToolResponse = ToolExecutionResult;
 
 export interface ExecuteEnvelopeResponse {
   results: ToolExecutionResult[];

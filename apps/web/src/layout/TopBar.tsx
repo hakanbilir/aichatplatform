@@ -15,6 +15,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import EnergySavingsLeafIcon from '@mui/icons-material/EnergySavingsLeaf';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { useIsMobile } from '../utils/responsive';

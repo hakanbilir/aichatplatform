@@ -25,6 +25,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
 import { useParams } from 'react-router-dom';
+
 import { useAuditLog } from './useAuditLog';
 
 export const AuditLogPage: React.FC = () => {

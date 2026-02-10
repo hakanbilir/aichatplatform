@@ -30,9 +30,7 @@ import {
 
 import { ConversationListItemView } from './ConversationListItemView';
 
-interface ConversationListProps {}
-
-export const ConversationList: React.FC<ConversationListProps> = () => {
+export const ConversationList: React.FC = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
   const { orgId } = useParams<{ orgId: string }>();
