@@ -38,5 +38,8 @@
     "prettier": "^3.7.4",
     "turbo": "^2.6.3",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "playwright": "^1.58.2"
   }
 }
