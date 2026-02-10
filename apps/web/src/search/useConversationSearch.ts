@@ -1,6 +1,7 @@
 // apps/web/src/search/useConversationSearch.ts
 
 import { useCallback, useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   ConversationSearchFilters,

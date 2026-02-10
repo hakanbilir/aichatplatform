@@ -15,8 +15,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
-import { useOrgAiPolicy } from './useOrgAiPolicy';
+
 import { OrgAiPolicyConfig } from '../api/orgAiPolicy';
+
+import { useOrgAiPolicy } from './useOrgAiPolicy';
 
 export const OrgAiPolicyPage: React.FC = () => {
   const { t } = useTranslation(['org', 'common']);

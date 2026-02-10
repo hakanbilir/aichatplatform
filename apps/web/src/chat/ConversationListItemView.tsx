@@ -30,6 +30,7 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
 
   useEffect(() => {
     if (isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalTitle(item.title || '');
       // Delay enabling blur save to prevent race condition with menu close focus restoration
       const timer = setTimeout(() => setIsReady(true), 200);
@@ -77,6 +78,7 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
     >
       {isEditing ? (
         <TextField
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           size="small"
           value={localTitle}

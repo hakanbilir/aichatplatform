@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   fetchBillingPlans,
@@ -99,7 +100,7 @@ export const OrgBillingPage: React.FC = () => {
         <Box>
           <Typography variant="h6">Billing & subscription</Typography>
           <Typography variant="caption" color="text.secondary">
-            Manage your organization's subscription plan and billing.
+            Manage your organization&apos;s subscription plan and billing.
           </Typography>
         </Box>
       </Box>

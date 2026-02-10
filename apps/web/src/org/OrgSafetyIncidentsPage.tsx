@@ -16,6 +16,7 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import {
   fetchModerationIncidents,

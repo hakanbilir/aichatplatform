@@ -155,7 +155,7 @@ export async function streamMessage(
         attempt++;
         // Exponential backoff: 1s, 2s, 4s...
         const delay = 1000 * Math.pow(2, attempt - 1);
-        await new Promise(r => setTimeout(r, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
 

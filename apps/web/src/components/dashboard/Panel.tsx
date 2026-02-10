@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+
 import { GlassPanel } from '../ui/kinetic/GlassPanel';
 
 // Reusable panel/card container with header, actions, and collapsible support

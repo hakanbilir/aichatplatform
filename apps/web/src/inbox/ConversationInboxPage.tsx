@@ -19,6 +19,7 @@ import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+
 import { useConversationSearch } from '../search/useConversationSearch';
 import { ConversationSearchHit } from '../api/search';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';

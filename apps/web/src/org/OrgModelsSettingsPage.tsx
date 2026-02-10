@@ -15,6 +15,7 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
 import { fetchOrgModels, ModelRegistryEntryDto, upsertOrgModel } from '../api/modelRegistry';
 

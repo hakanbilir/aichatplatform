@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Typography, TypographyProps } from '@mui/material';
+
 import { useEcoMode } from '../../../hooks/useEcoMode';
 
 export const KineticTypography: React.FC<TypographyProps & { component?: React.ElementType }> = ({ children, className, ...props }) => {

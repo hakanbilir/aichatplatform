@@ -24,7 +24,9 @@ import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
+
 import { PromptTemplate, PromptVariable } from '../api/prompts';
+
 import { usePromptTemplates } from './usePromptTemplates';
 
 export interface PromptLibraryDrawerProps {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, CardContent, Typography, Tooltip, useTheme } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
+
 import { GlassPanel } from '../ui/kinetic/GlassPanel';
 
 // Metric card component with gradient background, icon, value, label, trend indicator, and micro-animations

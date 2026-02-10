@@ -1,13 +1,15 @@
 import React, { Suspense } from 'react';
 import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
-import { TopBar } from './TopBar';
-import { SideNav } from './SideNav';
+
 import { useIsMobile } from '../utils/responsive';
 import { LoadingState } from '../components/dashboard/LoadingState';
 import { RefractionFilter } from '../components/ui/RefractionFilter';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { useEcoMode } from '../hooks/useEcoMode';
+
+import { SideNav } from './SideNav';
+import { TopBar } from './TopBar';
 
 export const Shell: React.FC = () => {
   const isMobile = useIsMobile();

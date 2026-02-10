@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+
 import { ChartTooltip } from './utils/ChartTooltip';
 
 // Bar chart component with Material 3 styling (horizontal or vertical)

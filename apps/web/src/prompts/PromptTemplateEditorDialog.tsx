@@ -19,6 +19,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
+
 import { CreatePromptTemplateInput, PromptTemplate, PromptVariable } from '../api/prompts';
 
 interface PromptTemplateEditorDialogProps {

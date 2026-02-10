@@ -1,6 +1,7 @@
 // apps/web/src/knowledge/useKnowledgeSearch.ts
 
 import { useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import { RetrievedChunk, retrieveKnowledgeChunks } from '../api/knowledge';
 

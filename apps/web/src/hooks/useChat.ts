@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useReducer, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import {
   getConversation,
   getConversationUsage,
@@ -10,6 +11,7 @@ import {
 import { streamMessage, StreamEvent } from '../api/chat';
 import { useAuth } from '../auth/AuthContext';
 import { createStreamStore, StreamStore } from '../chat/StreamStore';
+
 import { chatReducer, initialChatState, ChatStatus } from './chatReducer';
 
 export interface UseChatOptions {

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './AuthContext';
 import { CircularProgress, Box } from '@mui/material';
+
+import { useAuth } from './AuthContext';
 
 export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, loading } = useAuth();

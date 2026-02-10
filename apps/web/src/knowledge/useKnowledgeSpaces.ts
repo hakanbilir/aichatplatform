@@ -1,6 +1,7 @@
 // apps/web/src/knowledge/useKnowledgeSpaces.ts
 
 import { useEffect, useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import { KnowledgeSpace, fetchKnowledgeSpaces, createKnowledgeSpace } from '../api/knowledge';
 
