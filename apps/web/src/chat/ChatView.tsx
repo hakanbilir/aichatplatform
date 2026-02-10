@@ -3,6 +3,8 @@ import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 import { MessageBubble } from './MessageBubble';
+import { StreamStore } from './StreamStore';
+import { StreamedMessage } from './StreamedMessage';
 
 interface ChatViewProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,6 +13,8 @@ interface ChatViewProps {
   toolStatus?: string | null;
   thinkingText?: string;
   isThinking?: boolean;
+  streamStore?: StreamStore;
+  isStreaming?: boolean;
 }
 
 // Optimized component to prevent re-rendering the entire list during streaming
@@ -34,10 +38,18 @@ const MessageList = React.memo(({ messages }: { messages: ChatViewProps['message
   );
 });
 
-const ChatViewComponent: React.FC<ChatViewProps> = ({ messages, streamingAssistantText, toolStatus, thinkingText, isThinking }) => {
+const ChatViewComponent: React.FC<ChatViewProps> = ({
+  messages,
+  streamingAssistantText,
+  toolStatus,
+  thinkingText,
+  isThinking,
+  streamStore,
+  isStreaming
+}) => {
   const { t } = useTranslation('chat');
 
-  const hasStreaming = !!(streamingAssistantText || isThinking);
+  const hasStreaming = isStreaming || isThinking || !!streamingAssistantText;
   const isEmpty = messages.length === 0 && !hasStreaming;
 
   if (isEmpty) {
@@ -64,13 +76,22 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({ messages, streamingAssista
     <Box flex={1} overflow="auto" px={3} py={2}>
       <MessageList messages={messages} />
       {hasStreaming && (
-        <MessageBubble
-          key="streaming"
-          role="assistant"
-          content={streamingAssistantText}
-          thinkingText={thinkingText}
-          isThinking={isThinking}
-        />
+        streamStore ? (
+          <StreamedMessage
+            key="streaming"
+            role="assistant"
+            streamStore={streamStore}
+            isThinking={isThinking}
+          />
+        ) : (
+          <MessageBubble
+            key="streaming"
+            role="assistant"
+            content={streamingAssistantText}
+            thinkingText={thinkingText}
+            isThinking={isThinking}
+          />
+        )
       )}
       {toolStatus && (
         <Box display="flex" justifyContent="flex-start" mb={2} pl={2}>

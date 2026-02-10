@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useReducer } from 'react';
+import { useRef, useEffect, useCallback, useReducer, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getConversation,
@@ -9,6 +9,7 @@ import {
 } from '../api/conversations';
 import { streamMessage, StreamEvent } from '../api/chat';
 import { useAuth } from '../auth/AuthContext';
+import { createStreamStore, StreamStore } from '../chat/StreamStore';
 import { chatReducer, initialChatState, ChatStatus } from './chatReducer';
 
 export interface UseChatOptions {
@@ -22,8 +23,11 @@ export interface UseChatReturn {
   conversation: ConversationDetails | null;
   usage: ConversationUsageSummary | null;
   messages: ConversationDetails['messages'];
+  // streamingText & thinkingText are retained for type compatibility but will be empty
+  // Use streamStore to subscribe to live updates
   streamingText: string;
   thinkingText: string;
+  streamStore: StreamStore;
   isThinking: boolean;
   toolStatus: string | null;
   status: ChatStatus;
@@ -43,6 +47,11 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
 
   const [state, dispatch] = useReducer(chatReducer, initialChatState);
   const abortRef = useRef<AbortController | null>(null);
+
+  // High-frequency stream store
+  const streamStore = useMemo(() => createStreamStore(), []);
+  const contentRef = useRef('');
+  const thinkingRef = useRef('');
 
   // Queries
   const { data: conversationData, isLoading: isLoadingConversation, refetch: refetchConversation } = useQuery({
@@ -73,7 +82,8 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
       abortRef.current.abort();
       abortRef.current = null;
     }
-    dispatch({ type: 'RESET_STREAM' });
+    // Don't dispatch RESET_STREAM here to avoid race conditions.
+    // The abort will trigger the catch block in sendMessage, which will save the partial message and reset status.
   }, []);
 
   const sendMessage = useCallback(async (content: string, images?: string[], options?: { model?: string; temperature?: number; topP?: number }) => {
@@ -99,6 +109,11 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
 
     dispatch({ type: 'START_STREAM', userMessage });
 
+    // Reset local stream state
+    contentRef.current = '';
+    thinkingRef.current = '';
+    streamStore.reset();
+
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -113,10 +128,16 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
         },
         (event: StreamEvent) => {
            if (event.type === 'token') {
-             dispatch({ type: 'TOKEN', token: event.token });
+             contentRef.current += event.token;
+             streamStore.update(contentRef.current, thinkingRef.current);
+             dispatch({ type: 'TOKEN', token: event.token }); // Still dispatch to update status if needed
           } else if (event.type === 'thought_start') {
+             thinkingRef.current = '';
+             streamStore.update(contentRef.current, thinkingRef.current);
              dispatch({ type: 'THOUGHT_START' });
           } else if (event.type === 'thought_token') {
+             thinkingRef.current += event.token;
+             streamStore.update(contentRef.current, thinkingRef.current);
              dispatch({ type: 'THOUGHT_TOKEN', token: event.token });
           } else if (event.type === 'thought_end') {
              dispatch({ type: 'THOUGHT_END' });
@@ -134,6 +155,11 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
                     createdAt: new Date().toISOString(),
                } : undefined
              });
+             // Stream ended, reset store to avoid flashing if component re-mounts?
+             // Actually, we want to keep it until the next stream starts OR the component unmounts.
+             // But ChatView logic will switch to showing the message in the list.
+             // So resetting here is cleaner.
+             streamStore.reset();
           } else if (event.type === 'error') {
              dispatch({ type: 'ERROR', error: new Error(event.error) });
              if (onError) onError(new Error(event.error));
@@ -144,17 +170,32 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
       );
     } catch (err) {
       const error = err as Error;
+
+      // If error or abort occurred, save any partial content generated so far
+      if (contentRef.current) {
+        dispatch({
+          type: 'STREAM_END',
+          finalMessage: {
+            id: `assistant-${Date.now()}`,
+            role: 'ASSISTANT',
+            content: contentRef.current,
+            createdAt: new Date().toISOString(),
+          }
+        });
+      }
+
       if (error.name !== 'AbortError') {
         dispatch({ type: 'ERROR', error });
         if (onError) onError(error);
       }
     } finally {
       abortRef.current = null;
+      streamStore.reset();
       // Invalidate queries to sync with backend
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversation-usage', conversationId] });
     }
-  }, [token, conversationId, onBeforeSend, onError, queryClient, retryCount]);
+  }, [token, conversationId, onBeforeSend, onError, queryClient, retryCount, streamStore]);
 
   const regenerate = useCallback(async () => {
     if (!token || !conversationId || !conversation) return;
@@ -245,6 +286,7 @@ export function useChat({ conversationId, onBeforeSend, onError, retryCount = 3 
     messages: state.optimisticMessages,
     streamingText: state.streamingText,
     thinkingText: state.thinkingText,
+    streamStore,
     isThinking: state.isThinking,
     toolStatus: state.toolStatus,
     status: state.status,

@@ -33,3 +33,7 @@
 ## 2026-12-16 - JSON Aggregation in Prisma
 **Learning:** Prisma's standard `aggregate` functions do not support aggregation on JSON fields (e.g., summing `meta->'usage'->>'promptTokens'`). Fetching all records to aggregate in the application layer causes significant performance degradation (O(N) memory and IO).
 **Action:** Use `prisma.$queryRaw` with database-specific SQL (e.g., Postgres `CAST(json->>field AS INTEGER)`) to perform aggregation in the database, reducing data transfer and memory usage to O(1).
+
+## 2026-12-16 - Streaming React State Re-renders
+**Learning:** Storing high-frequency streaming data (e.g., chat tokens, 50-100 updates/sec) in React state at a high level (`ChatPage`) causes the entire component tree to re-render on every update, leading to significant CPU usage and lag.
+**Action:** Move mutable streaming state to a `StreamStore` (external to React state) and use `useSyncExternalStore` in a dedicated leaf component (`StreamedMessage`) to subscribe to updates. This isolates re-renders to the single component displaying the stream.
