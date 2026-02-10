@@ -57,13 +57,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
 
     case 'TOKEN':
+      // Optimized: Token updates are handled by StreamStore to avoid frequent re-renders
       return {
         ...state,
         status: 'streaming',
-        streamingText: state.streamingText + action.token,
-        // If we get a token, we assume thinking might have ended if it was active,
-        // but usually THOUGHT_END comes first. Safe to ensure isThinking is false?
-        // Let's rely on explicit events for now, but update status.
       };
 
     case 'THOUGHT_START':
@@ -71,14 +68,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         status: 'streaming',
         isThinking: true,
-        thinkingText: '',
       };
 
     case 'THOUGHT_TOKEN':
-      return {
-        ...state,
-        thinkingText: state.thinkingText + action.token,
-      };
+      // Optimized: Token updates are handled by StreamStore to avoid frequent re-renders
+      return state;
 
     case 'THOUGHT_END':
       return {
