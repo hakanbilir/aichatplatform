@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -32,6 +33,8 @@ export const ExperimentsPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(236,72,153,0.18), transparent 55%), ' +
@@ -39,8 +42,13 @@ export const ExperimentsPage: React.FC = () => {
 
   const load = async () => {
     if (!token || !orgId) return;
-    const res = await fetchExperiments(token, orgId);
-    setExperiments(res.experiments);
+    try {
+      const res = await fetchExperiments(token, orgId);
+      setExperiments(res.experiments);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load experiments.");
+    }
   };
 
   useEffect(() => {
@@ -50,17 +58,39 @@ export const ExperimentsPage: React.FC = () => {
 
   const handleCreate = async () => {
     if (!token || !orgId) return;
-    await createExperiment(token, orgId, { name: newName, description: newDesc });
-    setDialogOpen(false);
-    setNewName('');
-    setNewDesc('');
-    await load();
+
+    setLoading(true);
+    setError(null);
+    try {
+      await createExperiment(token, orgId, { name: newName, description: newDesc });
+      setDialogOpen(false);
+      setNewName('');
+      setNewDesc('');
+      await load();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create experiment.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRun = async (id: string) => {
     if (!token || !orgId) return;
-    await runExperiment(token, orgId, id, {});
-    await load();
+
+    // For inline action, maybe we don't want to block everything,
+    // but preventing concurrent runs is good.
+    setLoading(true);
+    setError(null);
+    try {
+      await runExperiment(token, orgId, id, {});
+      await load();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to run experiment.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -90,14 +120,17 @@ export const ExperimentsPage: React.FC = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
+          disabled={loading}
         >
           New experiment
         </Button>
       </Box>
 
+      {error && <Alert severity="error">{error}</Alert>}
+
       <Card sx={{ borderRadius: 3, flex: 1 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {experiments.length === 0 && (
+          {experiments.length === 0 && !error && (
             <Typography variant="body2" color="text.secondary">
               No experiments yet.
             </Typography>
@@ -128,7 +161,7 @@ export const ExperimentsPage: React.FC = () => {
                   {exp.runs?.length || 0} runs
                 </Typography>
               </Box>
-              <Button size="small" onClick={() => void handleRun(exp.id)}>
+              <Button size="small" onClick={() => void handleRun(exp.id)} disabled={loading}>
                 Run
               </Button>
             </Box>
@@ -144,6 +177,7 @@ export const ExperimentsPage: React.FC = () => {
             fullWidth
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            disabled={loading}
           />
           <TextField
             label="Description"
@@ -152,11 +186,12 @@ export const ExperimentsPage: React.FC = () => {
             minRows={2}
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
+            disabled={loading}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={!newName.trim()}>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
             Create
           </Button>
         </DialogActions>

@@ -43,8 +43,8 @@ export async function requestPlanChange(
   token: string,
   orgId: string,
   planId: string
-): Promise<{ checkoutToken: string; merchantOid: string }> {
-  return apiRequest<{ checkoutToken: string; merchantOid: string }>(
+): Promise<{ token: string; transactionId: string }> {
+  return apiRequest<{ token: string; transactionId: string }>(
     `/orgs/${orgId}/billing/change-plan`,
     {
       method: 'POST',

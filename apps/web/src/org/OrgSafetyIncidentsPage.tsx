@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Card,
   CardContent,
@@ -33,6 +34,7 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'user' | 'assistant' | 'tool'>('all');
   const [severeOnly, setSevereOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(248,250,252,0.0), transparent 55%), ' +
@@ -42,15 +44,21 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
   const load = async () => {
     if (!token || !orgId) return;
 
-    const res = await fetchModerationIncidents(token, orgId, {
-      page,
-      pageSize,
-      source: sourceFilter === 'all' ? undefined : sourceFilter,
-      severeOnly
-    });
+    setError(null);
+    try {
+      const res = await fetchModerationIncidents(token, orgId, {
+        page,
+        pageSize,
+        source: sourceFilter === 'all' ? undefined : sourceFilter,
+        severeOnly
+      });
 
-    setItems(res.items);
-    setTotal(res.total);
+      setItems(res.items);
+      setTotal(res.total);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load incidents.");
+    }
   };
 
   useEffect(() => {
@@ -110,6 +118,8 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
         </Box>
       </Box>
 
+      {error && <Alert severity="error">{error}</Alert>}
+
       <Card sx={{ borderRadius: 3, flex: 1, minHeight: 0 }}>
         <CardContent
           sx={{
@@ -120,7 +130,7 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
             overflow: 'auto'
           }}
         >
-          {items.length === 0 && (
+          {items.length === 0 && !error && (
             <Typography variant="body2" color="text.secondary">
               No incidents for this filter.
             </Typography>

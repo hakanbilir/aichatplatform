@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -47,6 +48,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
 
   const [config, setConfig] = useState<OrgSafetyConfigDto | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(248,250,252,0.0), transparent 55%), ' +
@@ -54,20 +56,16 @@ export const OrgSafetySettingsPage: React.FC = () => {
     'radial-gradient(circle at bottom left, rgba(129,140,248,0.18), transparent 55%)';
 
   useEffect(() => {
-    // Type guard to ensure orgId is a non-empty string / orgId'nin boş olmayan string olduğunu garanti etmek için tip koruma
+    // Type guard to ensure orgId is a non-empty string
     if (!token || typeof orgId !== 'string' || orgId.length === 0) return;
 
-    // orgId is now narrowed to string by type guard / orgId artık tip koruma ile string olarak daraltıldı
     const currentOrgId = orgId;
     let cancelled = false;
 
     async function load() {
       setLoading(true);
+      setError(null);
       try {
-        // TypeScript limitation: type narrowing doesn't work across closure boundaries
-        // Runtime check above guarantees currentOrgId is a non-empty string
-        // TypeScript sınırlaması: tip daraltma kapanış sınırları arasında çalışmaz
-        // Yukarıdaki runtime kontrolü currentOrgId'nin boş olmayan string olduğunu garanti eder
         // @ts-expect-error - TypeScript can't narrow type across closure, but runtime check ensures safety
         const res = await fetchOrgSafetyConfig(token, currentOrgId);
         if (!cancelled) {
@@ -81,6 +79,11 @@ export const OrgSafetySettingsPage: React.FC = () => {
               allowedDomains: []
             }
           );
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(err);
+          setError("Failed to load safety configuration.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -97,14 +100,23 @@ export const OrgSafetySettingsPage: React.FC = () => {
   const handleSave = async () => {
     if (!token || !orgId || !config) return;
 
-    const res = await updateOrgSafetyConfig(token, orgId, {
-      moderateUserMessages: config.moderateUserMessages,
-      moderateAssistantMessages: config.moderateAssistantMessages,
-      categoryActions: config.categoryActions,
-      allowedDomains: config.allowedDomains
-    });
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await updateOrgSafetyConfig(token, orgId, {
+        moderateUserMessages: config.moderateUserMessages,
+        moderateAssistantMessages: config.moderateAssistantMessages,
+        categoryActions: config.categoryActions,
+        allowedDomains: config.allowedDomains
+      });
 
-    setConfig(res.config);
+      setConfig(res.config);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to save safety configuration.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const setCategoryAction = (category: string, action: 'block' | 'warn' | 'log_only' | 'allow') => {
@@ -129,9 +141,19 @@ export const OrgSafetySettingsPage: React.FC = () => {
     setConfig((prev) => (prev ? { ...prev, allowedDomains: domains } : prev));
   };
 
-  if (!config) {
-    return null;
+  if (!config && loading) {
+    return null; // Or a loading spinner
   }
+
+  if (!config && error) {
+    return (
+      <Box p={2}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  if (!config) return null;
 
   return (
     <Box
@@ -156,9 +178,11 @@ export const OrgSafetySettingsPage: React.FC = () => {
           </Box>
         </Box>
         <Button variant="contained" onClick={handleSave} disabled={loading}>
-          Save changes
+          {loading ? 'Saving...' : 'Save changes'}
         </Button>
       </Box>
+
+      {error && <Alert severity="error">{error}</Alert>}
 
       <Card sx={{ borderRadius: 3 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -172,6 +196,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
                     prev ? { ...prev, moderateUserMessages: e.target.checked } : prev
                   )
                 }
+                disabled={loading}
               />
             }
             label="Moderate user messages before sending to the model"
@@ -186,6 +211,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
                     prev ? { ...prev, moderateAssistantMessages: e.target.checked } : prev
                   )
                 }
+                disabled={loading}
               />
             }
             label="Moderate assistant responses before showing to users"
@@ -225,6 +251,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
                       size="small"
                       variant={value === opt.value ? 'contained' : 'outlined'}
                       onClick={() => setCategoryAction(c.key, opt.value)}
+                      disabled={loading}
                     >
                       {opt.label}
                     </Button>
@@ -249,6 +276,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
             value={config.allowedDomains.join(', ')}
             onChange={(e) => handleAllowedDomainsChange(e.target.value)}
             placeholder="https://example.com, https://docs.yourcompany.com"
+            disabled={loading}
           />
         </CardContent>
       </Card>

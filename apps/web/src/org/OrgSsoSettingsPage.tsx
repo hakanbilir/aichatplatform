@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -28,6 +29,8 @@ export const OrgSsoSettingsPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState<'saml' | 'oidc'>('saml');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(139,92,246,0.18), transparent 55%), ' +
@@ -35,8 +38,13 @@ export const OrgSsoSettingsPage: React.FC = () => {
 
   const load = async () => {
     if (!token || !orgId) return;
-    const res = await fetchSsoConnections(token, orgId);
-    setConnections(res.connections);
+    try {
+      const res = await fetchSsoConnections(token, orgId);
+      setConnections(res.connections);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load SSO connections.");
+    }
   };
 
   useEffect(() => {
@@ -46,14 +54,24 @@ export const OrgSsoSettingsPage: React.FC = () => {
 
   const handleCreate = async () => {
     if (!token || !orgId) return;
-    await createSsoConnection(token, orgId, {
-      type: newType,
-      name: newName,
-      config: {}
-    });
-    setDialogOpen(false);
-    setNewName('');
-    await load();
+
+    setLoading(true);
+    setError(null);
+    try {
+      await createSsoConnection(token, orgId, {
+        type: newType,
+        name: newName,
+        config: {}
+      });
+      setDialogOpen(false);
+      setNewName('');
+      await load();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create SSO connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,14 +101,17 @@ export const OrgSsoSettingsPage: React.FC = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
+          disabled={loading}
         >
           New connection
         </Button>
       </Box>
 
+      {error && <Alert severity="error">{error}</Alert>}
+
       <Card sx={{ borderRadius: 3, flex: 1 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {connections.length === 0 && (
+          {connections.length === 0 && !error && (
             <Typography variant="body2" color="text.secondary">
               No SSO connections configured yet.
             </Typography>
@@ -128,6 +149,7 @@ export const OrgSsoSettingsPage: React.FC = () => {
             fullWidth
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            disabled={loading}
           />
           <TextField
             select
@@ -136,14 +158,15 @@ export const OrgSsoSettingsPage: React.FC = () => {
             value={newType}
             onChange={(e) => setNewType(e.target.value as 'saml' | 'oidc')}
             SelectProps={{ native: true }}
+            disabled={loading}
           >
             <option value="saml">SAML 2.0</option>
             <option value="oidc">OIDC</option>
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={!newName.trim()}>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
             Create
           </Button>
         </DialogActions>

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -25,6 +26,8 @@ export const OrgModelsSettingsPage: React.FC = () => {
 
   const [models, setModels] = useState<ModelRegistryEntryDto[]>([]);
   const [editing, setEditing] = useState<ModelRegistryEntryDto | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(52,211,153,0.18), transparent 55%), ' +
@@ -32,8 +35,13 @@ export const OrgModelsSettingsPage: React.FC = () => {
 
   const load = async () => {
     if (!token || !orgId) return;
-    const res = await fetchOrgModels(token, orgId);
-    setModels(res.models);
+    try {
+      const res = await fetchOrgModels(token, orgId);
+      setModels(res.models);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load models.");
+    }
   };
 
   useEffect(() => {
@@ -43,28 +51,38 @@ export const OrgModelsSettingsPage: React.FC = () => {
 
   const startEdit = (entry: ModelRegistryEntryDto) => {
     setEditing(entry);
+    setError(null);
   };
 
   const handleSave = async () => {
     if (!token || !orgId || !editing) return;
 
-    await upsertOrgModel(token, orgId, {
-      provider: editing.provider,
-      modelName: editing.modelName,
-      displayName: editing.displayName,
-      description: editing.description ?? undefined,
-      isEnabled: editing.isEnabled,
-      isDefault: editing.isDefault,
-      capabilities: editing.capabilities,
-      contextWindow: editing.contextWindow ?? undefined,
-      maxOutputTokens: editing.maxOutputTokens ?? undefined,
-      inputPriceMicros: editing.inputPriceMicros ?? undefined,
-      outputPriceMicros: editing.outputPriceMicros ?? undefined,
-      metadata: editing.metadata ?? undefined
-    });
+    setLoading(true);
+    setError(null);
+    try {
+      await upsertOrgModel(token, orgId, {
+        provider: editing.provider,
+        modelName: editing.modelName,
+        displayName: editing.displayName,
+        description: editing.description ?? undefined,
+        isEnabled: editing.isEnabled,
+        isDefault: editing.isDefault,
+        capabilities: editing.capabilities,
+        contextWindow: editing.contextWindow ?? undefined,
+        maxOutputTokens: editing.maxOutputTokens ?? undefined,
+        inputPriceMicros: editing.inputPriceMicros ?? undefined,
+        outputPriceMicros: editing.outputPriceMicros ?? undefined,
+        metadata: editing.metadata ?? undefined
+      });
 
-    setEditing(null);
-    await load();
+      setEditing(null);
+      await load();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to save model changes.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,6 +112,8 @@ export const OrgModelsSettingsPage: React.FC = () => {
         </Button>
       </Box>
 
+      {error && <Alert severity="error">{error}</Alert>}
+
       <Card sx={{ borderRadius: 3, flex: 1, overflow: 'hidden' }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, height: '100%' }}>
           <Typography variant="subtitle2">Usage by model</Typography>
@@ -119,7 +139,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {models.length === 0 && (
+                {models.length === 0 && !error && (
                   <tr>
                     <td colSpan={5}>
                       <Typography variant="body2" color="text.secondary">
@@ -157,7 +177,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
                       )}
                     </td>
                     <td>
-                      <Button size="small" onClick={() => startEdit(m)}>
+                      <Button size="small" onClick={() => startEdit(m)} disabled={loading}>
                         Edit
                       </Button>
                     </td>
@@ -192,6 +212,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
             onChange={(e) =>
               setEditing((prev) => (prev ? { ...prev, displayName: e.target.value } : prev))
             }
+            disabled={loading}
           />
           <TextField
             label="Description"
@@ -201,6 +222,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
             onChange={(e) =>
               setEditing((prev) => (prev ? { ...prev, description: e.target.value } : prev))
             }
+            disabled={loading}
           />
           <FormControlLabel
             control={
@@ -211,6 +233,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
                     prev ? { ...prev, isEnabled: e.target.checked } : prev
                   )
                 }
+                disabled={loading}
               />
             }
             label="Enabled for this org"
@@ -224,17 +247,18 @@ export const OrgModelsSettingsPage: React.FC = () => {
                     prev ? { ...prev, isDefault: e.target.checked } : prev
                   )
                 }
+                disabled={loading}
               />
             }
             label="Use as default model for this provider"
           />
 
           <Box display="flex" justifyContent="flex-end" gap={1} mt={1.5}>
-            <Button size="small" onClick={() => setEditing(null)}>
+            <Button size="small" onClick={() => setEditing(null)} disabled={loading}>
               Cancel
             </Button>
-            <Button size="small" variant="contained" onClick={() => void handleSave()}>
-              Save
+            <Button size="small" variant="contained" onClick={() => void handleSave()} disabled={loading}>
+              {loading ? 'Saving...' : 'Save'}
             </Button>
           </Box>
         </Card>
