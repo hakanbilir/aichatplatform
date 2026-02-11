@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -26,8 +27,10 @@ import {
   PromptTemplateVersionDto,
   fetchPromptTemplateDetail,
   createPromptTemplateVersion,
-  createPromptTemplateApi
-, fetchPromptTemplates, PromptTemplate } from '../api/prompts';
+  createPromptTemplateApi,
+  fetchPromptTemplates,
+  PromptTemplate
+} from '../api/prompts';
 
 export const PromptTemplatesPage: React.FC = () => {
   const { orgId } = useParams();
@@ -39,6 +42,8 @@ export const PromptTemplatesPage: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newSystemPrompt, setNewSystemPrompt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [newVersionPrompt, setNewVersionPrompt] = useState('');
 
@@ -48,14 +53,24 @@ export const PromptTemplatesPage: React.FC = () => {
 
   const load = async () => {
     if (!token || !orgId) return;
-    const res = await fetchPromptTemplates(token, orgId);
-    setTemplates(res);
+    try {
+      const res = await fetchPromptTemplates(token, orgId);
+      setTemplates(res);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load prompt templates.");
+    }
   };
 
   const loadDetail = async (id: string) => {
     if (!token || !orgId) return;
-    const res = await fetchPromptTemplateDetail(token, orgId, id);
-    setSelected(res.template);
+    try {
+      const res = await fetchPromptTemplateDetail(token, orgId, id);
+      setSelected(res.template);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load template details.");
+    }
   };
 
   useEffect(() => {
@@ -66,26 +81,45 @@ export const PromptTemplatesPage: React.FC = () => {
   const handleCreateTemplate = async () => {
     if (!token || !orgId) return;
 
-    await createPromptTemplateApi(token, orgId, {
-      name: newName,
-      description: newDesc,
-      systemPrompt: newSystemPrompt
-    });
+    setLoading(true);
+    setError(null);
+    try {
+      await createPromptTemplateApi(token, orgId, {
+        name: newName,
+        description: newDesc,
+        systemPrompt: newSystemPrompt
+      });
 
-    setDialogOpen(false);
-    setNewName('');
-    setNewDesc('');
-    setNewSystemPrompt('');
-    await load();
+      setDialogOpen(false);
+      setNewName('');
+      setNewDesc('');
+      setNewSystemPrompt('');
+      await load();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create prompt template.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddVersion = async () => {
     if (!token || !orgId || !selected) return;
-    await createPromptTemplateVersion(token, orgId, selected.id, {
-      systemPrompt: newVersionPrompt
-    });
-    setNewVersionPrompt('');
-    await loadDetail(selected.id);
+
+    setLoading(true);
+    setError(null);
+    try {
+      await createPromptTemplateVersion(token, orgId, selected.id, {
+        systemPrompt: newVersionPrompt
+      });
+      setNewVersionPrompt('');
+      await loadDetail(selected.id);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to add new version.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderVersions = (versions: PromptTemplateVersionDto[] | undefined) => {
@@ -144,6 +178,7 @@ export const PromptTemplatesPage: React.FC = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setDialogOpen(true)}
+            disabled={loading}
           >
             New
           </Button>
@@ -157,6 +192,7 @@ export const PromptTemplatesPage: React.FC = () => {
                   key={t.id}
                   selected={selected?.id === t.id}
                   onClick={() => void loadDetail(t.id)}
+                  disabled={loading}
                 >
                   <ListItemText
                     primary={t.name}
@@ -177,6 +213,8 @@ export const PromptTemplatesPage: React.FC = () => {
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
         {selected ? (
           <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
@@ -201,12 +239,13 @@ export const PromptTemplatesPage: React.FC = () => {
                   placeholder="Enter updated system prompt..."
                   value={newVersionPrompt}
                   onChange={(e) => setNewVersionPrompt(e.target.value)}
+                  disabled={loading}
                 />
                 <Box mt={1} display="flex" justifyContent="flex-end">
                   <Button
                     size="small"
                     variant="contained"
-                    disabled={!newVersionPrompt.trim()}
+                    disabled={!newVersionPrompt.trim() || loading}
                     onClick={handleAddVersion}
                   >
                     Save new version
@@ -241,12 +280,14 @@ export const PromptTemplatesPage: React.FC = () => {
             fullWidth
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            disabled={loading}
           />
           <TextField
             label="Description"
             fullWidth
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
+            disabled={loading}
           />
           <TextField
             label="System prompt"
@@ -255,11 +296,12 @@ export const PromptTemplatesPage: React.FC = () => {
             fullWidth
             value={newSystemPrompt}
             onChange={(e) => setNewSystemPrompt(e.target.value)}
+            disabled={loading}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreateTemplate} disabled={!newName.trim() || !newSystemPrompt.trim()}>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={handleCreateTemplate} disabled={!newName.trim() || !newSystemPrompt.trim() || loading}>
             Create
           </Button>
         </DialogActions>

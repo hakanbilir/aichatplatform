@@ -8,9 +8,13 @@ import {
   CardContent,
   Chip,
   Typography,
-  Alert
+  Alert,
+  Dialog,
+  DialogContent,
+  IconButton
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CloseIcon from '@mui/icons-material/Close';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
@@ -29,6 +33,7 @@ export const OrgBillingPage: React.FC = () => {
   const [plans, setPlans] = useState<BillingPlanDto[]>([]);
   const [subscription, setSubscription] = useState<OrgSubscriptionDto | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paymentToken, setPaymentToken] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(34,197,94,0.18), transparent 55%), ' +
@@ -54,29 +59,35 @@ export const OrgBillingPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, token]);
 
+  useEffect(() => {
+    if (paymentToken && (window as any).iFrameResize) {
+      // Initialize iframe resizer
+      setTimeout(() => {
+        try {
+          (window as any).iFrameResize({}, '#paytriframe');
+        } catch (e) {
+          console.error("Failed to init iframe resizer", e);
+        }
+      }, 500);
+    }
+  }, [paymentToken]);
+
   const handleChangePlan = async (planId: string) => {
     if (!token || !orgId) return;
 
-    // Check if PayTR is available before making any requests
-    // Herhangi bir istek yapmadan önce PayTR'ın mevcut olup olmadığını kontrol et
-    if (typeof window !== 'undefined' && !(window as any).PayTR) {
-      setError("Payment gateway not initialized. Please refresh the page or contact support.");
-      return;
-    }
-
     try {
+      setError(null);
       const res = await requestPlanChange(token, orgId, planId);
-
-      // Double check before invoking checkout
-      if (typeof window !== 'undefined' && (window as any).PayTR) {
-        (window as any).PayTR.Checkout(res.checkoutToken);
-      } else {
-        throw new Error("Payment gateway lost connection.");
-      }
+      setPaymentToken(res.token);
     } catch (err) {
       console.error(err);
       setError((err as Error).message || "Failed to initiate plan change.");
     }
+  };
+
+  const handleClosePayment = () => {
+    setPaymentToken(null);
+    void load(); // Reload subscription status in case payment was completed
   };
 
   const formatPrice = (minor: number) => {
@@ -169,6 +180,32 @@ export const OrgBillingPage: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={!!paymentToken}
+        onClose={handleClosePayment}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { minHeight: 600 }
+        }}
+      >
+        <Box display="flex" justifyContent="flex-end" p={1}>
+          <IconButton onClick={handleClosePayment}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+          {paymentToken && (
+            <iframe
+              id="paytriframe"
+              src={`https://www.paytr.com/odeme/guvenli/${paymentToken}`}
+              style={{ width: '100%', height: '100%', border: 0, minHeight: 500 }}
+              title="Payment Checkout"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

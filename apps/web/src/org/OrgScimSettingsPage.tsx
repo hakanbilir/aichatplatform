@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -35,6 +36,8 @@ export const OrgScimSettingsPage: React.FC = () => {
   const [connection, setConnection] = useState<ScimConnectionDto | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(139,92,246,0.18), transparent 55%), ' +
@@ -42,8 +45,13 @@ export const OrgScimSettingsPage: React.FC = () => {
 
   const load = async () => {
     if (!token || !orgId) return;
-    const res = await fetchScimConnection(token, orgId);
-    setConnection(res.connection);
+    try {
+      const res = await fetchScimConnection(token, orgId);
+      setConnection(res.connection);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load SCIM connection.");
+    }
   };
 
   useEffect(() => {
@@ -53,16 +61,36 @@ export const OrgScimSettingsPage: React.FC = () => {
 
   const handleCreate = async () => {
     if (!token || !orgId) return;
-    const res = await createScimConnection(token, orgId, { name: newName });
-    setConnection(res.connection);
-    setDialogOpen(false);
-    setNewName('');
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await createScimConnection(token, orgId, { name: newName });
+      setConnection(res.connection);
+      setDialogOpen(false);
+      setNewName('');
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create SCIM connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRotate = async () => {
     if (!token || !orgId) return;
-    const res = await rotateScimToken(token, orgId);
-    setConnection((prev) => (prev ? { ...prev, bearerToken: res.bearerToken } : prev));
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await rotateScimToken(token, orgId);
+      setConnection((prev) => (prev ? { ...prev, bearerToken: res.bearerToken } : prev));
+    } catch (err) {
+      console.error(err);
+      setError("Failed to rotate token.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const copyToken = () => {
@@ -94,11 +122,13 @@ export const OrgScimSettingsPage: React.FC = () => {
           </Box>
         </Box>
         {!connection && (
-          <Button variant="contained" onClick={() => setDialogOpen(true)}>
+          <Button variant="contained" onClick={() => setDialogOpen(true)} disabled={loading}>
             Create connection
           </Button>
         )}
       </Box>
+
+      {error && <Alert severity="error">{error}</Alert>}
 
       {connection ? (
         <Card sx={{ borderRadius: 3 }}>
@@ -129,7 +159,7 @@ export const OrgScimSettingsPage: React.FC = () => {
                     <Button size="small" startIcon={<ContentCopyIcon />} onClick={copyToken}>
                       Copy
                     </Button>
-                    <Button size="small" startIcon={<RefreshIcon />} onClick={() => void handleRotate()}>
+                    <Button size="small" startIcon={<RefreshIcon />} onClick={() => void handleRotate()} disabled={loading}>
                       Rotate
                     </Button>
                   </Box>
@@ -178,11 +208,12 @@ export const OrgScimSettingsPage: React.FC = () => {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="e.g., Okta SCIM"
+            disabled={loading}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={!newName.trim()}>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
             Create
           </Button>
         </DialogActions>

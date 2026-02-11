@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -40,6 +41,8 @@ export const ChatProfilesPage: React.FC = () => {
   const [profiles, setProfiles] = useState<ChatProfileDto[]>([]);
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -55,12 +58,17 @@ export const ChatProfilesPage: React.FC = () => {
 
   const load = async () => {
     if (!token || !orgId) return;
-    const [p, t] = await Promise.all([
-      fetchChatProfiles(token, orgId),
-      fetchPromptTemplates(token, orgId)
-    ]);
-    setProfiles(p.profiles);
-    setTemplates(t);
+    try {
+      const [p, t] = await Promise.all([
+        fetchChatProfiles(token, orgId),
+        fetchPromptTemplates(token, orgId)
+      ]);
+      setProfiles(p.profiles);
+      setTemplates(t);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load profiles.");
+    }
   };
 
   useEffect(() => {
@@ -70,28 +78,47 @@ export const ChatProfilesPage: React.FC = () => {
 
   const handleCreate = async () => {
     if (!token || !orgId) return;
-    await createChatProfile(token, orgId, {
-      name,
-      description,
-      modelProvider,
-      modelName,
-      isShared,
-      isDefault,
-      systemTemplateId: systemTemplateId || null
-    });
 
-    setDialogOpen(false);
-    setName('');
-    setDescription('');
-    setSystemTemplateId(null);
-    setIsDefault(false);
-    await load();
+    setLoading(true);
+    setError(null);
+    try {
+      await createChatProfile(token, orgId, {
+        name,
+        description,
+        modelProvider,
+        modelName,
+        isShared,
+        isDefault,
+        systemTemplateId: systemTemplateId || null
+      });
+
+      setDialogOpen(false);
+      setName('');
+      setDescription('');
+      setSystemTemplateId(null);
+      setIsDefault(false);
+      await load();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create chat profile.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!token || !orgId) return;
-    await deleteChatProfile(token, orgId, id);
-    await load();
+
+    // Optimistic or explicit loading?
+    // Since this is inline action, maybe just use error handling or global loading
+    // For now, simple try/catch.
+    try {
+      await deleteChatProfile(token, orgId, id);
+      await load();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete profile.");
+    }
   };
 
   const findTemplateName = (id: string | null) => {
@@ -127,14 +154,17 @@ export const ChatProfilesPage: React.FC = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
+          disabled={loading}
         >
           New profile
         </Button>
       </Box>
 
+      {error && <Alert severity="error">{error}</Alert>}
+
       <Card sx={{ borderRadius: 3, flex: 1 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {profiles.length === 0 && (
+          {profiles.length === 0 && !error && (
             <Typography variant="body2" color="text.secondary">
               No profiles yet.
             </Typography>
@@ -163,7 +193,7 @@ export const ChatProfilesPage: React.FC = () => {
                   <Typography variant="caption" color="text.secondary">
                     {p.modelProvider} · {p.modelName}
                   </Typography>
-                  <Button size="small" onClick={() => void handleDelete(p.id)}>
+                  <Button size="small" onClick={() => void handleDelete(p.id)} disabled={loading}>
                     Delete
                   </Button>
                 </Box>
@@ -196,12 +226,14 @@ export const ChatProfilesPage: React.FC = () => {
             fullWidth
             value={name}
             onChange={(e) => setName(e.target.value)}
+            disabled={loading}
           />
           <TextField
             label="Description"
             fullWidth
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            disabled={loading}
           />
           <TextField
             label="Model provider"
@@ -209,6 +241,7 @@ export const ChatProfilesPage: React.FC = () => {
             value={modelProvider}
             onChange={(e) => setModelProvider(e.target.value)}
             helperText="Example: ollama, openai, anthropic"
+            disabled={loading}
           />
           <TextField
             label="Model name"
@@ -216,9 +249,10 @@ export const ChatProfilesPage: React.FC = () => {
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
             helperText="Example: llama3, gpt-4.1, claude-3.5"
+            disabled={loading}
           />
 
-          <FormControl fullWidth>
+          <FormControl fullWidth disabled={loading}>
             <InputLabel id="system-template-label">System template</InputLabel>
             <Select
               labelId="system-template-label"
@@ -239,20 +273,20 @@ export const ChatProfilesPage: React.FC = () => {
 
           <FormControlLabel
             control={
-              <Switch checked={isShared} onChange={(e) => setIsShared(e.target.checked)} />
+              <Switch checked={isShared} onChange={(e) => setIsShared(e.target.checked)} disabled={loading} />
             }
             label="Shared with org"
           />
           <FormControlLabel
             control={
-              <Switch checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />
+              <Switch checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} disabled={loading} />
             }
             label="Use as default profile for new conversations"
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={!name.trim() || !modelProvider || !modelName}>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={!name.trim() || !modelProvider || !modelName || loading}>
             Create
           </Button>
         </DialogActions>
