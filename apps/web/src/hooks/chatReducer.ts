@@ -58,6 +58,9 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'TOKEN':
       // Optimized: Token updates are handled by StreamStore to avoid frequent re-renders
+      if (state.status === 'streaming') {
+        return state;
+      }
       return {
         ...state,
         status: 'streaming',

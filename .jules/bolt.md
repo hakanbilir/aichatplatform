@@ -37,3 +37,7 @@
 ## 2026-12-16 - Streaming React State Re-renders
 **Learning:** Storing high-frequency streaming data (e.g., chat tokens, 50-100 updates/sec) in React state at a high level (`ChatPage`) causes the entire component tree to re-render on every update, leading to significant CPU usage and lag.
 **Action:** Move mutable streaming state to a `StreamStore` (external to React state) and use `useSyncExternalStore` in a dedicated leaf component (`StreamedMessage`) to subscribe to updates. This isolates re-renders to the single component displaying the stream.
+
+## 2026-12-17 - Reducer State Referential Integrity during Streaming
+**Learning:** Even when using an external `StreamStore` for high-frequency data, dispatching actions (like `TOKEN`) to a `useReducer` that returns a *new* state object (reference inequality) for every event will still force the consuming component (`ChatPage`) to re-render 50+ times/sec, negating the benefits of the store.
+**Action:** In `useReducer`, ensure that high-frequency actions (like `TOKEN`) return the *existing* state object (reference equality) if the relevant state properties (like `status`) haven't actually changed. This allows React to bail out of re-renders.
