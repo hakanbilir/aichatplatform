@@ -14,7 +14,7 @@ i18next
     defaultNS: 'errors',
     ns: ['errors', 'validation'],
     backend: {
-      loadPath: path.join(__dirname, 'locales', '{{lng}}', '{{ns}}.json'),
+      loadPath: path.join(process.cwd(), 'src/i18n/locales', '{{lng}}', '{{ns}}.json'),
     },
     interpolation: {
       escapeValue: false,

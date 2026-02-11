@@ -16,6 +16,8 @@ import SaveIcon from '@mui/icons-material/Save';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import BoltIcon from '@mui/icons-material/Bolt';
+import EnergySavingsLeafIcon from '@mui/icons-material/EnergySavingsLeaf';
 
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
@@ -35,6 +37,7 @@ interface ChatSettingsBarProps {
   } | null;
   conversationId: string | null;
   isEcoMode: boolean;
+  onToggleEcoMode: () => void;
   onChangeModel: (value: string) => void;
   onChangeTemperature: (event: Event, value: number | number[]) => void;
   onChangeTopP: (event: Event, value: number | number[]) => void;
@@ -56,6 +59,7 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
   usage,
   conversationId,
   isEcoMode,
+  onToggleEcoMode,
   onChangeModel,
   onChangeTemperature,
   onChangeTopP,
@@ -155,6 +159,17 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
         )}
 
         <Box display="flex" alignItems="center" gap={1}>
+          <Tooltip title={isEcoMode ? t('settings.ecoModeOn') : t('settings.ecoModeOff')}>
+            <IconButton
+              size="small"
+              onClick={onToggleEcoMode}
+              color={isEcoMode ? 'success' : 'default'}
+              aria-label={isEcoMode ? t('settings.ecoModeOn') : t('settings.ecoModeOff')}
+              data-ai-action="toggle-eco-mode"
+            >
+              {isEcoMode ? <EnergySavingsLeafIcon fontSize="small" /> : <BoltIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
           <Tooltip title={t('settings.toolsPanel')}>
             <span>
               <IconButton

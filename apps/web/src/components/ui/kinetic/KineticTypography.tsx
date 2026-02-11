@@ -27,7 +27,7 @@ export const KineticTypography: React.FC<TypographyProps & { component?: React.E
           const maxDist = 500;
           const weight = Math.max(300, 700 - (Math.min(dist, maxDist) / maxDist) * 400);
 
-          textRef.current.style.setProperty('--mouse-dist', `${weight}`);
+          textRef.current.style.setProperty('--mouse-weight', `${weight}`);
         }
       });
     };

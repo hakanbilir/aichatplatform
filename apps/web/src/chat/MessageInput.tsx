@@ -249,6 +249,7 @@ const MessageInputComponent = ({
             disabled={disabled || isStreaming}
             onClick={() => fileInputRef.current?.click()}
             aria-label={t('messageInput.attach', 'Attach image')}
+            data-ai-action="attach-file"
             sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'rgba(33,150,243,0.08)' } }}
           >
             <AttachFileIcon />
@@ -261,6 +262,7 @@ const MessageInputComponent = ({
               disabled={disabled || isStreaming}
               onClick={isListening ? onStopListening : onStartListening}
               color={isListening ? 'error' : 'default'}
+              data-ai-action={isListening ? "stop-voice-input" : "start-voice-input"}
               sx={{ color: isListening ? 'error.main' : 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(244,67,54,0.08)' } }}
             >
               {isListening ? <MicOffIcon /> : <MicIcon />}
@@ -300,6 +302,7 @@ const MessageInputComponent = ({
               disabled={isActionDisabled}
               onClick={isStreaming ? handleStop : handleSend}
               aria-label={isStreaming ? t('messageInput.stop', 'Stop generating') : t('messageInput.send')}
+              data-ai-action={isStreaming ? "stop-generation" : "send-message"}
               sx={{
                 width: 42,
                 height: 42,

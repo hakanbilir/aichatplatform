@@ -175,17 +175,17 @@ export const OrgUsageDashboardPage: React.FC = () => {
           <>
             <GlassPanel refractive={!isEcoMode}>
               <CardContent>
-                <Typography variant="subtitle2" gutterBottom>
+                <KineticTypography variant="subtitle2" gutterBottom>
                   Total requests
-                </Typography>
+                </KineticTypography>
                 <KineticTypography variant="h3">{usage.totals.requestCount.toLocaleString()}</KineticTypography>
               </CardContent>
             </GlassPanel>
             <GlassPanel refractive={!isEcoMode}>
               <CardContent>
-                <Typography variant="subtitle2" gutterBottom>
+                <KineticTypography variant="subtitle2" gutterBottom>
                   Total tokens
-                </Typography>
+                </KineticTypography>
                 <KineticTypography variant="h3">
                   {(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()}
                 </KineticTypography>
@@ -197,9 +197,9 @@ export const OrgUsageDashboardPage: React.FC = () => {
             </GlassPanel>
             <GlassPanel refractive={!isEcoMode}>
               <CardContent>
-                <Typography variant="subtitle2" gutterBottom>
+                <KineticTypography variant="subtitle2" gutterBottom>
                   Estimated cost
-                </Typography>
+                </KineticTypography>
                 <KineticTypography variant="h3">{formatCost(usage.totals.estimatedCostMicros)}</KineticTypography>
               </CardContent>
             </GlassPanel>
