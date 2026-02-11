@@ -51,7 +51,7 @@ function clampTopP(value: number): number {
 export const ChatPage: React.FC = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
-  const { isEcoMode } = useEcoMode();
+  const { isEcoMode, toggleEcoMode } = useEcoMode();
   const { conversationId: paramConversationId, orgId: paramOrgId } = useParams();
   const [conversationId, setConversationId] = useState<string | null>(null);
 
@@ -299,6 +299,7 @@ export const ChatPage: React.FC = () => {
         usage={usage}
         conversationId={conversationId}
         isEcoMode={isEcoMode}
+        onToggleEcoMode={toggleEcoMode}
         onChangeModel={handleChangeModel}
         onChangeTemperature={handleChangeTemperature}
         onChangeTopP={handleChangeTopP}

@@ -314,8 +314,10 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
 
     try {
       // Offload to worker thread for Kinetic performance
-      // Use import.meta.url to resolve worker path in ESM
-      const workerPath = new URL('../workers/analytics.worker.ts', import.meta.url);
+      // Use process.cwd() to resolve worker path for both dev (TS) and prod (JS)
+      const isDev = process.env.NODE_ENV !== 'production';
+      const workerRelPath = isDev ? 'src/workers/analytics.worker.ts' : 'dist/workers/analytics.worker.js';
+      const workerPath = require('path').join(process.cwd(), workerRelPath);
 
       const worker = new Worker(workerPath, {
         workerData: {
@@ -323,7 +325,7 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
           windowDays: parsedQuery.data.windowDays
         },
         // Ensure we can run TS files if we are in dev mode
-        execArgv: process.env.NODE_ENV !== 'production' ? ['--import', 'tsx/esm'] : undefined
+        execArgv: isDev ? ['--import', 'tsx/esm'] : undefined
       });
 
       worker.on('message', (result) => {

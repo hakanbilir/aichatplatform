@@ -9,8 +9,8 @@ export const SpecularButton: React.FC<ButtonProps> = ({ children, className, sx,
       const rect = btnRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      btnRef.current.style.setProperty('--mouse-x', `${x}px`);
-      btnRef.current.style.setProperty('--mouse-y', `${y}px`);
+      btnRef.current.style.setProperty('--local-x', `${x}px`);
+      btnRef.current.style.setProperty('--local-y', `${y}px`);
     }
   };
 

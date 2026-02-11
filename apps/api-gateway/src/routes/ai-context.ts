@@ -42,7 +42,20 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
         currentOrgId: (request.headers['x-org-id'] as string) || null,
         theme: 'kinetic-glass', // 2026 standard
         timestamp: new Date().toISOString(),
-        active_features: ['bento-grid', 'kinetic-refraction', 'agentic-middleware']
+        active_features: ['bento-grid', 'kinetic-refraction', 'agentic-middleware'],
+        feature_flags: {
+          kinetic_ui: true,
+          bento_grid: true,
+          agentic_middleware: true,
+          eco_mode_available: true
+        },
+        capabilities: [
+          'markdown_rendering',
+          'code_execution',
+          'file_upload',
+          'voice_input',
+          'image_generation'
+        ]
       },
       navigation_history: recentConversations.map((c: any) => ({
         type: 'conversation',

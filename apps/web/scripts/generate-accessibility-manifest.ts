@@ -29,7 +29,8 @@ function auditCodebase(srcDir: string) {
   return { filesScanned, ariaLabels, glassPanels, kineticType };
 }
 
-const srcDir = path.join(process.cwd(), 'apps/web/src');
+const cwd = process.cwd();
+const srcDir = fs.existsSync(path.join(cwd, 'src')) ? path.join(cwd, 'src') : path.join(cwd, 'apps/web/src');
 const auditStats = auditCodebase(srcDir);
 
 const manifest = {
@@ -87,7 +88,7 @@ const manifest = {
   }
 };
 
-const outputPath = path.join(process.cwd(), 'apps/web/public/accessibility-manifest.json');
+const outputPath = fs.existsSync(path.join(cwd, 'public')) ? path.join(cwd, 'public/accessibility-manifest.json') : path.join(cwd, 'apps/web/public/accessibility-manifest.json');
 
 // Ensure directory exists
 const dir = path.dirname(outputPath);

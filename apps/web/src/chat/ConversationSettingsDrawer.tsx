@@ -18,6 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import CloseIcon from '@mui/icons-material/Close';
 
 import { useAuth } from '../auth/AuthContext';
@@ -145,7 +146,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
       >
         <Box display="flex" alignItems="center" justifyContent="space-between" px={2} py={1.5}>
           <Box>
-            <Typography variant="subtitle1">{t('settings.title')}</Typography>
+            <KineticTypography variant="h6">{t('settings.title')}</KineticTypography>
             <Typography variant="caption" color="text.secondary">
               {t('settings.tuneBehavior')}
             </Typography>
@@ -174,9 +175,9 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
             <>
               {/* Model */}
               <Box mb={2}>
-                <Typography variant="subtitle2" gutterBottom>
+                <KineticTypography variant="subtitle2" gutterBottom>
                   {t('settings.model')}
-                </Typography>
+                </KineticTypography>
                 <FormControl fullWidth size="small">
                   <InputLabel id="drawer-model-select-label">{t('settings.modelKey')}</InputLabel>
                   <Select
@@ -210,9 +211,9 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
 
               {/* Temperature */}
               <Box mb={2}>
-                <Typography variant="subtitle2" gutterBottom>
+                <KineticTypography variant="subtitle2" gutterBottom>
                   {t('settings.temperature')}
-                </Typography>
+                </KineticTypography>
                 <Typography variant="caption" color="text.secondary">
                   {t('settings.temperatureHelper')}
                 </Typography>
@@ -233,9 +234,9 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
 
               {/* System prompt */}
               <Box mb={2}>
-                <Typography variant="subtitle2" gutterBottom>
+                <KineticTypography variant="subtitle2" gutterBottom>
                   {t('settings.systemInstructions')}
-                </Typography>
+                </KineticTypography>
                 <Typography variant="caption" color="text.secondary">
                   {t('settings.systemInstructionsHelper')}
                 </Typography>
@@ -253,9 +254,9 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
 
               {/* Tools */}
               <Box mb={2}>
-                <Typography variant="subtitle2" gutterBottom>
+                <KineticTypography variant="subtitle2" gutterBottom>
                   {t('settings.toolsIntegrations')}
-                </Typography>
+                </KineticTypography>
                 <FormControlLabel
                   control={<Switch checked={codeExecution} onChange={(e) => setCodeExecution(e.target.checked)} />}
                   label={t('settings.codeExecution')}

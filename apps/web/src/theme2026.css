@@ -54,8 +54,11 @@
 }
 
 .kinetic-typography {
-  /* Base weight 400, increases up to 700 based on scroll progress */
-  --target-weight: calc(400 + (300 * var(--scroll-progress, 0)));
+  /* Base weight 400, increases up to 700 based on scroll progress or mouse proximity */
+  --scroll-weight: calc(400 + (300 * var(--scroll-progress, 0)));
+  --mouse-weight-safe: var(--mouse-weight, 400);
+  --target-weight: max(var(--scroll-weight), var(--mouse-weight-safe));
+
   font-variation-settings: 'wght' var(--target-weight);
   transition: font-variation-settings 0.3s ease-out;
 }

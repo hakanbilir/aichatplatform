@@ -69,14 +69,17 @@ export default async function usageAnalyticsRoutes(
     reply.raw.write(`data: "processing"\n\n`);
 
     // Use Worker for aggregation (CPU-bound offloading)
-    // Resolving worker path relative to this file (src/routes -> src/usage-worker.ts)
-    // Dynamic extension handling for dev (.ts) and prod (.js)
-    const ext = __filename.endsWith('.ts') ? 'ts' : 'js';
-    const workerPath = path.join(__dirname, `../usage-worker.${ext}`);
+    // resolve path relative to process.cwd() to support both dev (ts) and prod (js)
+    // without relying on __dirname (ESM incompatible) or import.meta (CJS incompatible)
+    const isDev = process.env.NODE_ENV !== 'production';
+    const workerRelPath = isDev ? 'src/usage-worker.ts' : 'dist/usage-worker.js';
+    const workerPath = path.join(process.cwd(), workerRelPath);
 
     try {
       const worker = new Worker(workerPath, {
-        workerData: { rows }
+        workerData: { rows },
+        // execArgv required for tsx to handle .ts files in worker
+        execArgv: isDev ? ['--import', 'tsx/esm'] : undefined
       });
 
       const totals = await new Promise((resolve, reject) => {

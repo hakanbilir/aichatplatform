@@ -10,7 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
-    "test": "echo \"no tests yet\""
+    "test": "echo \"no tests yet\"",
+    "generate-a11y-manifest": "bun scripts/generate-accessibility-manifest.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",
