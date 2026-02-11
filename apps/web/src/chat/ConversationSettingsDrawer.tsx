@@ -18,9 +18,9 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import CloseIcon from '@mui/icons-material/Close';
 
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { useAuth } from '../auth/AuthContext';
 import {
   ConversationSettings,

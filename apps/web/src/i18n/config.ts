@@ -84,6 +84,7 @@ const resources = {
   },
 };
 
+// eslint-disable-next-line import/no-named-as-default-member
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)

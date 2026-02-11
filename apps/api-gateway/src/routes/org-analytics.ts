@@ -1,5 +1,6 @@
 // apps/api-gateway/src/routes/org-analytics.ts
 
+import path from 'path';
 import { Worker } from 'worker_threads';
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
@@ -317,7 +318,7 @@ export default async function orgAnalyticsRoutes(app: FastifyInstance, _opts: Fa
       // Use process.cwd() to resolve worker path for both dev (TS) and prod (JS)
       const isDev = process.env.NODE_ENV !== 'production';
       const workerRelPath = isDev ? 'src/workers/analytics.worker.ts' : 'dist/workers/analytics.worker.js';
-      const workerPath = require('path').join(process.cwd(), workerRelPath);
+      const workerPath = path.join(process.cwd(), workerRelPath);
 
       const worker = new Worker(workerPath, {
         workerData: {
