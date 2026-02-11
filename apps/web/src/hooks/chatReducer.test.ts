@@ -1,4 +1,6 @@
+// eslint-disable-next-line import/no-unresolved
 import { describe, it, expect } from 'bun:test';
+
 import { chatReducer, initialChatState, ChatState } from './chatReducer';
 
 describe('chatReducer', () => {

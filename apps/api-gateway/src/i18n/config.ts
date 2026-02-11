@@ -5,6 +5,7 @@ import Backend from 'i18next-fs-backend';
 
 // Initialize i18next for Node.js
 // Node.js için i18next'i başlat
+// eslint-disable-next-line import/no-named-as-default-member
 i18next
   .use(Backend)
   .init({
