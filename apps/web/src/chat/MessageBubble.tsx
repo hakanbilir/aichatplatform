@@ -6,10 +6,10 @@ import CheckIcon from '@mui/icons-material/Check';
 
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { useEcoMode } from '../hooks/useEcoMode';
+import { cleanMessageContent, shouldParseToolOutput } from '../utils/chatUtils';
 
 import { ThinkingBubble } from './ThinkingBubble';
 import { ArtifactRenderer } from './ArtifactRenderer';
-import { cleanMessageContent, shouldParseToolOutput } from '../utils/chatUtils';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'tool';
