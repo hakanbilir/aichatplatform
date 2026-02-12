@@ -1,5 +1,7 @@
 
+// eslint-disable-next-line import/no-unresolved
 import { expect, test, describe } from 'bun:test';
+
 import { cleanMessageContent, shouldParseToolOutput } from './chatUtils';
 
 describe('cleanMessageContent', () => {
