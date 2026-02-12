@@ -25,7 +25,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
 
-import { PromptTemplate, PromptVariable } from '../api/prompts';
+import { PromptTemplate } from '../api/prompts';
 
 import { usePromptTemplates } from './usePromptTemplates';
 
@@ -39,7 +39,7 @@ export interface PromptLibraryDrawerProps {
 }
 
 interface FilledVariables {
-  [name: string]: string | number | boolean;
+  [name: string]: string;
 }
 
 const gradientBg =
@@ -57,7 +57,7 @@ function fillTemplate(template: string, variables: FilledVariables): string {
 }
 
 function isOrgTemplate(t: PromptTemplate, currentUserId: string): boolean {
-  return t.isOrgShared && t.createdById !== currentUserId;
+  return t.createdById !== currentUserId;
 }
 
 const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
@@ -89,41 +89,36 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
   const handleSelectTemplate = (template: PromptTemplate) => {
     setSelectedTemplate(template);
     const initialVars: FilledVariables = {};
-    template.variables.forEach((v: PromptVariable) => {
-      if (v.defaultValue !== undefined) {
-        initialVars[v.name] = v.defaultValue;
-      } else {
-        if (v.type === 'boolean') {
-          initialVars[v.name] = false;
-        } else {
-          initialVars[v.name] = '';
-        }
-      }
+    const vars = template.latestVersion?.variables || {};
+
+    Object.entries(vars).forEach(([key, v]) => {
+      initialVars[key] = v.defaultValue || '';
     });
+
     setVariables(initialVars);
     setApplyDialogOpen(true);
   };
 
-  const handleVariableChange = (v: PromptVariable, raw: string) => {
-    let parsed: string | number | boolean = raw;
-    if (v.type === 'number') {
-      const num = Number(raw);
-      parsed = Number.isNaN(num) ? 0 : num;
-    }
-    if (v.type === 'boolean') {
-      parsed = raw === 'true';
-    }
-    setVariables((prev) => ({ ...prev, [v.name]: parsed }));
+  const handleVariableChange = (name: string, value: string) => {
+    setVariables((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleApply = () => {
-    if (!selectedTemplate) return;
-    const content = fillTemplate(selectedTemplate.template, variables);
+    if (!selectedTemplate || !selectedTemplate.latestVersion) return;
+    const content = fillTemplate(selectedTemplate.latestVersion.systemPrompt, variables);
     onApplyPrompt(content);
     setApplyDialogOpen(false);
     setSelectedTemplate(null);
     setVariables({});
   };
+
+  const templateVars = useMemo(() => {
+      if (!selectedTemplate?.latestVersion?.variables) return [];
+      return Object.entries(selectedTemplate.latestVersion.variables).map(([key, val]) => ({
+          name: key,
+          ...val
+      }));
+  }, [selectedTemplate]);
 
   return (
     <>
@@ -193,41 +188,47 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
             )}
             {!loading && filteredTemplates.length > 0 && (
               <List dense>
-                {filteredTemplates.map((tpl) => (
-                  <ListItem key={tpl.id} disablePadding>
-                    <ListItemButton
-                      onClick={() => handleSelectTemplate(tpl)}
-                      sx={{
-                        borderRadius: 2,
-                        mb: 0.5,
-                        '&:hover': {
-                          backgroundColor: 'action.hover'
-                        },
-                        transition: 'background-color 120ms ease-out'
-                      }}
-                    >
-                      <ListItemText
-                        primary={
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="body2">{tpl.title}</Typography>
-                            {tpl.isOrgShared && (
-                              <Chip size="small" label={t('library.orgChip')} variant="outlined" />
-                            )}
-                          </Box>
-                        }
-                        secondary={
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            noWrap
-                          >
-                            {tpl.description || tpl.template.slice(0, 80)}
-                          </Typography>
-                        }
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
+                {filteredTemplates.map((tpl) => {
+                  const isOrg = isOrgTemplate(tpl, currentUserId);
+                  const version = tpl.latestVersion;
+                  if (!version) return null;
+
+                  return (
+                    <ListItem key={tpl.id} disablePadding>
+                      <ListItemButton
+                        onClick={() => handleSelectTemplate(tpl)}
+                        sx={{
+                          borderRadius: 2,
+                          mb: 0.5,
+                          '&:hover': {
+                            backgroundColor: 'action.hover'
+                          },
+                          transition: 'background-color 120ms ease-out'
+                        }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Typography variant="body2">{tpl.name}</Typography>
+                              {isOrg && (
+                                <Chip size="small" label={t('library.orgChip')} variant="outlined" />
+                              )}
+                            </Box>
+                          }
+                          secondary={
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              noWrap
+                            >
+                              {tpl.description || version.systemPrompt.slice(0, 80)}
+                            </Typography>
+                          }
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
               </List>
             )}
           </Box>
@@ -247,24 +248,21 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
       >
         <DialogTitle>{t('library.fillVariables')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          {selectedTemplate && selectedTemplate.variables.length === 0 && (
+          {templateVars.length === 0 && (
             <Typography variant="body2" color="text.secondary">
               {t('library.noVariables')}
             </Typography>
           )}
-          {selectedTemplate &&
-            selectedTemplate.variables.map((v) => (
+          {templateVars.map((v) => (
               <TextField
                 key={v.name}
-                label={v.label}
+                label={v.description || v.name}
                 fullWidth
-                multiline={v.type === 'multiline'}
-                minRows={v.type === 'multiline' ? 3 : undefined}
-                type={v.type === 'number' ? 'number' : v.type === 'boolean' ? 'text' : 'text'}
-                value={String(variables[v.name] ?? '')}
-                onChange={(e) => handleVariableChange(v, e.target.value)}
+                multiline={false}
+                type="text"
+                value={variables[v.name] || ''}
+                onChange={(e) => handleVariableChange(v.name, e.target.value)}
                 required={v.required}
-                helperText={v.type === 'boolean' ? t('library.booleanHelper') : undefined}
               />
             ))}
         </DialogContent>

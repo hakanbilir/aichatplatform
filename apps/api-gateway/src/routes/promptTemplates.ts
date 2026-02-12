@@ -83,6 +83,7 @@ export default async function promptTemplatesRoutes(
         name: t.name,
         description: t.description,
         isArchived: t.isArchived,
+        createdById: t.createdById,
         createdAt: t.createdAt.toISOString(),
         latestVersion: v
           ? {
@@ -92,6 +93,7 @@ export default async function promptTemplatesRoutes(
               userPrefix: v.userPrefix,
               assistantStyle: v.assistantStyle,
               variables: v.variables as any,
+              createdById: v.createdById,
               createdAt: v.createdAt.toISOString(),
               createdByDisplayName: v.creator.name
             }
@@ -158,6 +160,7 @@ export default async function promptTemplatesRoutes(
         name: tmpl.name,
         description: tmpl.description,
         isArchived: tmpl.isArchived,
+        createdById: tmpl.createdById,
         createdAt: tmpl.createdAt.toISOString(),
         latestVersion: {
           id: latest.id,
@@ -166,6 +169,7 @@ export default async function promptTemplatesRoutes(
           userPrefix: latest.userPrefix,
           assistantStyle: latest.assistantStyle,
           variables: latest.variables as any,
+          createdById: latest.createdById,
           createdAt: latest.createdAt.toISOString(),
           createdByDisplayName: latest.creator.name
         }
@@ -232,6 +236,7 @@ export default async function promptTemplatesRoutes(
         name: tmpl.name,
         description: tmpl.description,
         isArchived: tmpl.isArchived,
+        createdById: tmpl.createdById,
         createdAt: tmpl.createdAt.toISOString(),
         versions: tmpl.versions.map((v) => ({
           id: v.id,
@@ -240,6 +245,7 @@ export default async function promptTemplatesRoutes(
           userPrefix: v.userPrefix,
           assistantStyle: v.assistantStyle,
           variables: v.variables as any,
+          createdById: v.createdById,
           createdAt: v.createdAt.toISOString(),
           createdByDisplayName: v.creator.name
         }))
@@ -294,6 +300,7 @@ export default async function promptTemplatesRoutes(
         userPrefix: v.userPrefix,
         assistantStyle: v.assistantStyle,
         variables: v.variables as any,
+        createdById: v.createdById,
         createdAt: v.createdAt.toISOString(),
         createdByDisplayName: v.creator.name
       }
