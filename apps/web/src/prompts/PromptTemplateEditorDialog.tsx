@@ -29,6 +29,14 @@ interface PromptTemplateEditorDialogProps {
   onSave: (input: CreatePromptTemplateInput, existingId?: string) => Promise<void>;
 }
 
+interface EditableVariable {
+  id: string; // internal id for list rendering
+  name: string;
+  description: string;
+  required: boolean;
+  defaultValue: string;
+}
+
 const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogProps> = ({
   open,
   onClose,
@@ -36,55 +44,64 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
   onSave
 }) => {
   const { t } = useTranslation(['prompts', 'common']);
-  const [title, setTitle] = useState('');
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [kind, setKind] = useState<'system' | 'user' | 'macro'>('user');
-  const [template, setTemplate] = useState('');
-  const [isOrgShared, setIsOrgShared] = useState(false);
-  const [variables, setVariables] = useState<PromptVariable[]>([]);
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [variables, setVariables] = useState<EditableVariable[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!initialTemplate) {
-      setTitle('');
+      setName('');
       setDescription('');
-      setKind('user');
-      setTemplate('');
-      setIsOrgShared(false);
+      setSystemPrompt('');
       setVariables([]);
       return;
     }
 
-    setTitle(initialTemplate.title);
+    setName(initialTemplate.name);
     setDescription(initialTemplate.description || '');
-    setKind(initialTemplate.kind as 'system' | 'user' | 'macro');
-    setTemplate(initialTemplate.template);
-    setIsOrgShared(initialTemplate.isOrgShared);
-    setVariables(initialTemplate.variables as PromptVariable[]);
+
+    const version = initialTemplate.latestVersion;
+    if (version) {
+        setSystemPrompt(version.systemPrompt);
+        const vars: EditableVariable[] = Object.entries(version.variables).map(([key, val]) => ({
+            id: key,
+            name: key,
+            description: val.description || '',
+            required: val.required ?? false,
+            defaultValue: val.defaultValue || ''
+        }));
+        setVariables(vars);
+    } else {
+        setSystemPrompt('');
+        setVariables([]);
+    }
   }, [initialTemplate, open]);
 
   const handleAddVariable = () => {
     const baseName = 'var';
     let index = variables.length + 1;
-    let name = `${baseName}${index}`;
+    let varName = `${baseName}${index}`;
 
-    while (variables.some((v) => v.name === name)) {
+    while (variables.some((v) => v.name === varName)) {
       index += 1;
-      name = `${baseName}${index}`;
+      varName = `${baseName}${index}`;
     }
 
     setVariables((prev) => [
       ...prev,
       {
-        name,
-        label: `Variable ${index}`,
-        type: 'string',
-        required: false
+        id: Math.random().toString(36).substr(2, 9),
+        name: varName,
+        description: '',
+        required: false,
+        defaultValue: ''
       }
     ]);
   };
 
-  const handleUpdateVariable = (index: number, patch: Partial<PromptVariable>) => {
+  const handleUpdateVariable = (index: number, patch: Partial<EditableVariable>) => {
     setVariables((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], ...patch };
@@ -97,15 +114,24 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !template.trim()) return;
+    if (!name.trim() || !systemPrompt.trim()) return;
+
+    const varsRecord: Record<string, PromptVariable> = {};
+    variables.forEach(v => {
+        if (v.name.trim()) {
+            varsRecord[v.name.trim()] = {
+                description: v.description,
+                required: v.required,
+                defaultValue: v.defaultValue || undefined
+            };
+        }
+    });
 
     const input: CreatePromptTemplateInput = {
-      title: title.trim(),
+      name: name.trim(),
       description: description.trim() || undefined,
-      kind,
-      template,
-      variables,
-      isOrgShared
+      systemPrompt,
+      variables: varsRecord,
     };
 
     setSaving(true);
@@ -132,21 +158,10 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
           <TextField
             label={t('title', { ns: 'prompts' })}
             fullWidth
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
           />
-          <Select
-            label={t('kind', { ns: 'prompts' })}
-            value={kind}
-            onChange={(e) => setKind(e.target.value as any)}
-            size="small"
-            sx={{ minWidth: 160, mt: { xs: 1, sm: 0 } }}
-          >
-            <MenuItem value="user">{t('kindUser', { ns: 'prompts' })}</MenuItem>
-            <MenuItem value="system">{t('kindSystem', { ns: 'prompts' })}</MenuItem>
-            <MenuItem value="macro">{t('kindMacro', { ns: 'prompts' })}</MenuItem>
-          </Select>
         </Box>
 
         <TextField
@@ -161,20 +176,10 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
           fullWidth
           multiline
           minRows={6}
-          value={template}
-          onChange={(e) => setTemplate(e.target.value)}
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
           helperText={t('templateHelper', { ns: 'prompts' })}
           required
-        />
-
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isOrgShared}
-              onChange={(e) => setIsOrgShared(e.target.checked)}
-            />
-          }
-          label={t('shareWithOrg', { ns: 'prompts' })}
         />
 
         <Box>
@@ -188,13 +193,16 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
           )}
           {variables.map((v, index) => (
             <Box
-              key={v.name}
+              key={v.id}
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1.2fr 1.2fr 1fr auto' },
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1.5fr auto auto' },
                 gap: 1,
                 alignItems: 'center',
-                mt: 1
+                mt: 1,
+                p: 1,
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 1
               }}
             >
               <TextField
@@ -202,23 +210,25 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
                 size="small"
                 value={v.name}
                 onChange={(e) => handleUpdateVariable(index, { name: e.target.value })}
+                required
               />
               <TextField
-                label={t('variableLabel', { ns: 'prompts' })}
+                label={t('variableDescription', { ns: 'prompts' })}
                 size="small"
-                value={v.label}
-                onChange={(e) => handleUpdateVariable(index, { label: e.target.value })}
+                value={v.description}
+                onChange={(e) => handleUpdateVariable(index, { description: e.target.value })}
               />
-              <Select
-                size="small"
-                value={v.type}
-                onChange={(e) => handleUpdateVariable(index, { type: e.target.value as any })}
-              >
-                <MenuItem value="string">{t('variableType.string', { ns: 'prompts' })}</MenuItem>
-                <MenuItem value="multiline">{t('variableType.multiline', { ns: 'prompts' })}</MenuItem>
-                <MenuItem value="number">{t('variableType.number', { ns: 'prompts' })}</MenuItem>
-                <MenuItem value="boolean">{t('variableType.boolean', { ns: 'prompts' })}</MenuItem>
-              </Select>
+              <FormControlLabel
+                control={
+                    <Switch
+                        size="small"
+                        checked={v.required}
+                        onChange={(e) => handleUpdateVariable(index, { required: e.target.checked })}
+                    />
+                }
+                label={<Typography variant="caption">{t('required', { ns: 'common' })}</Typography>}
+              />
+
               <IconButton
                 size="small"
                 color="error"
@@ -242,7 +252,7 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
         <Button
           onClick={handleSave}
           variant="contained"
-          disabled={saving || !title.trim() || !template.trim()}
+          disabled={saving || !name.trim() || !systemPrompt.trim()}
         >
           {saving ? t('saving', { ns: 'prompts' }) : t('save', { ns: 'prompts' })}
         </Button>

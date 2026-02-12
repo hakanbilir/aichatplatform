@@ -16,6 +16,7 @@ export interface PromptTemplateVersionDto {
   assistantStyle: string | null;
   variables: Record<string, PromptVariable>;
   createdAt: string;
+  createdById: string;
   createdByDisplayName: string | null;
 }
 
@@ -25,6 +26,7 @@ export interface PromptTemplate {
   name: string;
   description: string | null;
   isArchived: boolean;
+  createdById: string;
   createdAt: string;
   latestVersion: PromptTemplateVersionDto | null;
 }
@@ -35,6 +37,7 @@ export interface PromptTemplateDetailDto {
   name: string;
   description: string | null;
   isArchived: boolean;
+  createdById: string;
   createdAt: string;
   versions: PromptTemplateVersionDto[];
 }
