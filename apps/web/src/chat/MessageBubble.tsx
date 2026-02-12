@@ -9,6 +9,7 @@ import { useEcoMode } from '../hooks/useEcoMode';
 
 import { ThinkingBubble } from './ThinkingBubble';
 import { ArtifactRenderer } from './ArtifactRenderer';
+import { cleanMessageContent, shouldParseToolOutput } from '../utils/chatUtils';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'tool';
@@ -38,6 +39,9 @@ const MessageBubbleComponent = ({ role, content, images, meta, thinkingText, isT
   // Optimized: useMemo avoids re-parsing JSON on every render (e.g. EcoMode toggle, copy state)
   const artifact = useMemo(() => {
     if (!isTool) return null;
+    // Optimization: Skip expensive JSON.parse for partial streams that are guaranteed to fail
+    if (!shouldParseToolOutput(content)) return null;
+
     try {
         // Tool content is usually stringified JSON
         const json = JSON.parse(content);
@@ -66,7 +70,7 @@ const MessageBubbleComponent = ({ role, content, images, meta, thinkingText, isT
   // Optimized: useMemo prevents expensive regex operations on every render
   const cleanContent = useMemo(() => {
     if (artifact) return '';
-    return content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    return cleanMessageContent(content);
   }, [content, artifact]);
 
   const renderContent = () => {
