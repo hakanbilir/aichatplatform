@@ -1,6 +1,27 @@
 
 import { describe, it, expect, mock, beforeAll } from 'bun:test';
 import fastify from 'fastify';
+import { roleHasPermission, OrgRole, OrgPermission } from '../src/rbac/roles';
+
+// Mock Guards explicitly to prevent leakage from other tests and use real roles logic
+mock.module('../src/rbac/guards', () => {
+  return {
+    assertOrgPermission: mock(async (user: any, orgId: string, permission: OrgPermission) => {
+      // In this test, we assume user1 is VIEWER in org1
+      // Ideally we'd fetch from DB but we are mocking DB too.
+      // So we use the same assumption as the DB mock.
+      const role: OrgRole = 'VIEWER';
+
+      if (!roleHasPermission(role, permission)) {
+        const error = new Error('Forbidden');
+        (error as any).statusCode = 403;
+        throw error;
+      }
+      return role;
+    }),
+    getUserOrgRole: mock(() => Promise.resolve('VIEWER')),
+  };
+});
 
 // Mock DB
 mock.module('@ai-chat/db', () => {
