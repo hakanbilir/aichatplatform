@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
+import { DashboardBentoGrid } from '../components/dashboard/DashboardBentoGrid';
+
 import { MessageBubble } from './MessageBubble';
 import { StreamStore } from './StreamStore';
 import { StreamedMessage } from './StreamedMessage';
@@ -53,23 +55,7 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({
   const isEmpty = messages.length === 0 && !hasStreaming;
 
   if (isEmpty) {
-    return (
-      <Box
-        flex={1}
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        sx={{ opacity: 0.8 }}
-      >
-        <Typography variant="h6" gutterBottom>
-          {t('empty.startConversation')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('empty.description')}
-        </Typography>
-      </Box>
-    );
+    return <DashboardBentoGrid />;
   }
 
   return (

@@ -6,10 +6,10 @@ import { useTranslation } from 'react-i18next';
 
 import { signup } from '../api/auth';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
 import { useEcoMode } from '../hooks/useEcoMode';
+import { PublicBentoGrid } from '../layout/PublicBentoGrid';
 
 import { useAuth } from './AuthContext';
 
@@ -111,23 +111,8 @@ export const SignupPage: React.FC = () => {
   };
 
   return (
-    <Box
-      minHeight="100vh"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      className="gradient-shell"
-      position="relative"
-    >
-      {/* Language Switcher in top-right corner / Sağ üst köşede dil değiştirici */}
-      <Box
-        position="absolute"
-        top={16}
-        right={16}
-      >
-        <LanguageSwitcher />
-      </Box>
-      <GlassPanel refractive={!isEcoMode} sx={{ p: 4, width: 420 }}>
+    <PublicBentoGrid topRightElement={<LanguageSwitcher />}>
+      <Box sx={{ p: 4, width: '100%', maxWidth: 440, mx: 'auto' }}>
         <KineticTypography variant="h5" gutterBottom component="h1">
           {t('signup.title')}
         </KineticTypography>
@@ -204,8 +189,8 @@ export const SignupPage: React.FC = () => {
             </Link>
           </Typography>
         </Box>
-      </GlassPanel>
-    </Box>
+      </Box>
+    </PublicBentoGrid>
   );
 };
 
