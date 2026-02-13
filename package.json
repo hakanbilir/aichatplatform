@@ -22,7 +22,7 @@
     "clean": "turbo run clean",
     "db:migrate:dev": "bun run --filter=@ai-chat/db prisma:migrate:dev",
     "db:migrate:deploy": "bun run --filter=@ai-chat/db prisma:migrate:deploy",
-    "db:generate": "bun run --filter=@ai-chat/db prisma:generate",
+    "db:generate": "cd packages/db && bun run prisma:generate",
     "db:studio": "bun run --filter=@ai-chat/db prisma:studio",
     "db:seed": "bun run --filter=@ai-chat/db src/seed.ts"
   },
