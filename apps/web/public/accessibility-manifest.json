@@ -1,10 +1,10 @@
 {
   "version": "2026.1.1",
-  "generatedAt": "2026-02-11T16:31:18.851Z",
+  "generatedAt": "2026-02-13T16:36:19.661Z",
   "auditStats": {
-    "filesScanned": 76,
+    "filesScanned": 78,
     "ariaLabelsFound": 24,
-    "glassComponentsDetected": 66,
+    "glassComponentsDetected": 78,
     "kineticTypographyUsage": 1
   },
   "compliance": {
