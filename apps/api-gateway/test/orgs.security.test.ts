@@ -14,6 +14,10 @@ mock.module('@ai-chat/db', () => {
             }
             return Promise.resolve({ id: 'member_of_this_org', orgId: 'this_org' });
         }),
+        findFirst: mock((args) => {
+            // Used by getUserOrgRole
+            return Promise.resolve({ role: 'OWNER' });
+        }),
       },
       organization: {
         findUnique: mock(() => Promise.resolve({ id: 'org_id' })),
@@ -22,13 +26,8 @@ mock.module('@ai-chat/db', () => {
   };
 });
 
-// Mock guards
-mock.module('../src/rbac/guards', () => {
-  return {
-    assertOrgPermission: mock(() => Promise.resolve('OWNER')),
-    getUserOrgRole: mock(() => Promise.resolve('OWNER')),
-  };
-});
+// Mock guards removed to prevent leakage
+// Instead we mock the DB findFirst call which getUserOrgRole uses
 
 import fastify from 'fastify';
 import orgRoutes from '../src/routes/orgs';
