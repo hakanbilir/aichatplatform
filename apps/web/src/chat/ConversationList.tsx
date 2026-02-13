@@ -37,10 +37,6 @@ export const ConversationList: React.FC = () => {
   const navigate = useNavigate();
 
   const [items, setItems] = useState<ConversationListItem[]>([]);
-  // Optimizing performance: caching personal conversations to avoid redundant API calls during search
-  const [allPersonalItems, setAllPersonalItems] = useState<ConversationListItem[]>([]);
-  const [hasLoadedPersonal, setHasLoadedPersonal] = useState(false);
-
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -63,17 +59,13 @@ export const ConversationList: React.FC = () => {
     }
   }, [conversationId]);
 
-  const load = useCallback(async (opts: { append: boolean; cursor?: string; search?: string; force?: boolean }) => {
+  const load = useCallback(async (opts: { append: boolean; cursor?: string; search?: string }) => {
     if (!token) return;
 
     if (opts.append) {
       setLoadingMore(true);
     } else {
-      // Only set global loading if we are actually fetching
-      // If we are filtering cached results, don't show spinner
-      if (orgId || !hasLoadedPersonal || opts.force) {
-          setLoading(true);
-      }
+      setLoading(true);
       setError(null);
     }
 
@@ -92,22 +84,12 @@ export const ConversationList: React.FC = () => {
         next = res.nextCursor;
       } else {
         // Personal / Global (flat list, no search/pagination params in API definition yet)
-        let sourceItems = allPersonalItems;
-
-        // Fetch if not loaded or forced
-        if (!hasLoadedPersonal || opts.force) {
-            const res = await listConversations(token);
-            sourceItems = res.conversations;
-            setAllPersonalItems(sourceItems);
-            setHasLoadedPersonal(true);
-        }
-
-        // Client-side search for personal list using (cached) sourceItems
+        const res = await listConversations(token);
+        newItems = res.conversations;
+        // Client-side search for personal list
         if (opts.search || search) {
             const q = (opts.search ?? search).toLowerCase();
-            newItems = sourceItems.filter(c => (c.title || '').toLowerCase().includes(q));
-        } else {
-            newItems = sourceItems;
+            newItems = newItems.filter(c => (c.title || '').toLowerCase().includes(q));
         }
         next = null;
       }
@@ -128,7 +110,7 @@ export const ConversationList: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [token, orgId, search, allPersonalItems, hasLoadedPersonal]); // search dependency for client-side filtering logic if needed
+  }, [token, orgId, search]); // search dependency for client-side filtering logic if needed
 
   const handleClearSearch = useCallback(() => {
     setSearch('');
@@ -147,8 +129,7 @@ export const ConversationList: React.FC = () => {
   useEffect(() => {
     const handleCreated = async (_e: Event) => {
       // Refresh list to show new item
-      // Force refresh since server has new data
-      void load({ append: false, force: true });
+      void load({ append: false });
     };
 
     // Also listen for selection events from other components
@@ -171,8 +152,6 @@ export const ConversationList: React.FC = () => {
              }
              // Optimistically prepend
              setItems(prev => [convo, ...prev]);
-             // Also update cache
-             setAllPersonalItems(prev => [convo, ...prev]);
              setSelectedId(convo.id);
          } catch (err) {
              console.error(err);
@@ -232,14 +211,6 @@ export const ConversationList: React.FC = () => {
             : c,
         ),
       );
-      // Update cache
-      setAllPersonalItems((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? { ...c, title: updated.title }
-            : c,
-        ),
-      );
     } catch (err) {
       setError((err as Error).message || 'Failed to rename conversation');
     } finally {
@@ -268,19 +239,6 @@ export const ConversationList: React.FC = () => {
             : c,
         ),
       );
-      // Update cache
-      setAllPersonalItems((prev) =>
-        prev.map((c) =>
-          c.id === item.id
-            ? {
-                ...c,
-                pinned: updated.pinned ?? false,
-                archivedAt: updated.archivedAt ?? c.archivedAt,
-                lastActivityAt: updated.lastActivityAt ?? c.lastActivityAt,
-              }
-            : c,
-        ),
-      );
     } catch (err) {
       setError((err as Error).message || 'Failed to update conversation');
     } finally {
@@ -293,8 +251,6 @@ export const ConversationList: React.FC = () => {
     try {
       await updateConversation(token, item.id, { archived: true });
       setItems((prev) => prev.filter((c) => c.id !== item.id));
-      // Update cache
-      setAllPersonalItems((prev) => prev.filter((c) => c.id !== item.id));
     } catch (err) {
       setError((err as Error).message || 'Failed to archive conversation');
     } finally {
