@@ -74,7 +74,7 @@ export const RetentionSettingsPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [token, orgId]);
+  }, [token, orgId, t]);
 
   const handleSave = async () => {
     if (!token || !orgId) return;

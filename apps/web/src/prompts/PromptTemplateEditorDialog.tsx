@@ -10,8 +10,6 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
-  MenuItem,
-  Select,
   Switch,
   TextField,
   Typography

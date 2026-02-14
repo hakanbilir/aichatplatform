@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { useTranslation } from 'react-i18next';
 
 import { DashboardBentoGrid } from '../components/dashboard/DashboardBentoGrid';
 
@@ -49,8 +48,6 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({
   streamStore,
   isStreaming
 }) => {
-  const { t } = useTranslation('chat');
-
   const hasStreaming = isStreaming || isThinking || !!streamingAssistantText;
   const isEmpty = messages.length === 0 && !hasStreaming;
 

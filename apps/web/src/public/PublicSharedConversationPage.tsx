@@ -61,7 +61,7 @@ export const PublicSharedConversationPage: React.FC = () => {
     }
 
     void load();
-  }, [slug]);
+  }, [slug, t]);
 
   const handlePassphraseSubmit = async () => {
     if (!slug || !passphrase) return;
@@ -72,7 +72,7 @@ export const PublicSharedConversationPage: React.FC = () => {
       setConversation(data);
       setPassphraseDialogOpen(false);
       setNeedsPassphrase(false);
-    } catch (err) {
+    } catch {
       setError(t('invalidPassphrase'));
     } finally {
       setLoading(false);
