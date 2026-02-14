@@ -45,6 +45,19 @@ const listQuerySchema = z.object({
   cursor: z.string().optional(),
 });
 
+const listPersonalQuerySchema = z.object({
+  limit: z
+    .string()
+    .optional()
+    .transform((value) => {
+      if (!value) return 100;
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return 100;
+      if (n > 100) return 100;
+      return Math.round(n);
+    }),
+});
+
 const createOrgConversationBodySchema = z.object({
   title: z.string().min(1).max(200).optional(),
   model: z.string().min(1).max(200).optional(),
@@ -328,6 +341,9 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
   }, async (request, reply) => {
     const payload = request.user as JwtPayload;
 
+    const parsedQuery = listPersonalQuerySchema.safeParse(request.query);
+    const limit = parsedQuery.success ? parsedQuery.data.limit : 100;
+
     const orgIds = await getUserOrgIds(payload.userId);
 
     const orConditions: any[] = [{ userId: payload.userId }];
@@ -352,7 +368,7 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
       orderBy: {
         updatedAt: 'desc',
       },
-      take: 100,
+      take: limit,
     });
 
     return reply.send({
