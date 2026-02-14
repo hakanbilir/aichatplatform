@@ -45,8 +45,12 @@ export interface ConversationDetails {
   }>;
 }
 
-export async function listConversations(token: string): Promise<{ conversations: ConversationListItem[] }> {
-  return apiRequest<{ conversations: ConversationListItem[] }>('/conversations', { method: 'GET' }, token);
+export async function listConversations(token: string, params: { limit?: number } = {}): Promise<{ conversations: ConversationListItem[] }> {
+  const query = new URLSearchParams();
+  if (params.limit != null) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+
+  return apiRequest<{ conversations: ConversationListItem[] }>(`/conversations${suffix}`, { method: 'GET' }, token);
 }
 
 export async function createConversation(
