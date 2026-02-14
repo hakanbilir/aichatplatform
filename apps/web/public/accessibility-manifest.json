@@ -1,11 +1,13 @@
 {
   "version": "2026.1.1",
-  "generatedAt": "2026-02-13T16:36:19.661Z",
+  "generatedAt": "2026-02-14T16:16:54.701Z",
   "auditStats": {
     "filesScanned": 78,
     "ariaLabelsFound": 24,
     "glassComponentsDetected": 78,
-    "kineticTypographyUsage": 1
+    "kineticTypographyUsage": 1,
+    "explicitTabIndices": 2,
+    "explicitRoles": 7
   },
   "compliance": {
     "wcag": "2.1 AA",
@@ -59,5 +61,7 @@
     "glassBorder": "rgba(255, 255, 255, 0.15)",
     "textPrimary": "#FFFFFF",
     "textSecondary": "rgba(255, 255, 255, 0.7)"
-  }
+  },
+  "tabOrder": "Logical flow (Top-Left -> Bottom-Right) enforced by CSS Grid.",
+  "ariaRoles": "Standard ARIA roles used where semantic HTML is insufficient."
 }

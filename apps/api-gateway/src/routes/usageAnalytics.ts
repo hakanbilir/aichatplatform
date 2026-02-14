@@ -72,7 +72,7 @@ export default async function usageAnalyticsRoutes(
     // resolve path relative to process.cwd() to support both dev (ts) and prod (js)
     // without relying on __dirname (ESM incompatible) or import.meta (CJS incompatible)
     const isDev = process.env.NODE_ENV !== 'production';
-    const workerRelPath = isDev ? 'src/usage-worker.ts' : 'dist/usage-worker.js';
+    const workerRelPath = isDev ? 'src/workers/usage-worker.ts' : 'dist/workers/usage-worker.js';
     const workerPath = path.join(process.cwd(), workerRelPath);
 
     try {

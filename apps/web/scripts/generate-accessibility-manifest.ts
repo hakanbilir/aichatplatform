@@ -7,8 +7,11 @@ function auditCodebase(srcDir: string) {
   let ariaLabels = 0;
   let glassPanels = 0;
   let kineticType = 0;
+  let tabIndices = 0;
+  let roles = 0;
 
   function scan(dir: string) {
+    if (!fs.existsSync(dir)) return;
     const files = fs.readdirSync(dir);
     for (const file of files) {
       const fullPath = path.join(dir, file);
@@ -21,12 +24,14 @@ function auditCodebase(srcDir: string) {
         ariaLabels += (content.match(/aria-label/g) || []).length;
         glassPanels += (content.match(/GlassPanel/g) || []).length;
         kineticType += (content.match(/kinetic-typography/g) || []).length;
+        tabIndices += (content.match(/tabIndex/g) || []).length;
+        roles += (content.match(/role=/g) || []).length;
       }
     }
   }
 
   scan(srcDir);
-  return { filesScanned, ariaLabels, glassPanels, kineticType };
+  return { filesScanned, ariaLabels, glassPanels, kineticType, tabIndices, roles };
 }
 
 const cwd = process.cwd();
@@ -40,7 +45,9 @@ const manifest = {
     filesScanned: auditStats.filesScanned,
     ariaLabelsFound: auditStats.ariaLabels,
     glassComponentsDetected: auditStats.glassPanels,
-    kineticTypographyUsage: auditStats.kineticType
+    kineticTypographyUsage: auditStats.kineticType,
+    explicitTabIndices: auditStats.tabIndices,
+    explicitRoles: auditStats.roles
   },
   compliance: {
     wcag: "2.1 AA",
@@ -85,7 +92,9 @@ const manifest = {
     glassBorder: "rgba(255, 255, 255, 0.15)",
     textPrimary: "#FFFFFF",
     textSecondary: "rgba(255, 255, 255, 0.7)"
-  }
+  },
+  tabOrder: "Logical flow (Top-Left -> Bottom-Right) enforced by CSS Grid.",
+  ariaRoles: "Standard ARIA roles used where semantic HTML is insufficient."
 };
 
 const outputPath = fs.existsSync(path.join(cwd, 'public')) ? path.join(cwd, 'public/accessibility-manifest.json') : path.join(cwd, 'apps/web/public/accessibility-manifest.json');

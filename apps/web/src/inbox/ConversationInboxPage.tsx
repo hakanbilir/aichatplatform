@@ -7,7 +7,6 @@ import {
   IconButton,
   InputAdornment,
   Pagination,
-  Paper,
   Skeleton,
   TextField,
   Tooltip,
@@ -35,9 +34,10 @@ interface ConversationHitCardProps {
   hit: ConversationSearchHit;
   onOpen: () => void;
   isEcoMode: boolean;
+  sx?: any;
 }
 
-const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, isEcoMode }) => {
+const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, isEcoMode, sx }) => {
   const { t } = useTranslation('inbox');
   const firstSnippet = hit.messages[0]?.snippet || '';
 
@@ -62,7 +62,8 @@ const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, 
           borderColor: 'primary.main',
           boxShadow: (theme) => theme.shadows[2]
         },
-        transition: 'border-color 120ms ease-out, box-shadow 120ms ease-out'
+        transition: 'border-color 120ms ease-out, box-shadow 120ms ease-out',
+        ...sx,
       }}
     >
       <Box display="flex" justifyContent="space-between" alignItems="center" gap={1}>
@@ -274,11 +275,12 @@ export const ConversationInboxPage: React.FC = () => {
               }
             }}
           >
-            {hits.map((hit) => (
+            {hits.map((hit, index) => (
               <ConversationHitCard
                 key={hit.conversationId}
                 hit={hit}
                 isEcoMode={isEcoMode}
+                sx={index === 0 ? { gridColumn: { md: 'span 2' } } : undefined}
                 onOpen={() => {
                   if (!orgId) return;
                   navigate(`/app/orgs/${orgId}/chat/${hit.conversationId}`);
