@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun run src/main.ts",
+    "dev": "node --watch --import tsx/esm src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "bun run dist/main.js",
     "lint": "eslint src --ext .ts",
@@ -15,7 +15,7 @@
     "@ai-chat/db": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "tsx": "^4.21.0"
   }
 }
-
