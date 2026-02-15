@@ -1,6 +1,6 @@
 // apps/web/src/org/OrgUsageDashboardPage.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   CardContent,
@@ -8,14 +8,12 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
+import DataObjectIcon from '@mui/icons-material/DataObject';
+import StorageIcon from '@mui/icons-material/Storage';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
@@ -25,6 +23,9 @@ import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { useEcoMode } from '../hooks/useEcoMode';
+import { MetricCard, TimeSeriesChart, DataGrid, DataGridColumn, TimeSeriesDataPoint } from '../components/dashboard';
+
+type AugmentedTopUser = TopUserDto & { totalTokens: number };
 
 export const OrgUsageDashboardPage: React.FC = () => {
   const { orgId } = useParams();
@@ -109,7 +110,12 @@ export const OrgUsageDashboardPage: React.FC = () => {
                if (jsonStr === '"processing"') continue;
                try {
                  const data = JSON.parse(jsonStr);
-                 if (data.totals) setUsage(data);
+                 // Assuming the stream returns the full UsageAnalyticsResponse structure periodically
+                 // or updates parts of it.
+                 // We specifically look for totals and usage array.
+                 if (data.totals || data.usage) {
+                     setUsage(prev => ({ ...prev, ...data } as UsageAnalyticsResponse));
+                 }
                } catch (e) {
                  console.error('Usage Stream parse error', e);
                }
@@ -133,6 +139,60 @@ export const OrgUsageDashboardPage: React.FC = () => {
     return `$${(micros / 1_000_000).toFixed(4)}`;
   };
 
+  // Prepare chart data
+  const chartData = useMemo<TimeSeriesDataPoint[]>(() => {
+    if (!usage || !usage.usage) return [];
+
+    // Sort by date just in case
+    return [...usage.usage]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map(d => ({
+        timestamp: d.date,
+        requestCount: d.requestCount,
+        totalTokens: d.inputTokens + d.outputTokens,
+        estimatedCost: d.estimatedCostMicros / 1_000_000
+    }));
+  }, [usage]);
+
+  // Columns for DataGrid
+  const columns: DataGridColumn<AugmentedTopUser>[] = [
+    {
+      key: 'userId', // Use userId as key for sorting, but render user name
+      label: 'User',
+      render: (_, row) => row.user?.name || row.user?.email || `User ${row.userId.slice(0, 8)}`,
+      sortable: true
+    },
+    {
+      key: 'requestCount',
+      label: 'Requests',
+      align: 'right',
+      sortable: true,
+      render: (val) => val.toLocaleString()
+    },
+    {
+        key: 'totalTokens', // Custom key for sorting
+        label: 'Total Tokens',
+        align: 'right',
+        sortable: true,
+        render: (val) => val.toLocaleString()
+    },
+    {
+      key: 'estimatedCostMicros',
+      label: 'Cost',
+      align: 'right',
+      sortable: true,
+      render: (val) => formatCost(val)
+    }
+  ];
+
+  // Augment data for sorting
+  const augmentedTopUsers = useMemo(() => {
+      return topUsers.map(u => ({
+          ...u,
+          totalTokens: u.inputTokens + u.outputTokens
+      }));
+  }, [topUsers]);
+
   return (
     <Box
       sx={{
@@ -141,12 +201,13 @@ export const OrgUsageDashboardPage: React.FC = () => {
         flexDirection: 'column',
         gap: 3,
         height: '100%',
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
+        overflowY: 'auto'
       }}
     >
-      <Box display="flex" alignItems="center" justifyContent="space-between">
+      <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
         <Box display="flex" alignItems="center" gap={1}>
-          <AutoAwesomeIcon fontSize="small" />
+          <AutoAwesomeIcon fontSize="small" color="primary" />
           <Box>
             <KineticTypography variant="h4" component="h1">Usage & cost dashboard</KineticTypography>
             <Typography variant="caption" color="text.secondary">
@@ -170,79 +231,68 @@ export const OrgUsageDashboardPage: React.FC = () => {
       </Box>
 
       <BentoGrid>
+        {/* Metric Cards */}
         {usage && (
           <>
-            <GlassPanel refractive={!isEcoMode}>
-              <CardContent>
-                <KineticTypography variant="subtitle2" gutterBottom>
-                  Total requests
-                </KineticTypography>
-                <KineticTypography variant="h3">{usage.totals.requestCount.toLocaleString()}</KineticTypography>
-              </CardContent>
-            </GlassPanel>
-            <GlassPanel refractive={!isEcoMode}>
-              <CardContent>
-                <KineticTypography variant="subtitle2" gutterBottom>
-                  Total tokens
-                </KineticTypography>
-                <KineticTypography variant="h3">
-                  {(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()}
-                </KineticTypography>
-                <Typography variant="caption" color="text.secondary">
-                  {usage.totals.inputTokens.toLocaleString()} in ·{' '}
-                  {usage.totals.outputTokens.toLocaleString()} out
-                </Typography>
-              </CardContent>
-            </GlassPanel>
-            <GlassPanel refractive={!isEcoMode}>
-              <CardContent>
-                <KineticTypography variant="subtitle2" gutterBottom>
-                  Estimated cost
-                </KineticTypography>
-                <KineticTypography variant="h3">{formatCost(usage.totals.estimatedCostMicros)}</KineticTypography>
-              </CardContent>
-            </GlassPanel>
+            <MetricCard
+              label="Total Requests"
+              value={usage.totals.requestCount}
+              icon={<StorageIcon fontSize="large" sx={{ opacity: 0.7 }} />}
+              gradientVariant={1}
+            />
+            <MetricCard
+              label="Total Tokens"
+              value={(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()}
+              secondaryValue={`${usage.totals.inputTokens.toLocaleString()} in · ${usage.totals.outputTokens.toLocaleString()} out`}
+              icon={<DataObjectIcon fontSize="large" sx={{ opacity: 0.7 }} />}
+              gradientVariant={2}
+            />
+            <MetricCard
+              label="Estimated Cost"
+              value={formatCost(usage.totals.estimatedCostMicros)}
+              icon={<RequestQuoteIcon fontSize="large" sx={{ opacity: 0.7 }} />}
+              gradientVariant={3}
+            />
           </>
         )}
 
+        {/* Time Series Chart */}
+        {usage?.usage && usage.usage.length > 0 && (
+          <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: '1 / -1', minHeight: 400, p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Box mb={2}>
+                <KineticTypography variant="h6">Usage Trends</KineticTypography>
+                <Typography variant="caption" color="text.secondary">Daily request volume and token usage</Typography>
+            </Box>
+            <Box flex={1}>
+                <TimeSeriesChart
+                    data={chartData}
+                    dataKeys={['requestCount', 'totalTokens']}
+                    colors={['#7C4DFF', '#00E5FF']}
+                    formatXAxis={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                />
+            </Box>
+          </GlassPanel>
+        )}
+
+        {/* Top Users Grid */}
         <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: '1 / -1', minHeight: 400 }}>
           <CardContent>
-            <KineticTypography variant="h5" gutterBottom>
-              Top users
-            </KineticTypography>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>User</TableCell>
-                  <TableCell align="right">Requests</TableCell>
-                  <TableCell align="right">Tokens</TableCell>
-                  <TableCell align="right">Cost</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {topUsers.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4}>
-                      <Typography variant="body2" color="text.secondary">
-                        No usage data yet.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {topUsers.map((u) => (
-                  <TableRow key={u.userId}>
-                    <TableCell>
-                      {u.user?.name || u.user?.email || `User ${u.userId.slice(0, 8)}`}
-                    </TableCell>
-                    <TableCell align="right">{u.requestCount.toLocaleString()}</TableCell>
-                    <TableCell align="right">
-                      {(u.inputTokens + u.outputTokens).toLocaleString()}
-                    </TableCell>
-                    <TableCell align="right">{formatCost(u.estimatedCostMicros)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <Box mb={2}>
+                <KineticTypography variant="h5" gutterBottom>
+                Top users
+                </KineticTypography>
+                <Typography variant="caption" color="text.secondary">Highest usage by user</Typography>
+            </Box>
+
+            <DataGrid
+                data={augmentedTopUsers}
+                columns={columns}
+                initialSortColumn="estimatedCostMicros"
+                initialSortDirection="desc"
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                defaultRowsPerPage={5}
+                emptyMessage="No usage data available for this period."
+            />
           </CardContent>
         </GlassPanel>
       </BentoGrid>
