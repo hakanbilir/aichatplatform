@@ -1,12 +1,7 @@
-// apps/web/src/org/PromptTemplatesPage.tsx
-
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
-  Card,
-  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
@@ -31,10 +26,16 @@ import {
   fetchPromptTemplates,
   PromptTemplate
 } from '../api/prompts';
+import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 export const PromptTemplatesPage: React.FC = () => {
   const { orgId } = useParams();
   const { token } = useAuth();
+  const { isEcoMode } = useEcoMode();
 
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [selected, setSelected] = useState<PromptTemplateDetailDto | null>(null);
@@ -46,10 +47,6 @@ export const PromptTemplatesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [newVersionPrompt, setNewVersionPrompt] = useState('');
-
-  const gradientBg =
-    'radial-gradient(circle at top left, rgba(96,165,250,0.18), transparent 55%), ' +
-    'radial-gradient(circle at bottom right, rgba(56,189,248,0.18), transparent 55%)';
 
   const load = async () => {
     if (!token || !orgId) return;
@@ -132,148 +129,152 @@ export const PromptTemplatesPage: React.FC = () => {
     }
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
         {versions.map((v) => (
-          <Card key={v.id} sx={{ borderRadius: 2 }}>
-            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="subtitle2">v{v.version}</Typography>
+          <GlassPanel key={v.id} refractive={false} sx={{ p: 2, border: '1px solid rgba(255,255,255,0.1)' }}>
+             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>v{v.version}</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {v.createdByDisplayName || 'Unknown'} ·{' '}
                   {new Date(v.createdAt).toLocaleString()}
                 </Typography>
               </Box>
-              <Typography
-                variant="body2"
-                sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: 'rgba(0,0,0,0.2)',
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  whiteSpace: 'pre-wrap',
+                  color: 'text.secondary'
+                }}
               >
                 {v.systemPrompt}
-              </Typography>
-            </CardContent>
-          </Card>
+              </Box>
+          </GlassPanel>
         ))}
       </Box>
     );
   };
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        display: 'flex',
-        gap: 2,
-        height: '100%',
-        backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
-      }}
-    >
-      <Box sx={{ width: 260, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
+    <Box sx={{ height: '100%', p: 2, display: 'flex', flexDirection: 'column' }}>
+       <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center" gap={1}>
-            <AutoAwesomeIcon fontSize="small" />
-            <Typography variant="subtitle1">Prompt templates</Typography>
+             <AutoAwesomeIcon fontSize="medium" />
+             <KineticTypography variant="h4" component="h1">
+               Prompt Templates
+             </KineticTypography>
           </Box>
-          <Button
-            size="small"
+          <SpecularButton
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setDialogOpen(true)}
             disabled={loading}
           >
-            New
-          </Button>
-        </Box>
+            New Template
+          </SpecularButton>
+       </Box>
 
-        <Card sx={{ flex: 1, borderRadius: 3, overflow: 'auto' }}>
-          <CardContent sx={{ p: 0 }}>
-            <List dense>
+       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+       <BentoGrid sx={{ flex: 1, minHeight: 0 }}>
+          {/* Sidebar List */}
+          <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: 'span 1', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <List dense sx={{ flex: 1, overflow: 'auto', p: 1 }}>
               {templates.map((t) => (
                 <ListItemButton
                   key={t.id}
                   selected={selected?.id === t.id}
                   onClick={() => void loadDetail(t.id)}
                   disabled={loading}
+                  sx={{ borderRadius: 2, mb: 0.5 }}
                 >
                   <ListItemText
-                    primary={t.name}
-                    secondary={t.description || t.latestVersion?.systemPrompt.slice(0, 60) || 'No content'}
+                    primary={<Typography fontWeight={selected?.id === t.id ? 'bold' : 'normal'}>{t.name}</Typography>}
+                    secondary={t.description || t.latestVersion?.systemPrompt.slice(0, 40) + '...' || 'No content'}
+                    secondaryTypographyProps={{ noWrap: true }}
                   />
                 </ListItemButton>
               ))}
               {templates.length === 0 && (
                 <Box p={2}>
                   <Typography variant="body2" color="text.secondary">
-                    No templates yet.
+                    No templates found. Create one to get started.
                   </Typography>
                 </Box>
               )}
             </List>
-          </CardContent>
-        </Card>
-      </Box>
+          </GlassPanel>
 
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {/* Main Content */}
+          <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: 'span 2', overflow: 'hidden', display: 'flex', flexDirection: 'column', p: 3 }}>
+            {selected ? (
+               <Box sx={{ height: '100%', overflow: 'auto', pr: 1 }}>
+                  <KineticTypography variant="h5" gutterBottom>{selected.name}</KineticTypography>
+                  {selected.description && (
+                    <Typography variant="body1" color="text.secondary" paragraph>
+                      {selected.description}
+                    </Typography>
+                  )}
 
-        {selected ? (
-          <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-              <Typography variant="h6">{selected.name}</Typography>
-              {selected.description && (
-                <Typography variant="body2" color="text.secondary">
-                  {selected.description}
-                </Typography>
-              )}
+                  <Box mt={4}>
+                    <KineticTypography variant="h6" gutterBottom>Add New Version</KineticTypography>
+                    <TextField
+                      multiline
+                      minRows={4}
+                      fullWidth
+                      placeholder="Enter updated system prompt..."
+                      value={newVersionPrompt}
+                      onChange={(e) => setNewVersionPrompt(e.target.value)}
+                      disabled={loading}
+                      variant="outlined"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                           bgcolor: 'rgba(0,0,0,0.2)'
+                        }
+                      }}
+                    />
+                    <Box mt={2} display="flex" justifyContent="flex-end">
+                      <SpecularButton
+                        variant="contained"
+                        disabled={!newVersionPrompt.trim() || loading}
+                        onClick={handleAddVersion}
+                      >
+                        Save Version
+                      </SpecularButton>
+                    </Box>
+                  </Box>
 
-              <Typography variant="subtitle2">Versions</Typography>
-              {renderVersions(selected.versions)}
+                  <Box mt={4}>
+                    <KineticTypography variant="h6">History</KineticTypography>
+                    {renderVersions(selected.versions)}
+                  </Box>
+               </Box>
+            ) : (
+               <Box height="100%" display="flex" alignItems="center" justifyContent="center">
+                  <Typography variant="body1" color="text.secondary">
+                    Select a template from the list to view details.
+                  </Typography>
+               </Box>
+            )}
+          </GlassPanel>
+       </BentoGrid>
 
-              <Box mt={1}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Add new version
-                </Typography>
-                <TextField
-                  multiline
-                  minRows={4}
-                  fullWidth
-                  placeholder="Enter updated system prompt..."
-                  value={newVersionPrompt}
-                  onChange={(e) => setNewVersionPrompt(e.target.value)}
-                  disabled={loading}
-                />
-                <Box mt={1} display="flex" justifyContent="flex-end">
-                  <Button
-                    size="small"
-                    variant="contained"
-                    disabled={!newVersionPrompt.trim() || loading}
-                    onClick={handleAddVersion}
-                  >
-                    Save new version
-                  </Button>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card sx={{ borderRadius: 3, height: '100%' }}>
-            <CardContent
-              sx={{
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Select a template to view details.
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
-      </Box>
-
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>New prompt template</DialogTitle>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+            sx: {
+                bgcolor: 'background.paper',
+                backgroundImage: 'none'
+            }
+        }}
+      >
+        <DialogTitle>New Prompt Template</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
           <TextField
             label="Name"
@@ -290,7 +291,7 @@ export const PromptTemplatesPage: React.FC = () => {
             disabled={loading}
           />
           <TextField
-            label="System prompt"
+            label="System Prompt"
             multiline
             minRows={4}
             fullWidth
@@ -300,10 +301,10 @@ export const PromptTemplatesPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
-          <Button onClick={handleCreateTemplate} disabled={!newName.trim() || !newSystemPrompt.trim() || loading}>
+          <SpecularButton onClick={() => setDialogOpen(false)} disabled={loading} color="inherit">Cancel</SpecularButton>
+          <SpecularButton variant="contained" onClick={handleCreateTemplate} disabled={!newName.trim() || !newSystemPrompt.trim() || loading}>
             Create
-          </Button>
+          </SpecularButton>
         </DialogActions>
       </Dialog>
     </Box>

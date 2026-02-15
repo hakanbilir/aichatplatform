@@ -7,6 +7,7 @@ import { LoadingState } from '../components/dashboard/LoadingState';
 import { RefractionFilter } from '../components/ui/RefractionFilter';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { useEcoMode } from '../hooks/useEcoMode';
+import { useConversationStream } from '../hooks/useConversationStream';
 
 import { SideNav } from './SideNav';
 import { TopBar } from './TopBar';
@@ -14,6 +15,9 @@ import { TopBar } from './TopBar';
 export const Shell: React.FC = () => {
   const isMobile = useIsMobile();
   const { isEcoMode } = useEcoMode();
+
+  // Activate kinetic streaming for conversation list updates
+  useConversationStream();
 
   const handleCreateConversation = () => {
     const event = new CustomEvent('create-conversation');
