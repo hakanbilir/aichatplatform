@@ -71,7 +71,7 @@ export const ConversationExportDialog: React.FC<ConversationExportDialogProps> =
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(interval);
-  }, [exportId, token, orgId, status]);
+  }, [exportId, token, orgId, status, t]);
 
   const handleStartExport = async () => {
     if (!token) return;

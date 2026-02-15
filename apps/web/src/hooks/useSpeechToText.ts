@@ -19,7 +19,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (e) {
+      } catch {
         // Ignore errors if already stopped
       }
     }

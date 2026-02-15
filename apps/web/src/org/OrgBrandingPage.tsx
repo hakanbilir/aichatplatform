@@ -77,7 +77,7 @@ export const OrgBrandingPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [token, orgId]);
+  }, [token, orgId, t]);
 
   const handleSave = async () => {
     if (!token || !orgId || !config) return;

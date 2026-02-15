@@ -8,7 +8,6 @@ import { signup } from '../api/auth';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
-import { useEcoMode } from '../hooks/useEcoMode';
 import { PublicBentoGrid } from '../layout/PublicBentoGrid';
 
 import { useAuth } from './AuthContext';
@@ -19,7 +18,6 @@ export const SignupPage: React.FC = () => {
   const { t } = useTranslation('auth');
   const { t: tValidation } = useTranslation('validation');
   const { t: tErrors } = useTranslation('errors');
-  const { isEcoMode } = useEcoMode();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

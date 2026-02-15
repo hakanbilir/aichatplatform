@@ -12,11 +12,10 @@ import { RefractionFilter } from '../components/ui/RefractionFilter';
 
 interface PublicBentoGridProps {
   children: React.ReactNode;
-  title?: string;
   topRightElement?: React.ReactNode;
 }
 
-export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, title, topRightElement }) => {
+export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, topRightElement }) => {
   const { isEcoMode } = useEcoMode();
 
   return (

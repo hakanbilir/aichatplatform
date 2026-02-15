@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Card,
   CardContent,
   FormControl,
   InputLabel,
@@ -20,7 +19,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
-import { fetchTopUsers, UsageAnalyticsResponse, TopUserDto } from '../api/usageAnalytics';
+import { UsageAnalyticsResponse, TopUserDto } from '../api/usageAnalytics';
 import { API_BASE_URL } from '../api/client';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';

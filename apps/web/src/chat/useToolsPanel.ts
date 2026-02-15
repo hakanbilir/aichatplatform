@@ -61,7 +61,7 @@ export function useToolsPanel(conversationId: string | null, orgId: string | nul
     if (argsJson.trim()) {
       try {
         parsedArgs = JSON.parse(argsJson);
-      } catch (err) {
+      } catch {
         setExecuteError('Args JSON is invalid.');
         return null;
       }

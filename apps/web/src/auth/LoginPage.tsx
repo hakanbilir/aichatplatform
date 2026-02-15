@@ -8,7 +8,6 @@ import { login } from '../api/auth';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
-import { useEcoMode } from '../hooks/useEcoMode';
 import { PublicBentoGrid } from '../layout/PublicBentoGrid';
 
 import { useAuth } from './AuthContext';
@@ -17,7 +16,6 @@ export const LoginPage: React.FC = () => {
   const { setAuthFromResponse } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('auth');
-  const { isEcoMode } = useEcoMode();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
