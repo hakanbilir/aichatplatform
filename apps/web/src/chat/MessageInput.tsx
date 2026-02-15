@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent, ClipboardEvent, DragEvent } from 'react';
+import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent, ClipboardEvent, DragEvent, forwardRef, useImperativeHandle } from 'react';
 import { Box, IconButton, TextField, CircularProgress, Tooltip, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SendIcon from '@mui/icons-material/Send';
@@ -7,6 +7,14 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
+
+export interface MessageInputHandle {
+  setValue: (value: string) => void;
+  getValue: () => string;
+  appendValue: (text: string) => void;
+  focus: () => void;
+}
+
 interface MessageInputProps {
   disabled?: boolean;
   onSend: (content: string, images?: string[]) => void;
@@ -20,7 +28,7 @@ interface MessageInputProps {
   onStopListening?: () => void;
 }
 
-const MessageInputComponent = ({
+const MessageInputComponent = forwardRef<MessageInputHandle, MessageInputProps>(function MessageInputComponentImpl({
   disabled,
   onSend,
   value: controlledValue,
@@ -31,43 +39,70 @@ const MessageInputComponent = ({
   transcript = '',
   onStartListening,
   onStopListening
-}: MessageInputProps) => {
+}, ref) {
   const { t } = useTranslation('chat');
   const [internalValue, setInternalValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // We need a ref for the text field to focus it
+  const textFieldRef = useRef<HTMLDivElement>(null);
 
-  // Voice logic moved to parent
-  
-  const value = controlledValue !== undefined ? controlledValue : internalValue;
+  // Determine current value: controlled takes precedence if provided
+  const isControlled = controlledValue !== undefined;
+  const value = isControlled ? controlledValue : internalValue;
+
+  useImperativeHandle(ref, () => ({
+    setValue: (newValue: string) => {
+      if (!isControlled) {
+        setInternalValue(newValue);
+      }
+      if (onChange) {
+        onChange(newValue);
+      }
+    },
+    getValue: () => value,
+    appendValue: (text: string) => {
+      const spacer = value && !value.endsWith(' ') ? ' ' : '';
+      const newValue = value + spacer + text;
+
+      if (!isControlled) {
+        setInternalValue(newValue);
+      }
+      if (onChange) {
+        onChange(newValue);
+      }
+    },
+    focus: () => {
+        // Attempt to find input inside TextField
+        const input = textFieldRef.current?.querySelector('textarea');
+        if (input) {
+            input.focus();
+        }
+    }
+  }));
+
   const setValue = (newValue: string) => {
     if (onChange) {
       onChange(newValue);
-    } else {
-      setInternalValue(newValue);
+    }
+
+    // Always update internal state to support uncontrolled mode or hybrid
+    if (!isControlled) {
+       setInternalValue(newValue);
     }
   };
 
   useEffect(() => {
     if (transcript) {
-      // Transcript is now appended by parent or handled differently
-      // But if we want to support appending while listening (if overlay is not used, or if overlay passes final text)
-      // Actually, if using overlay, the transcript might be shown THERE, not here.
-      // But typically we want the final result to land here.
-      // Let's assume the parent handles appending to value, or we assume transcript is "live" and we don't append until done?
-      // With the previous logic, it appended continuously.
-      // Let's rely on the parent to update `value` if it wants to put text here.
-      // Or we can keep the logic if `transcript` is passed.
-      // However, if the overlay shows the transcript, maybe we don't want it here YET.
-      // Let's assume the parent handles text insertion upon completion or live updates.
+       // Transcript handling logic if needed.
+       // Currently handled by parent via appendValue or ignored here.
     }
-  }, [transcript]); // Minimal effect
+  }, [transcript]);
 
   const hasContent = value.trim().length > 0 || images.length > 0;
-  // If streaming, send button becomes stop button, so it is not disabled unless onStop is missing
-  // If not streaming, check disabled/submitting/content
+
   const isActionDisabled = isStreaming
     ? !onStop
     : (disabled || submitting || !hasContent);
@@ -271,6 +306,7 @@ const MessageInputComponent = ({
         )}
 
         <TextField
+          ref={textFieldRef}
           fullWidth
           multiline
           maxRows={5}
@@ -330,7 +366,7 @@ const MessageInputComponent = ({
       </Box>
     </Box>
   );
-};
+});
 
 export const MessageInput = memo(MessageInputComponent);
 MessageInput.displayName = 'MessageInput';

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   IconButton,
@@ -31,7 +31,7 @@ import { ConversationSettingsDrawer } from './ConversationSettingsDrawer';
 import { ChatSettingsBar } from './ChatSettingsBar';
 import { ToolsPanel } from './ToolsPanel';
 import { ChatView } from './ChatView';
-import { MessageInput } from './MessageInput';
+import { MessageInput, MessageInputHandle } from './MessageInput';
 import { VoiceModeOverlay } from './VoiceModeOverlay';
 
 function clampTemperature(value: number): number {
@@ -90,7 +90,8 @@ export const ChatPage: React.FC = () => {
   const [toolsOpen, setToolsOpen] = useState<boolean>(false);
   const [promptLibraryOpen, setPromptLibraryOpen] = useState<boolean>(false);
   const [templateEditorOpen, setTemplateEditorOpen] = useState<boolean>(false);
-  const [messageInputValue, setMessageInputValue] = useState<string>('');
+  // Optimization: use ref instead of state to prevent re-renders on every keystroke
+  const inputRef = useRef<MessageInputHandle>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
   
@@ -117,10 +118,8 @@ export const ChatPage: React.FC = () => {
 
   useEffect(() => {
     if (!isListening && transcript) {
-      setMessageInputValue(prev => {
-        const spacer = prev && !prev.endsWith(' ') ? ' ' : '';
-        return prev + spacer + transcript;
-      });
+      // Performance optimization: Use uncontrolled input to avoid re-renders
+      inputRef.current?.appendValue(transcript);
       resetTranscript();
     }
   }, [isListening, transcript, resetTranscript]);
@@ -265,7 +264,7 @@ export const ChatPage: React.FC = () => {
   const handleCloseShare = useCallback(() => setShareDialogOpen(false), []);
 
   const handleApplyPrompt = useCallback((content: string) => {
-    setMessageInputValue(content);
+    inputRef.current?.setValue(content);
     setPromptLibraryOpen(false);
   }, []);
 
@@ -361,12 +360,11 @@ export const ChatPage: React.FC = () => {
           </IconButton>
         </Box>
         <MessageInput
+          ref={inputRef}
           disabled={!conversationId || isStreaming}
           isStreaming={isStreaming}
           onStop={stop}
           onSend={handleSend}
-          value={messageInputValue}
-          onChange={setMessageInputValue}
           isListening={isListening}
           transcript={transcript}
           onStartListening={speechSupported ? startListening : undefined}
