@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-unresolved
 import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test';
 import fastify from 'fastify';
 import { prisma } from '@ai-chat/db';
@@ -24,7 +25,7 @@ describe('AI Context Routes', () => {
     app = fastify();
 
     // Mock authentication decorator
-    app.decorate('authenticate', async (req: any, reply: any) => {
+    app.decorate('authenticate', async (req: any, _reply: any) => {
       // Simulate authenticated user
       req.user = { userId: 'user-123', isSuperadmin: false };
     });

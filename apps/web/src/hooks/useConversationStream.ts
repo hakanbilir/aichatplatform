@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
 import { API_BASE_URL } from '../api/client';
 
@@ -46,7 +47,7 @@ export function useConversationStream() {
                  }
 
                  // Future: handle conversation.updated, message.created, etc.
-               } catch (e) {
+               } catch {
                  // ignore parse errors or heartbeats
                }
             }
