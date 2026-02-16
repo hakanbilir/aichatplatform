@@ -1,4 +1,4 @@
-import { useState, memo, useMemo } from 'react';
+import { useState, memo, useMemo, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
@@ -18,6 +18,16 @@ function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps)
   const { t } = useTranslation('chat');
   const [activeTab, setActiveTab] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [debouncedCode, setDebouncedCode] = useState(code);
+
+  // Debounce code updates for preview to prevent frequent re-renders and expensive operations
+  // during streaming. We keep the raw 'code' for the Code tab for real-time updates.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedCode(code);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [code]);
 
   const handleCopy = async () => {
     try {
@@ -30,9 +40,10 @@ function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps)
   };
 
   const sanitizedCode = useMemo(() => {
-    if (type === 'html') return ''; // HTML type uses srcDoc, no need to sanitize here
-    return DOMPurify.sanitize(code);
-  }, [code, type]);
+    // Only sanitize if looking at preview and not HTML (HTML uses iframe srcDoc)
+    if (activeTab !== 0 || type === 'html') return '';
+    return DOMPurify.sanitize(debouncedCode);
+  }, [debouncedCode, type, activeTab]);
 
   return (
     <GlassPanel sx={{ mt: 2, mb: 2, overflow: 'hidden', borderRadius: 2 }}>
@@ -68,7 +79,7 @@ function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps)
            <Box sx={{ height: '100%', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: '#fff' }}>
              {type === 'html' ? (
                 <iframe
-                  srcDoc={code}
+                  srcDoc={debouncedCode}
                   style={{ width: '100%', height: '100%', border: 'none' }}
                   sandbox="allow-scripts allow-popups allow-forms"
                   title="artifact-preview"
