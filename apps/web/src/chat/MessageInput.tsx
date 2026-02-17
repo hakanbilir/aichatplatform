@@ -111,11 +111,14 @@ const MessageInputComponent = forwardRef<MessageInputHandle, MessageInputProps>(
     if (isActionDisabled) return;
     const content = value;
     const imgs = images;
+
+    // Optimization: Clear input immediately for better UI responsiveness (Optimistic UI)
+    setValue('');
+    setImages([]);
+
     setSubmitting(true);
     try {
       await onSend(content, imgs);
-      setValue('');
-      setImages([]);
     } finally {
       setSubmitting(false);
     }
