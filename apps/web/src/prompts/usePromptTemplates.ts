@@ -7,6 +7,7 @@ import {
   PromptTemplate,
   CreatePromptTemplateInput,
   createPromptTemplateApi,
+  createPromptTemplateVersion,
   deletePromptTemplateApi,
   fetchPromptTemplates,
   updatePromptTemplateApi
@@ -60,7 +61,25 @@ export function usePromptTemplates(orgId: string | null) {
 
   const updateTemplate = useCallback(async (templateId: string, data: Partial<CreatePromptTemplateInput>) => {
     if (!token || !orgId) return;
-    await updatePromptTemplateApi(token, orgId, templateId, data);
+
+    // 1. Update metadata (name, description)
+    if (data.name || data.description) {
+      await updatePromptTemplateApi(token, orgId, templateId, {
+        name: data.name,
+        description: data.description,
+      });
+    }
+
+    // 2. Create new version if content changed (systemPrompt)
+    if (data.systemPrompt) {
+      await createPromptTemplateVersion(token, orgId, templateId, {
+        systemPrompt: data.systemPrompt,
+        variables: data.variables,
+        userPrefix: data.userPrefix,
+        assistantStyle: data.assistantStyle
+      });
+    }
+
     const next = await fetchPromptTemplates(token, orgId);
     setTemplates(next);
   }, [token, orgId]);
@@ -80,4 +99,3 @@ export function usePromptTemplates(orgId: string | null) {
     deleteTemplate
   };
 }
-

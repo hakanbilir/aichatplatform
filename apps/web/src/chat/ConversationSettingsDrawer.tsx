@@ -37,6 +37,7 @@ export interface ConversationSettingsDrawerProps {
   conversationId: string | null;
   orgId: string | null;
   models: { value: string; label: string }[];
+  onSettingsSaved?: () => void;
 }
 
 const marks = [
@@ -53,6 +54,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
   conversationId,
   orgId,
   models,
+  onSettingsSaved
 }) => {
   const { t } = useTranslation(['chat', 'common']);
   const { token } = useAuth();
@@ -126,6 +128,9 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
     try {
       const updated = await updateConversationSettings(token, conversationId, payload);
       setSettings(updated);
+      if (onSettingsSaved) {
+        onSettingsSaved();
+      }
     } catch (err) {
       setError((err as Error).message || 'Failed to update conversation settings');
     } finally {
