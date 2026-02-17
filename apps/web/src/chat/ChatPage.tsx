@@ -11,7 +11,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useOrgModels } from '../hooks/useOrgModels';
 import { usePromptTemplates } from '../prompts/usePromptTemplates';
-import { CreatePromptTemplateInput } from '../api/prompts';
+import { CreatePromptTemplateInput, PromptTemplate } from '../api/prompts';
 import {
   createConversation,
   updateConversation,
@@ -94,6 +94,7 @@ export const ChatPage: React.FC = () => {
   const inputRef = useRef<MessageInputHandle>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
+  const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
   
   const { user, activeOrg } = useAuth();
 
@@ -259,7 +260,10 @@ export const ChatPage: React.FC = () => {
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
   const handleCloseTools = useCallback(() => setToolsOpen(false), []);
   const handleClosePromptLibrary = useCallback(() => setPromptLibraryOpen(false), []);
-  const handleCloseTemplateEditor = useCallback(() => setTemplateEditorOpen(false), []);
+  const handleCloseTemplateEditor = useCallback(() => {
+    setTemplateEditorOpen(false);
+    setEditingTemplate(null);
+  }, []);
   const handleCloseExport = useCallback(() => setExportDialogOpen(false), []);
   const handleCloseShare = useCallback(() => setShareDialogOpen(false), []);
 
@@ -269,6 +273,13 @@ export const ChatPage: React.FC = () => {
   }, []);
 
   const handleNewTemplate = useCallback(() => {
+    setEditingTemplate(null);
+    setTemplateEditorOpen(true);
+    setPromptLibraryOpen(false);
+  }, []);
+
+  const handleEditTemplate = useCallback((template: PromptTemplate) => {
+    setEditingTemplate(template);
     setTemplateEditorOpen(true);
     setPromptLibraryOpen(false);
   }, []);
@@ -385,6 +396,7 @@ export const ChatPage: React.FC = () => {
         conversationId={conversationId}
         orgId={effectiveOrgId}
         models={modelOptions}
+        onSettingsSaved={refetchConversation}
       />
 
       {/* Tools panel */}
@@ -404,6 +416,7 @@ export const ChatPage: React.FC = () => {
           currentUserId={user.id}
           onApplyPrompt={handleApplyPrompt}
           onNewTemplate={handleNewTemplate}
+          onEditTemplate={handleEditTemplate}
         />
       )}
 
@@ -412,7 +425,7 @@ export const ChatPage: React.FC = () => {
         <PromptTemplateEditorDialog
           open={templateEditorOpen}
           onClose={handleCloseTemplateEditor}
-          initialTemplate={null}
+          initialTemplate={editingTemplate}
           onSave={handleSaveTemplate}
         />
       )}

@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 
 import { PromptTemplate } from '../api/prompts';
 
@@ -36,6 +37,7 @@ export interface PromptLibraryDrawerProps {
   currentUserId: string;
   onApplyPrompt: (content: string) => void; // inserts into chat input
   onNewTemplate?: () => void; // opens template editor
+  onEditTemplate?: (template: PromptTemplate) => void;
 }
 
 interface FilledVariables {
@@ -66,7 +68,8 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
   onClose,
   currentUserId,
   onApplyPrompt,
-  onNewTemplate
+  onNewTemplate,
+  onEditTemplate
 }) => {
   const { t } = useTranslation(['prompts', 'common']);
   const { templates, loading } = usePromptTemplates(orgId);
@@ -192,14 +195,24 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
                   const isOrg = isOrgTemplate(tpl, currentUserId);
                   const version = tpl.latestVersion;
                   if (!version) return null;
+                  const canEdit = tpl.createdById === currentUserId && onEditTemplate;
 
                   return (
-                    <ListItem key={tpl.id} disablePadding>
+                    <ListItem key={tpl.id} disablePadding
+                      secondaryAction={
+                        canEdit ? (
+                          <IconButton edge="end" aria-label="edit" size="small" onClick={() => onEditTemplate(tpl)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        ) : null
+                      }
+                    >
                       <ListItemButton
                         onClick={() => handleSelectTemplate(tpl)}
                         sx={{
                           borderRadius: 2,
                           mb: 0.5,
+                          pr: canEdit ? 6 : 2, // make space for edit button
                           '&:hover': {
                             backgroundColor: 'action.hover'
                           },

@@ -87,7 +87,7 @@ export async function updatePromptTemplateApi(
   token: string,
   orgId: string,
   templateId: string,
-  data: { description?: string; isArchived?: boolean }
+  data: { name?: string; description?: string; isArchived?: boolean }
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/prompt-templates/${templateId}`,
