@@ -9,6 +9,7 @@ import { AppRouter } from './router';
 import { useOrgBranding } from './hooks/useOrgBranding';
 import { useFavicon } from './hooks/useFavicon';
 import { EcoModeProvider, useEcoMode } from './hooks/useEcoMode';
+import { RefractionFilter } from './components/ui/RefractionFilter';
 import './styles/gradients.css';
 import './styles/animations.css';
 import './theme2026.css';
@@ -84,6 +85,7 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <EcoModeProvider>
+          <RefractionFilter />
           <KineticController />
           <AppShell>
             <AppRouter />
