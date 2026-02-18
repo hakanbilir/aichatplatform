@@ -1,9 +1,9 @@
 {
   "version": "2026.1.1",
-  "generatedAt": "2026-02-17T16:33:34.176Z",
+  "generatedAt": "2026-02-18T16:29:00.173Z",
   "auditStats": {
     "filesScanned": 78,
-    "ariaLabelsFound": 24,
+    "ariaLabelsFound": 25,
     "glassComponentsDetected": 82,
     "kineticTypographyUsage": 1,
     "explicitTabIndices": 2,
