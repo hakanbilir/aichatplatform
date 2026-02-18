@@ -37,7 +37,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tok
     // Backend'den gelen hata mesajları zaten Accept-Language başlığına göre yerelleştirilmiş
     const error: ApiError = {
       status: response.status,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       message: (body as any)?.error || response.statusText,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       details: (body as any)?.details,
     };
     throw error;

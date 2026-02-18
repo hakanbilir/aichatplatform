@@ -15,6 +15,7 @@ export interface AuditEvent {
   user: AuditEventUser | null;
   conversationId?: string | null;
   messageId?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: Record<string, any>;
 }
 
