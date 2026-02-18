@@ -90,9 +90,12 @@ export async function searchConversationsStream(
   let buffer = '';
 
   try {
-    while (true) {
-      const { done, value } = await reader.read();
+    let done = false;
+    while (!done) {
+      const result = await reader.read();
+      done = result.done;
       if (done) break;
+      const value = result.value;
 
       buffer += decoder.decode(value, { stream: true });
       const blocks = buffer.split('\n\n');
