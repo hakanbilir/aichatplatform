@@ -41,6 +41,7 @@ export interface ConversationDetails {
     content: string;
     createdAt: string;
     images?: string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meta?: any;
   }>;
 }
