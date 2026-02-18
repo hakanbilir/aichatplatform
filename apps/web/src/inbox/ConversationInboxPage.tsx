@@ -44,6 +44,7 @@ const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, 
   return (
     <GlassPanel
       refractive={!isEcoMode}
+      specular={!isEcoMode}
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

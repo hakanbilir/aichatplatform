@@ -8,7 +8,7 @@ import {
   ConversationSearchHit,
   ConversationSearchResponse,
   ConversationSearchPayload,
-  searchConversationsApi,
+  searchConversationsStream,
   SearchSort
 } from '../api/search';
 
@@ -47,6 +47,7 @@ export function useConversationSearch(orgId: string | null) {
       setState(nextState);
       setLoading(true);
       setError(null);
+      setHits([]); // Clear hits before new search
 
       try {
         const payload: ConversationSearchPayload = {
@@ -57,10 +58,36 @@ export function useConversationSearch(orgId: string | null) {
           filters: nextState.filters
         };
 
-        const res = await searchConversationsApi(token, orgId, payload);
-        setResults(res);
-        setHits(res.hits);
+        let currentHits: ConversationSearchHit[] = [];
+        let meta: any = null;
+
+        await searchConversationsStream(token, orgId, payload, (event, data) => {
+          if (event === 'meta') {
+            meta = data;
+            setResults({
+              total: data.total,
+              page: data.page,
+              pageSize: data.pageSize,
+              hits: []
+            });
+          } else if (event === 'hit') {
+            currentHits.push(data);
+            // Update hits state incrementally for kinetic feel
+            setHits([...currentHits]);
+          } else if (event === 'done') {
+            if (meta) {
+               setResults({
+                 total: meta.total,
+                 page: meta.page,
+                 pageSize: meta.pageSize,
+                 hits: currentHits
+               });
+            }
+          }
+        });
+
       } catch (err) {
+        console.error(err);
         setError((err as Error).message || 'Search failed');
       } finally {
         setLoading(false);
@@ -79,4 +106,3 @@ export function useConversationSearch(orgId: string | null) {
     setState
   };
 }
-
