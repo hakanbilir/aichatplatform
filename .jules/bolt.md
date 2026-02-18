@@ -41,3 +41,6 @@
 ## 2026-12-17 - Reducer State Referential Integrity during Streaming
 **Learning:** Even when using an external `StreamStore` for high-frequency data, dispatching actions (like `TOKEN`) to a `useReducer` that returns a *new* state object (reference inequality) for every event will still force the consuming component (`ChatPage`) to re-render 50+ times/sec, negating the benefits of the store.
 **Action:** In `useReducer`, ensure that high-frequency actions (like `TOKEN`) return the *existing* state object (reference equality) if the relevant state properties (like `status`) haven't actually changed. This allows React to bail out of re-renders.
+## 2025-12-16 - Client-side Filtering vs API Fetch
+**Learning:** Found that `ConversationList` was re-fetching all personal conversations from API on every search keystroke (debounced) despite implementing client-side filtering. This negates the benefit of client-side filtering and adds latency.
+**Action:** When filtering a static list (e.g. personal conversations < 100 limit), always cache the full list in state and filter locally to avoid redundant network requests.
