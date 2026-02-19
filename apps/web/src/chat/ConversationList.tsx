@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   Box,
   Button,
@@ -30,15 +30,16 @@ import {
 
 import { ConversationListItemView } from './ConversationListItemView';
 
-export const ConversationList: React.FC = () => {
+const ConversationListComponent: React.FC = () => {
   const { t } = useTranslation('chat');
   const { token } = useAuth();
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
 
   const [items, setItems] = useState<ConversationListItem[]>([]);
-  // Optimization: Cache all personal items to avoid re-fetching on search
-  const [allPersonalItems, setAllPersonalItems] = useState<ConversationListItem[] | null>(null);
+  // Optimization: Cache all personal items to avoid re-fetching on search.
+  // Using ref to prevent extra re-renders when updating cache and to ensure synchronous updates for filters.
+  const allPersonalItemsRef = useRef<ConversationListItem[] | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -93,13 +94,13 @@ export const ConversationList: React.FC = () => {
       } else {
         // Personal / Global (flat list, no search/pagination params in API definition yet)
         // Optimization: Use cached items if available
-        let sourceItems = allPersonalItems;
+        let sourceItems = allPersonalItemsRef.current;
 
         // If not cached, fetch from API
         if (!sourceItems) {
             const res = await listConversations(token);
             sourceItems = res.conversations;
-            setAllPersonalItems(sourceItems);
+            allPersonalItemsRef.current = sourceItems;
         }
 
         newItems = sourceItems || [];
@@ -124,7 +125,7 @@ export const ConversationList: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [token, orgId, search, allPersonalItems]); // search dependency for client-side filtering logic if needed
+  }, [token, orgId, search]); // search dependency for client-side filtering logic if needed
 
   const handleClearSearch = useCallback(() => {
     setSearch('');
@@ -143,7 +144,7 @@ export const ConversationList: React.FC = () => {
   useEffect(() => {
     const handleCreated = async (_e: Event) => {
       // Invalidate cache
-      setAllPersonalItems(null);
+      allPersonalItemsRef.current = null;
       // Refresh list to show new item
       void load({ append: false });
     };
@@ -169,7 +170,9 @@ export const ConversationList: React.FC = () => {
              // Optimistically prepend
              setItems(prev => [convo, ...prev]);
              if (!orgId) {
-               setAllPersonalItems(prev => prev ? [convo, ...prev] : null);
+               if (allPersonalItemsRef.current) {
+                 allPersonalItemsRef.current = [convo, ...allPersonalItemsRef.current];
+               }
              }
              setSelectedId(convo.id);
          } catch (err) {
@@ -227,7 +230,9 @@ export const ConversationList: React.FC = () => {
 
       setItems((prev) => prev.map(updater));
       if (!orgId) {
-        setAllPersonalItems(prev => prev ? prev.map(updater) : null);
+        if (allPersonalItemsRef.current) {
+          allPersonalItemsRef.current = allPersonalItemsRef.current.map(updater);
+        }
       }
     } catch (err) {
       setError((err as Error).message || 'Failed to rename conversation');
@@ -256,7 +261,9 @@ export const ConversationList: React.FC = () => {
 
       setItems((prev) => prev.map(updater));
       if (!orgId) {
-        setAllPersonalItems(prev => prev ? prev.map(updater) : null);
+        if (allPersonalItemsRef.current) {
+          allPersonalItemsRef.current = allPersonalItemsRef.current.map(updater);
+        }
       }
     } catch (err) {
       setError((err as Error).message || 'Failed to update conversation');
@@ -272,7 +279,9 @@ export const ConversationList: React.FC = () => {
       const filter = (c: ConversationListItem) => c.id !== item.id;
       setItems((prev) => prev.filter(filter));
       if (!orgId) {
-        setAllPersonalItems(prev => prev ? prev.filter(filter) : null);
+        if (allPersonalItemsRef.current) {
+          allPersonalItemsRef.current = allPersonalItemsRef.current.filter(filter);
+        }
       }
     } catch (err) {
       setError((err as Error).message || 'Failed to archive conversation');
@@ -476,3 +485,5 @@ export const ConversationList: React.FC = () => {
     </Box>
   );
 };
+
+export const ConversationList = React.memo(ConversationListComponent);
