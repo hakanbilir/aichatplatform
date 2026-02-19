@@ -2,12 +2,18 @@
 
 import { apiRequest } from './client';
 
-export interface ExperimentDto {
+export interface ExperimentVariantDto {
   id: string;
-  orgId: string;
   name: string;
   description: string | null;
-  createdAt: string;
+  chatProfileId: string | null;
+  systemPrompt: string | null;
+}
+
+export interface ExperimentInputDto {
+  id: string;
+  key: string;
+  content: string;
 }
 
 export interface ExperimentRunDto {
@@ -21,13 +27,30 @@ export interface ExperimentRunDto {
   feedbackNote: string | null;
 }
 
+export interface ExperimentScoreDto {
+  id: string;
+  runId: string;
+  metricKey: string;
+  value: number;
+  note: string | null;
+}
+
+export interface ExperimentDto {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+  variants?: ExperimentVariantDto[];
+  inputs?: ExperimentInputDto[];
+  runs?: ExperimentRunDto[];
+}
+
 export async function fetchExperiments(
   token: string,
   orgId: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<{ experiments: any[] }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return apiRequest<{ experiments: any[] }>(
+): Promise<{ experiments: ExperimentDto[] }> {
+  return apiRequest<{ experiments: ExperimentDto[] }>(
     `/orgs/${orgId}/experiments`,
     { method: 'GET' },
     token
@@ -54,10 +77,8 @@ export async function addExperimentVariant(
   orgId: string,
   experimentId: string,
   input: { name: string; description?: string; chatProfileId?: string; systemPrompt?: string }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<{ variant: any }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return apiRequest<{ variant: any }>(
+): Promise<{ variant: ExperimentVariantDto }> {
+  return apiRequest<{ variant: ExperimentVariantDto }>(
     `/orgs/${orgId}/experiments/${experimentId}/variants`,
     {
       method: 'POST',
@@ -88,10 +109,8 @@ export async function runExperiment(
   orgId: string,
   experimentId: string,
   body: { inputIds?: string[]; variantIds?: string[] }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<{ ok: boolean; runs: any[] }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return apiRequest<{ ok: boolean; runs: any[] }>(
+): Promise<{ ok: boolean; runs: ExperimentRunDto[] }> {
+  return apiRequest<{ ok: boolean; runs: ExperimentRunDto[] }>(
     `/orgs/${orgId}/experiments/${experimentId}/run`,
     {
       method: 'POST',
@@ -122,10 +141,8 @@ export async function sendExperimentScore(
   orgId: string,
   runId: string,
   body: { metricKey: string; value: number; note?: string }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<{ score: any }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return apiRequest<{ score: any }>(
+): Promise<{ score: ExperimentScoreDto }> {
+  return apiRequest<{ score: ExperimentScoreDto }>(
     `/orgs/${orgId}/experiments/runs/${runId}/scores`,
     {
       method: 'POST',

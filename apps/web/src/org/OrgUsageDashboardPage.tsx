@@ -17,8 +17,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
-import { UsageAnalyticsResponse, TopUserDto } from '../api/usageAnalytics';
-import { API_BASE_URL } from '../api/client';
+import { UsageAnalyticsResponse, TopUserDto, streamUsageAnalytics, streamTopUsers } from '../api/usageAnalytics';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
@@ -39,99 +38,36 @@ export const OrgUsageDashboardPage: React.FC = () => {
   useEffect(() => {
     if (!token || !orgId) return;
 
-    // Kinetic Streaming
-    let active = true;
+    const controller = new AbortController();
 
     // Stream Top Users
-    const fetchTopUsersStream = async () => {
-      try {
-        const query = new URLSearchParams();
-        if (featureFilter !== 'all') query.set('feature', featureFilter);
-
-        const response = await fetch(`${API_BASE_URL}/orgs/${orgId}/analytics/top-users/stream?${query.toString()}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.body) return;
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (active) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-               const jsonStr = line.substring(6);
-               if (jsonStr === '"processing"') continue;
-               try {
-                 const data = JSON.parse(jsonStr);
-                 if (data.topUsers) setTopUsers(data.topUsers);
-               } catch (e) {
-                 console.error('TopUsers Stream parse error', e);
-               }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('TopUsers Stream error', err);
-      }
-    };
+    void streamTopUsers(
+      token,
+      orgId,
+      (data) => {
+        if (data.topUsers) setTopUsers(data.topUsers);
+      },
+      (err) => console.error('TopUsers Stream error', err),
+      { feature: featureFilter === 'all' ? undefined : featureFilter },
+      controller.signal
+    );
 
     // Stream Usage Analytics
-    const fetchUsageStream = async () => {
-      try {
-        const query = new URLSearchParams();
-        if (featureFilter !== 'all') query.set('feature', featureFilter);
-
-        const response = await fetch(`${API_BASE_URL}/orgs/${orgId}/analytics/stream?${query.toString()}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.body) return;
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (active) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-               const jsonStr = line.substring(6);
-               if (jsonStr === '"processing"') continue;
-               try {
-                 const data = JSON.parse(jsonStr);
-                 // Assuming the stream returns the full UsageAnalyticsResponse structure periodically
-                 // or updates parts of it.
-                 // We specifically look for totals and usage array.
-                 if (data.totals || data.usage) {
-                     setUsage(prev => ({ ...prev, ...data } as UsageAnalyticsResponse));
-                 }
-               } catch (e) {
-                 console.error('Usage Stream parse error', e);
-               }
-            }
-          }
+    void streamUsageAnalytics(
+      token,
+      orgId,
+      (data) => {
+        if (data.totals || data.usage) {
+          setUsage((prev) => (prev ? { ...prev, ...data } : data));
         }
-      } catch (err) {
-        console.error('Usage Stream error', err);
-      }
-    };
-
-    fetchUsageStream();
-    fetchTopUsersStream();
+      },
+      (err) => console.error('Usage Stream error', err),
+      { feature: featureFilter === 'all' ? undefined : featureFilter },
+      controller.signal
+    );
 
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [orgId, token, featureFilter]);
 

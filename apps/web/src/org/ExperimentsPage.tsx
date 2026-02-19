@@ -22,14 +22,15 @@ import { useAuth } from '../auth/AuthContext';
 import {
   fetchExperiments,
   createExperiment,
-  runExperiment
+  runExperiment,
+  ExperimentDto
 } from '../api/experiments';
 
 export const ExperimentsPage: React.FC = () => {
   const { orgId } = useParams();
   const { token } = useAuth();
 
-  const [experiments, setExperiments] = useState<any[]>([]);
+  const [experiments, setExperiments] = useState<ExperimentDto[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
