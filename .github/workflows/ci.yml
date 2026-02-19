@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
+      uses: oven-sh/setup-bun@v2
       with:
         bun-version: "1.1.0"
 
@@ -55,11 +55,5 @@ jobs:
     - name: Generate Prisma Client
       run: bun run db:generate
 
-    - name: Lint
-      run: bun run lint
-
-    - name: Test
-      run: bun run test
-
-    - name: Build
-      run: bun run build
+    - name: Run CI
+      run: bun run ci

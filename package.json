@@ -8,10 +8,11 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=18.18.0"
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "ci": "turbo run lint test build --continue",
     "dev:api": "turbo run dev --filter=api-gateway",
     "dev:web": "turbo run dev --filter=web-app",
     "dev:worker": "turbo run dev --filter=worker-jobs",
