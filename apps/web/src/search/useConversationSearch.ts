@@ -58,7 +58,7 @@ export function useConversationSearch(orgId: string | null) {
           filters: nextState.filters
         };
 
-        let currentHits: ConversationSearchHit[] = [];
+        const currentHits: ConversationSearchHit[] = [];
         let meta: any = null;
 
         await searchConversationsStream(token, orgId, payload, (event, data) => {
