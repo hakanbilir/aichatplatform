@@ -1,0 +1,96 @@
+:root {
+  --glass-blur: 30px;
+  --glass-saturation: 200%;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --bento-gap: 24px;
+  --bento-radius: 28px;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --mouse-dist: 400;
+}
+
+.kinetic-glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: var(--glass-border);
+  border-radius: var(--bento-radius);
+  background-clip: padding-box;
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--bento-gap);
+}
+
+.specular-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.specular-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at var(--local-x, 50%) var(--local-y, 50%),
+    rgba(255, 255, 255, 0.4),
+    transparent 100px
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.specular-button:hover::before {
+  opacity: 1;
+}
+
+.kinetic-typography {
+  /* Base weight 400, increases up to 700 based on scroll progress or mouse proximity */
+  --scroll-weight: calc(400 + (300 * var(--scroll-progress, 0)));
+  --mouse-weight-safe: var(--mouse-weight, 400);
+  --target-weight: max(var(--scroll-weight), var(--mouse-weight-safe));
+
+  font-variation-settings: 'wght' var(--target-weight);
+  transition: font-variation-settings 0.3s ease-out;
+}
+
+h1, h2 {
+  transition: font-variation-settings 0.3s ease, font-weight 0.3s ease;
+  /* Apply logic implicitly if class is missing, but prefer explicit class */
+}
+
+h1.kinetic-typography, h2.kinetic-typography {
+  font-variation-settings: 'wght' var(--target-weight);
+}
+
+h1:hover, h2:hover {
+  font-variation-settings: 'wght' 700;
+  font-weight: 700;
+}
+
+/* Eco Mode override */
+[data-eco-mode="true"] {
+  --glass-blur: 0px;
+  --glass-saturation: 100%;
+  --glass-bg: rgba(30, 30, 30, 0.95);
+}
+
+[data-eco-mode="true"] .kinetic-glass-panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-eco-mode="true"] * {
+  transition: none !important;
+  animation: none !important;
+}
