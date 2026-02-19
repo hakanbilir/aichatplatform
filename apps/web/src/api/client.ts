@@ -48,3 +48,82 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tok
   return body as T;
 }
 
+export async function apiStreamRequest<T>(
+  path: string,
+  onData: (data: T) => void,
+  onError: (error: Error) => void,
+  token?: string | null,
+  signal?: AbortSignal
+): Promise<void> {
+  const url = `${API_BASE_URL}${path}`;
+  const currentLang = typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') || 'tr' : 'tr';
+
+  const headers: HeadersInit = {
+    'Accept': 'text/event-stream',
+    'Accept-Language': currentLang,
+  };
+
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      signal,
+    });
+
+    if (!response.ok) {
+      const isJson = response.headers.get('content-type')?.includes('application/json');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body = isJson ? await response.json().catch(() => undefined) : undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const message = (body as any)?.error || response.statusText;
+      throw new Error(`HTTP ${response.status}: ${message}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue;
+
+        if (trimmed.startsWith('data: ')) {
+          const data = trimmed.slice(6);
+          if (data === 'processing' || data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.error) {
+              onError(new Error(parsed.error));
+            } else {
+              onData(parsed as T);
+            }
+          } catch (e) {
+            console.warn('Failed to parse stream chunk', e);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    if ((err as Error).name !== 'AbortError') {
+      onError(err as Error);
+    }
+  }
+}
