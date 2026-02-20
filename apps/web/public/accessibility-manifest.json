@@ -1,6 +1,6 @@
 {
   "version": "2026.1.1",
-  "generatedAt": "2026-02-19T16:22:19.479Z",
+  "generatedAt": "2026-02-20T16:31:54.989Z",
   "auditStats": {
     "filesScanned": 78,
     "ariaLabelsFound": 25,
@@ -57,7 +57,7 @@
     }
   },
   "colorPalette": {
-    "glassBackground": "rgba(255, 255, 255, 0.05)",
+    "glassBackground": "rgba(30, 30, 30, 0.95)",
     "glassBorder": "rgba(255, 255, 255, 0.15)",
     "textPrimary": "#FFFFFF",
     "textSecondary": "rgba(255, 255, 255, 0.7)"

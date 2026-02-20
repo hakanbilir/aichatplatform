@@ -27,7 +27,7 @@ export default async function usageAnalyticsRoutes(
   app: FastifyInstance,
   _opts: FastifyPluginOptions
 ) {
-  // Kinetic Streaming Endpoint (2026 Standard)
+  // Kinetic Streaming Endpoint (2026 Standard): Uses SSE + Workers
   app.get('/orgs/:orgId/analytics/stream', { preHandler: [app.authenticate] }, async (req, reply) => {
     const payload = req.user as JwtPayload;
     const orgId = (req.params as any).orgId as string;
