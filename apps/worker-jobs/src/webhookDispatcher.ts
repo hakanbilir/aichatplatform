@@ -5,7 +5,7 @@ import dns from 'node:dns/promises';
 import net from 'node:net';
 import { URL } from 'node:url';
 
-import { prisma, InputJsonValue } from '@ai-chat/db';
+import { prisma, Prisma } from '@ai-chat/db';
 
 // Helper to check for private/reserved IP ranges (IPv4 and IPv6)
 function isIpPrivate(ip: string): boolean {
@@ -155,7 +155,7 @@ async function dispatchDelivery(deliveryId: string) {
       data: {
         status: res.ok ? 'success' : 'failed',
         statusCode: res.status,
-        responseBody: responseBody as InputJsonValue,
+        responseBody: responseBody as Prisma.InputJsonValue,
         error: res.ok ? null : `HTTP ${res.status}`
       }
     });

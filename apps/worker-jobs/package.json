@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-chat/config": "workspace:*",
+    "@ai-chat/core-types": "workspace:*",
     "@ai-chat/db": "workspace:*"
   },
   "devDependencies": {

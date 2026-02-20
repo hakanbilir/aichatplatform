@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=18.18.0"
   },
   "scripts": {
     "dev": "node --watch --import tsx/esm src/main.ts",
@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "bun run dist/main.js",
     "lint": "eslint src --ext .ts",
-    "test": "bun test",
+    "test": "bun test src",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
+    "@types/bun": "latest",
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^6.4.0",
     "tsx": "^4.21.0"

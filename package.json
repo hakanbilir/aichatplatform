@@ -2,7 +2,7 @@
   "name": "ai-chat-platform",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "bun@1.1.0",
+  "packageManager": "bun@1.2.14",
   "workspaces": [
     "apps/*",
     "packages/*"
