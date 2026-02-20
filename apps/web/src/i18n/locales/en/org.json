@@ -20,16 +20,6 @@
     "toneNeutral": "Neutral",
     "toneCasual": "Casual"
   },
-  "members": {
-    "title": "Members",
-    "addMember": "Add Member",
-    "removeMember": "Remove Member"
-  },
-  "apiKeys": {
-    "title": "API Keys",
-    "createKey": "Create Key",
-    "revokeKey": "Revoke Key"
-  },
   "branding": {
     "title": "Branding",
     "logo": "Logo",
@@ -81,6 +71,17 @@
     "copy": "Copy",
     "create": "Create",
     "close": "Close"
+  },
+  "billing": {
+    "title": "Billing & subscription",
+    "description": "Manage your organization's subscription plan and billing.",
+    "currentPlan": "Current plan",
+    "availablePlans": "Available plans",
+    "month": "month",
+    "selectPlan": "Select plan",
+    "paymentCheckout": "Payment Checkout",
+    "failedToLoad": "Failed to load billing information.",
+    "failedToInit": "Failed to initiate plan change."
   }
 }
 
