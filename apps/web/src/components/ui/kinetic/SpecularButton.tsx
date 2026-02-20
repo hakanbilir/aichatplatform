@@ -1,7 +1,21 @@
 import React, { useRef } from 'react';
 import { Button, ButtonProps } from '@mui/material';
 
-export const SpecularButton: React.FC<ButtonProps> = ({ children, className, sx, ...props }) => {
+interface SpecularButtonProps extends ButtonProps {
+  /**
+   * Action identifier for AI agents (e.g., 'login', 'submit', 'regenerate').
+   * Renders as data-ai-action attribute.
+   */
+  aiAction?: string;
+}
+
+export const SpecularButton: React.FC<SpecularButtonProps> = ({
+  children,
+  className,
+  sx,
+  aiAction,
+  ...props
+}) => {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -19,6 +33,7 @@ export const SpecularButton: React.FC<ButtonProps> = ({ children, className, sx,
       ref={btnRef}
       className={`specular-button ${className || ''}`}
       onMouseMove={handleMouseMove}
+      data-ai-action={aiAction}
       sx={{
         ...sx,
         textTransform: 'none',

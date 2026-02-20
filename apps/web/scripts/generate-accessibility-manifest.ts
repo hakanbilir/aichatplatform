@@ -38,6 +38,26 @@ const cwd = process.cwd();
 const srcDir = fs.existsSync(path.join(cwd, 'src')) ? path.join(cwd, 'src') : path.join(cwd, 'apps/web/src');
 const auditStats = auditCodebase(srcDir);
 
+// Read CSS variables
+const themePath = path.join(srcDir, 'theme2026.css');
+let themeVars: Record<string, string> = {};
+
+if (fs.existsSync(themePath)) {
+  const css = fs.readFileSync(themePath, 'utf-8');
+  const varMatches = css.match(/--[\w-]+:\s*[^;]+/g) || [];
+  varMatches.forEach(match => {
+    const [name, value] = match.split(':');
+    if (name && value) {
+      themeVars[name.trim()] = value.trim();
+    }
+  });
+}
+
+const glassBg = themeVars['--glass-bg'] || 'rgba(255, 255, 255, 0.05)';
+const glassBorder = themeVars['--glass-border'] || '1px solid rgba(255, 255, 255, 0.15)';
+// Extract color from border definition if possible
+const glassBorderColor = glassBorder.match(/rgba?\(.*?\)|#[0-9a-fA-F]+/)?.[0] || 'rgba(255, 255, 255, 0.15)';
+
 const manifest = {
   version: "2026.1.1",
   generatedAt: new Date().toISOString(),
@@ -84,12 +104,12 @@ const manifest = {
     "bento-grid": {
       role: "none (Layout)",
       description: "Grid layout managing focus order logically from top-left to bottom-right.",
-      gap: "24px"
+      gap: themeVars['--bento-gap'] || "24px"
     }
   },
   colorPalette: {
-    glassBackground: "rgba(255, 255, 255, 0.05)",
-    glassBorder: "rgba(255, 255, 255, 0.15)",
+    glassBackground: glassBg,
+    glassBorder: glassBorderColor,
     textPrimary: "#FFFFFF",
     textSecondary: "rgba(255, 255, 255, 0.7)"
   },

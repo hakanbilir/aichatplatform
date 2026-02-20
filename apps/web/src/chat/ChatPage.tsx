@@ -339,7 +339,7 @@ export const ChatPage: React.FC = () => {
               size="small"
               variant="outlined"
               onClick={regenerate}
-              data-ai-action="regenerate"
+              aiAction="regenerate"
               sx={{
                 borderRadius: 4,
                 borderColor: 'rgba(255,255,255,0.12)',

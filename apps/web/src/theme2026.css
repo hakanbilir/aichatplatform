@@ -1,3 +1,7 @@
+/*
+ * Kinetic Refraction Theme (Jan 2026 Standards)
+ * Implements Glass, Bento Grid, and Kinetic Typography tokens.
+ */
 :root {
   --glass-blur: 30px;
   --glass-saturation: 200%;

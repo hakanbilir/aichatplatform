@@ -94,7 +94,7 @@ export const LoginPage: React.FC = () => {
             variant="contained"
             sx={{ mt: 3 }}
             disabled={loading}
-            data-ai-action="login"
+            aiAction="login"
           >
             {loading ? t('login.signingIn') : t('login.signIn')}
           </SpecularButton>

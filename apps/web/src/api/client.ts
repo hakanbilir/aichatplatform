@@ -90,11 +90,14 @@ export async function apiStreamRequest<T>(
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let reading = true;
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    while (reading) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        reading = false;
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
@@ -104,8 +107,12 @@ export async function apiStreamRequest<T>(
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith(':')) continue;
 
-        if (trimmed.startsWith('data: ')) {
-          const data = trimmed.slice(6);
+        if (trimmed.startsWith('data:')) {
+          let data = trimmed.slice(5);
+          if (data.startsWith(' ')) {
+            data = data.slice(1);
+          }
+
           if (data === 'processing' || data === '[DONE]') continue;
 
           try {

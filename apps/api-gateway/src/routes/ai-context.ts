@@ -3,6 +3,10 @@ import { prisma } from '@ai-chat/db';
 
 import { JwtPayload } from '../auth/types';
 
+/**
+ * Agentic Middleware (2026 Standards)
+ * Exposes /ai-context for context-aware agents.
+ */
 export default async function aiContextRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   // Context-Aware Endpoint for Agentic Middleware
   app.get('/ai-context', { preHandler: [app.authenticate] }, async (request, reply) => {

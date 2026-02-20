@@ -26,6 +26,9 @@ import { MetricCard, TimeSeriesChart, DataGrid, DataGridColumn, TimeSeriesDataPo
 
 type AugmentedTopUser = TopUserDto & { totalTokens: number };
 
+/**
+ * Main Dashboard Refactor: Bento Grid Layout + Kinetic Glass
+ */
 export const OrgUsageDashboardPage: React.FC = () => {
   const { orgId } = useParams();
   const { token } = useAuth();
