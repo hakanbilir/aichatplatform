@@ -13,6 +13,7 @@ import {
   DialogContent,
   IconButton
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
 import { useParams } from 'react-router-dom';
@@ -27,6 +28,7 @@ import {
 } from '../api/billing';
 
 export const OrgBillingPage: React.FC = () => {
+  const { t } = useTranslation(['org']);
   const { orgId } = useParams();
   const { token } = useAuth();
 
@@ -50,7 +52,7 @@ export const OrgBillingPage: React.FC = () => {
       setSubscription(s.subscription);
     } catch (err) {
       console.error(err);
-      setError("Failed to load billing information.");
+      setError(t('billing.failedToLoad'));
     }
   };
 
@@ -81,7 +83,7 @@ export const OrgBillingPage: React.FC = () => {
       setPaymentToken(res.token);
     } catch (err) {
       console.error(err);
-      setError((err as Error).message || "Failed to initiate plan change.");
+      setError((err as Error).message || t('billing.failedToInit'));
     }
   };
 
@@ -109,9 +111,9 @@ export const OrgBillingPage: React.FC = () => {
       <Box display="flex" alignItems="center" gap={1}>
         <AutoAwesomeIcon fontSize="small" />
         <Box>
-          <Typography variant="h6">Billing & subscription</Typography>
+          <Typography variant="h6">{t('billing.title')}</Typography>
           <Typography variant="caption" color="text.secondary">
-            Manage your organization&apos;s subscription plan and billing.
+            {t('billing.description')}
           </Typography>
         </Box>
       </Box>
@@ -122,11 +124,11 @@ export const OrgBillingPage: React.FC = () => {
         <Card sx={{ borderRadius: 3 }}>
           <CardContent>
             <Typography variant="subtitle2" gutterBottom>
-              Current plan
+              {t('billing.currentPlan')}
             </Typography>
             <Typography variant="h6">{subscription.plan.name}</Typography>
             <Typography variant="body2" color="text.secondary">
-              {formatPrice(subscription.plan.monthlyPriceMinor)}/month
+              {formatPrice(subscription.plan.monthlyPriceMinor)}/{t('billing.month')}
             </Typography>
             <Chip
               size="small"
@@ -141,7 +143,7 @@ export const OrgBillingPage: React.FC = () => {
       <Card sx={{ borderRadius: 3 }}>
         <CardContent>
           <Typography variant="subtitle2" gutterBottom>
-            Available plans
+            {t('billing.availablePlans')}
           </Typography>
           <Box display="flex" flexDirection="column" gap={1.5} mt={1}>
             {plans.map((p) => (
@@ -165,7 +167,7 @@ export const OrgBillingPage: React.FC = () => {
                     </Typography>
                   )}
                   <Typography variant="h6" sx={{ mt: 0.5 }}>
-                    {formatPrice(p.monthlyPriceMinor)}/month
+                    {formatPrice(p.monthlyPriceMinor)}/{t('billing.month')}
                   </Typography>
                 </Box>
                 <Button
@@ -173,7 +175,7 @@ export const OrgBillingPage: React.FC = () => {
                   disabled={subscription?.planId === p.id}
                   onClick={() => void handleChangePlan(p.id)}
                 >
-                  {subscription?.planId === p.id ? 'Current plan' : 'Select plan'}
+                  {subscription?.planId === p.id ? t('billing.currentPlan') : t('billing.selectPlan')}
                 </Button>
               </Box>
             ))}
@@ -201,7 +203,7 @@ export const OrgBillingPage: React.FC = () => {
               id="paytriframe"
               src={`https://www.paytr.com/odeme/guvenli/${paymentToken}`}
               style={{ width: '100%', height: '100%', border: 0, minHeight: 500 }}
-              title="Payment Checkout"
+              title={t('billing.paymentCheckout')}
             />
           )}
         </DialogContent>

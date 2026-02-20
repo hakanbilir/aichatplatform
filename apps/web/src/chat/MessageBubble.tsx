@@ -113,7 +113,7 @@ const MessageBubbleComponent = ({ role, content, images, meta, thinkingText, isT
       return (
         <Box mb={1} sx={{ opacity: 0.6, fontSize: '0.8rem' }}>
             <details>
-                <summary>Tool Output</summary>
+                <summary>{t('tools.toolOutput')}</summary>
                 <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{content}</pre>
             </details>
         </Box>

@@ -70,7 +70,8 @@
     "arguments": "Arguments",
     "lastRun": "Last result",
     "noRunsYet": "No tool runs yet. Configure args above and click \"Run tool\".",
-    "reload": "Reload tools"
+    "reload": "Reload tools",
+    "toolOutput": "Tool Output"
   },
   "sidebar": {
     "title": "Conversations",
