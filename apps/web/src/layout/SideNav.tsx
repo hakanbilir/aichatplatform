@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { Box, Drawer, IconButton, useTheme } from '@mui/material';
+import { Box, Drawer, IconButton, useTheme, Divider } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { NavLink, useParams } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
+import InboxIcon from '@mui/icons-material/Inbox';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+import SettingsIcon from '@mui/icons-material/Settings';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import PeopleIcon from '@mui/icons-material/People';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import ChatIcon from '@mui/icons-material/Chat';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import ScienceIcon from '@mui/icons-material/Science';
+import DescriptionIcon from '@mui/icons-material/Description';
+import BadgeIcon from '@mui/icons-material/Badge';
 
 import { ConversationList } from '../chat/ConversationList';
 import { useIsMobile } from '../utils/responsive';
@@ -18,15 +30,46 @@ interface SideNavProps {
   onCreateConversation: () => void;
 }
 
+const NavItem = ({ to, icon, label, onClick }: { to: string, icon: React.ReactNode, label: string, onClick?: () => void }) => (
+  <NavLink
+    to={to}
+    onClick={onClick}
+    style={({ isActive }) => ({
+      display: 'flex',
+      alignItems: 'center',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      color: isActive ? 'white' : 'rgba(255,255,255,0.7)',
+      backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+      textDecoration: 'none',
+      fontSize: '0.85rem',
+      fontWeight: 500,
+      transition: 'all 0.2s ease',
+      marginBottom: '2px'
+    })}
+    className="nav-item"
+  >
+    <Box component="span" sx={{ display: 'flex', mr: 1.5, opacity: 0.9, '& > svg': { fontSize: 18 } }}>
+      {icon}
+    </Box>
+    {label}
+  </NavLink>
+);
+
 export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
-  const { t } = useTranslation('chat');
+  const { t } = useTranslation(['chat', 'common']);
   const theme = useTheme();
   const isMobile = useIsMobile();
   const { isEcoMode } = useEcoMode();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { orgId } = useParams<{ orgId: string }>();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleNavClick = () => {
+    if (isMobile) setMobileOpen(false);
   };
 
   const sidebarContent = (
@@ -45,6 +88,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
       }}
     >
       <OrgSwitcher />
+
       <SpecularButton
         variant="contained"
         startIcon={<AddIcon />}
@@ -56,7 +100,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
         data-ai-action="create-conversation"
         sx={{
           mb: 2,
-          minHeight: 44,
+          minHeight: 40,
           transition: 'all 200ms ease',
           '&:hover': {
             transform: 'translateY(-1px)',
@@ -67,8 +111,116 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
           },
         }}
       >
-        {t('conversation.new')}
+        {t('conversation.new', { ns: 'chat' })}
       </SpecularButton>
+
+      {orgId && (
+        <Box mb={2} display="flex" flexDirection="column">
+          <NavItem
+            to={`/app/orgs/${orgId}/chat`}
+            icon={<ChatIcon />}
+            label={t('nav.chat', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+          <NavItem
+            to={`/app/orgs/${orgId}/inbox`}
+            icon={<InboxIcon />}
+            label={t('nav.inbox', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+          <NavItem
+            to={`/app/orgs/${orgId}/knowledge`}
+            icon={<AutoStoriesIcon />}
+            label={t('nav.knowledge', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+
+          <Box mt={1} mb={0.5}>
+            <KineticTypography
+              variant="caption"
+              sx={{
+                opacity: 0.5,
+                fontSize: '0.65rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontWeight: 600,
+                px: 1.5,
+              }}
+            >
+              {t('nav.tools', { ns: 'common' })}
+            </KineticTypography>
+          </Box>
+
+          <NavItem
+            to={`/app/orgs/${orgId}/playground`}
+            icon={<TerminalIcon />}
+            label={t('nav.playground', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+          <NavItem
+            to={`/app/orgs/${orgId}/experiments`}
+            icon={<ScienceIcon />}
+            label={t('nav.experiments', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+          <NavItem
+            to={`/app/orgs/${orgId}/prompt-templates`}
+            icon={<DescriptionIcon />}
+            label={t('nav.prompts', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+           <NavItem
+            to={`/app/orgs/${orgId}/chat-profiles`}
+            icon={<BadgeIcon />}
+            label={t('nav.profiles', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+
+          <Box mt={1} mb={0.5}>
+             <KineticTypography
+              variant="caption"
+              sx={{
+                opacity: 0.5,
+                fontSize: '0.65rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontWeight: 600,
+                px: 1.5,
+              }}
+            >
+              {t('nav.admin', { ns: 'common' })}
+            </KineticTypography>
+          </Box>
+
+          <NavItem
+            to={`/app/orgs/${orgId}/analytics`}
+            icon={<QueryStatsIcon />}
+            label={t('nav.analytics', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+          <NavItem
+            to={`/app/orgs/${orgId}/usage`}
+            icon={<CreditCardIcon />}
+            label={t('nav.usage', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+          <NavItem
+            to={`/app/orgs/${orgId}/settings/members`}
+            icon={<PeopleIcon />}
+            label={t('nav.members', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+          <NavItem
+            to={`/app/orgs/${orgId}/settings/branding`}
+            icon={<SettingsIcon />}
+            label={t('nav.settings', { ns: 'common' })}
+            onClick={handleNavClick}
+          />
+        </Box>
+      )}
+
+      <Divider sx={{ mb: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
+
       <KineticTypography
         variant="caption"
         sx={{
@@ -78,9 +230,10 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
           fontWeight: 600,
+          px: 0.5
         }}
       >
-        {t('conversation.recent')}
+        {t('conversation.recent', { ns: 'chat' })}
       </KineticTypography>
       <Box
         flex={1}
@@ -140,10 +293,11 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
               width: 280,
               boxSizing: 'border-box',
               border: 'none',
+              bgcolor: 'transparent'
             },
           }}
         >
-          <Box sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative', height: '100%' }}>
             <IconButton
               onClick={handleDrawerToggle}
               sx={{
@@ -169,4 +323,3 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
 
   return sidebarContent;
 };
-
