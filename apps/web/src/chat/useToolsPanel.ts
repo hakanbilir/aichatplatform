@@ -21,7 +21,7 @@ export interface ToolRunRecord {
   createdAt: Date;
 }
 
-export function useToolsPanel(conversationId: string | null, orgId: string | null) {
+export function useToolsPanel(conversationId: string | null, orgId: string | null, enabled: boolean = true) {
   const { token } = useAuth();
 
   const [tools, setTools] = useState<ToolDescription[]>([]);
@@ -32,8 +32,16 @@ export function useToolsPanel(conversationId: string | null, orgId: string | nul
   const [executing, setExecuting] = useState(false);
   const [executeError, setExecuteError] = useState<string | null>(null);
 
+  // Clear state when conversation changes
+  useEffect(() => {
+    setTools([]);
+    setRuns([]);
+    setToolsError(null);
+    setExecuteError(null);
+  }, [conversationId]);
+
   const loadTools = useCallback(async () => {
-    if (!token) return;
+    if (!token || !enabled) return;
     setLoadingTools(true);
     setToolsError(null);
     try {
@@ -47,7 +55,7 @@ export function useToolsPanel(conversationId: string | null, orgId: string | nul
     } finally {
       setLoadingTools(false);
     }
-  }, [token, conversationId, orgId]);
+  }, [token, conversationId, orgId, enabled]);
 
   useEffect(() => {
     void loadTools();
