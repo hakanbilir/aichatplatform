@@ -34,6 +34,7 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, convers
   const { tools, loadingTools, toolsError, runs, executing, executeError, runTool, refetchTools } = useToolsPanel(
     conversationId,
     orgId,
+    open
   );
 
   const [selectedToolName, setSelectedToolName] = useState<string | null>(null);
