@@ -37,15 +37,16 @@ import {
   updateMemberRole,
   updateMemberStatus
 } from '../api/orgAdminMembers';
+import { LoadingState } from '../components/dashboard/LoadingState';
 
 export const OrgMembersPage: React.FC = () => {
-  const { t } = useTranslation('org');
+  const { t } = useTranslation(['org', 'common']);
   const { orgId } = useParams<{ orgId: string }>();
   const { token } = useAuth();
 
   const [members, setMembers] = useState<OrgMemberDto[]>([]);
   const [invitations, setInvitations] = useState<OrgInvitationDto[]>([]);
-  const [_loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('MEMBER');
@@ -124,108 +125,125 @@ export const OrgMembersPage: React.FC = () => {
         </Button>
       </Box>
 
-      <Card sx={{ borderRadius: 3 }}>
-        <CardContent>
-          <Typography variant="subtitle2" gutterBottom>
-            {t('members.title')}
-          </Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('members.email')}</TableCell>
-                <TableCell>{t('members.name')}</TableCell>
-                <TableCell>{t('members.role')}</TableCell>
-                <TableCell>{t('members.status')}</TableCell>
-                <TableCell align="right">{t('members.actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {members.map((m) => (
-                <TableRow key={m.id} hover>
-                  <TableCell>{m.email}</TableCell>
-                  <TableCell>{m.displayName || '—'}</TableCell>
-                  <TableCell>
-                    <Select
-                      size="small"
-                      value={m.role}
-                      onChange={(e) => handleRoleChange(m.id, e.target.value as string)}
-                    >
-                      <MenuItem value="VIEWER">{t('members.viewer')}</MenuItem>
-                      <MenuItem value="MEMBER">{t('members.member')}</MenuItem>
-                      <MenuItem value="ADMIN">{t('members.admin')}</MenuItem>
-                      <MenuItem value="OWNER">{t('members.owner')}</MenuItem>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    {m.status === 'active' ? (
-                      <Box display="flex" alignItems="center" gap={0.5}>
-                        <CheckCircleIcon fontSize="small" color="success" />
-                        <Typography variant="caption">{t('members.active')}</Typography>
-                      </Box>
-                    ) : (
-                      <Box display="flex" alignItems="center" gap={0.5}>
-                        <BlockIcon fontSize="small" color="disabled" />
-                        <Typography variant="caption">{t('members.disabled')}</Typography>
-                      </Box>
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleToggleStatus(m)}
-                    >
-                      {m.status === 'active' ? (
-                        <BlockIcon fontSize="small" />
-                      ) : (
-                        <CheckCircleIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card sx={{ borderRadius: 3 }}>
-        <CardContent>
-          <Typography variant="subtitle2" gutterBottom>
-            {t('members.pendingInvitations')}
-          </Typography>
-          {invitations.length === 0 && (
-            <Typography variant="body2" color="text.secondary">
-              {t('members.noPendingInvitations')}
-            </Typography>
-          )}
-          {invitations.length > 0 && (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('members.email')}</TableCell>
-                  <TableCell>{t('members.role')}</TableCell>
-                  <TableCell>{t('members.status')}</TableCell>
-                  <TableCell>{t('members.expires')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {invitations.map((inv) => (
-                  <TableRow key={inv.id}>
-                    <TableCell>{inv.email}</TableCell>
-                    <TableCell>{inv.role}</TableCell>
-                    <TableCell>{inv.status}</TableCell>
-                    <TableCell>
-                      {inv.expiresAt
-                        ? new Date(inv.expiresAt).toLocaleDateString()
-                        : '—'}
-                    </TableCell>
+      {loading && members.length === 0 ? (
+        <Box flex={1} display="flex" alignItems="center" justifyContent="center">
+          <LoadingState message={t('loading', { ns: 'common' }) || 'Loading...'} />
+        </Box>
+      ) : (
+        <>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle2" gutterBottom>
+                {t('members.title')}
+              </Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>{t('members.email')}</TableCell>
+                    <TableCell>{t('members.name')}</TableCell>
+                    <TableCell>{t('members.role')}</TableCell>
+                    <TableCell>{t('members.status')}</TableCell>
+                    <TableCell align="right">{t('members.actions')}</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHead>
+                <TableBody>
+                  {members.map((m) => (
+                    <TableRow key={m.id} hover>
+                      <TableCell>{m.email}</TableCell>
+                      <TableCell>{m.displayName || '—'}</TableCell>
+                      <TableCell>
+                        <Select
+                          size="small"
+                          value={m.role}
+                          onChange={(e) => handleRoleChange(m.id, e.target.value as string)}
+                        >
+                          <MenuItem value="VIEWER">{t('members.viewer')}</MenuItem>
+                          <MenuItem value="MEMBER">{t('members.member')}</MenuItem>
+                          <MenuItem value="ADMIN">{t('members.admin')}</MenuItem>
+                          <MenuItem value="OWNER">{t('members.owner')}</MenuItem>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {m.status === 'active' ? (
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <CheckCircleIcon fontSize="small" color="success" />
+                            <Typography variant="caption">{t('members.active')}</Typography>
+                          </Box>
+                        ) : (
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <BlockIcon fontSize="small" color="disabled" />
+                            <Typography variant="caption">{t('members.disabled')}</Typography>
+                          </Box>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleToggleStatus(m)}
+                        >
+                          {m.status === 'active' ? (
+                            <BlockIcon fontSize="small" />
+                          ) : (
+                            <CheckCircleIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {members.length === 0 && !loading && (
+                    <TableRow>
+                       <TableCell colSpan={5} align="center">
+                         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                           {t('members.noMembers', { defaultValue: 'No members found.' })}
+                         </Typography>
+                       </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle2" gutterBottom>
+                {t('members.pendingInvitations')}
+              </Typography>
+              {invitations.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  {t('members.noPendingInvitations')}
+                </Typography>
+              )}
+              {invitations.length > 0 && (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>{t('members.email')}</TableCell>
+                      <TableCell>{t('members.role')}</TableCell>
+                      <TableCell>{t('members.status')}</TableCell>
+                      <TableCell>{t('members.expires')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {invitations.map((inv) => (
+                      <TableRow key={inv.id}>
+                        <TableCell>{inv.email}</TableCell>
+                        <TableCell>{inv.role}</TableCell>
+                        <TableCell>{inv.status}</TableCell>
+                        <TableCell>
+                          {inv.expiresAt
+                            ? new Date(inv.expiresAt).toLocaleDateString()
+                            : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{t('members.inviteDialogTitle')}</DialogTitle>
@@ -261,4 +279,3 @@ export const OrgMembersPage: React.FC = () => {
     </Box>
   );
 };
-
