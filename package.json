@@ -20,6 +20,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "format": "turbo run format",
+    "format:check": "prettier --check . --cache",
+    "format:write": "prettier --write . --cache",
     "clean": "turbo run clean",
     "db:migrate:dev": "bun run --filter=@ai-chat/db prisma:migrate:dev",
     "db:migrate:deploy": "bun run --filter=@ai-chat/db prisma:migrate:deploy",
