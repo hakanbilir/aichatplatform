@@ -4,7 +4,6 @@ import { Outlet } from 'react-router-dom';
 
 import { useIsMobile } from '../utils/responsive';
 import { LoadingState } from '../components/dashboard/LoadingState';
-import { RefractionFilter } from '../components/ui/RefractionFilter';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { useEcoMode } from '../hooks/useEcoMode';
 import { useConversationStream } from '../hooks/useConversationStream';
@@ -40,8 +39,6 @@ export const Shell: React.FC = () => {
         overflow: 'hidden'
       }}
     >
-      <RefractionFilter />
-
       {/* Header - Spans full width */}
       <Box sx={{ gridColumn: '1 / -1', zIndex: 10 }}>
          <TopBar />
