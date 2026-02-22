@@ -8,7 +8,6 @@ import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { useEcoMode } from '../hooks/useEcoMode';
-import { RefractionFilter } from '../components/ui/RefractionFilter';
 
 interface PublicBentoGridProps {
   children: React.ReactNode;
@@ -30,8 +29,6 @@ export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, topR
         position: 'relative'
       }}
     >
-      <RefractionFilter />
-
       {topRightElement && (
         <Box position="absolute" top={16} right={16} zIndex={10}>
           {topRightElement}
