@@ -290,8 +290,21 @@ const ConversationListComponent: React.FC = () => {
     }
   };
 
-  const pinned = useMemo(() => items.filter((i) => i.pinned), [items]);
-  const others = useMemo(() => items.filter((i) => !i.pinned), [items]);
+  // Optimization: Reduce complexity from O(2N) to O(N) by filtering in a single pass
+  const { pinned, others } = useMemo(() => {
+    const pinnedItems: ConversationListItem[] = [];
+    const otherItems: ConversationListItem[] = [];
+
+    items.forEach((item) => {
+      if (item.pinned) {
+        pinnedItems.push(item);
+      } else {
+        otherItems.push(item);
+      }
+    });
+
+    return { pinned: pinnedItems, others: otherItems };
+  }, [items]);
 
   const menuConversation = useMemo(
     () => items.find((c) => c.id === menuConversationId) || null,
