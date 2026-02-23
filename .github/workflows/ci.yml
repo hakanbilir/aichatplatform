@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['main']
   pull_request:
-    branches: [ "main" ]
+    branches: ['main']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,56 +15,56 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      DATABASE_URL: "postgresql://postgres:password@localhost:5432/testdb"
+      DATABASE_URL: 'postgresql://postgres:password@localhost:5432/testdb'
       CI: true
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: "1.2.14"
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.14'
 
-    - name: Cache Bun dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.bun/install/cache
-        key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-bun-
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
-    - name: Cache Turbo
-      uses: actions/cache@v4
-      with:
-        path: node_modules/.cache/turbo
-        key: ${{ runner.os }}-turbo-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-turbo-
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
-    - name: Cache Prettier
-      uses: actions/cache@v4
-      with:
-        path: node_modules/.cache/prettier
-        key: ${{ runner.os }}-prettier-${{ hashFiles('bun.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-prettier-
+      - name: Cache Prettier
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/prettier
+          key: ${{ runner.os }}-prettier-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-prettier-
 
-    - name: Cache Next.js
-      uses: actions/cache@v4
-      with:
-        path: apps/web-app/.next/cache
-        key: ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-${{ hashFiles('apps/web-app/src/**/*.{js,jsx,ts,tsx}', 'apps/web-app/next.config.mjs', 'apps/web-app/package.json') }}
-        restore-keys: |
-          ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-
+      - name: Cache Next.js
+        uses: actions/cache@v4
+        with:
+          path: apps/web-app/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-${{ hashFiles('apps/web-app/src/**/*.{js,jsx,ts,tsx}', 'apps/web-app/app/**/*.{js,jsx,ts,tsx}', 'apps/web-app/next.config.mjs', 'apps/web-app/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-
 
-    - name: Install dependencies
-      run: bun install
+      - name: Install dependencies
+        run: bun install
 
-    - name: Check Formatting
-      run: bun run format:check
+      - name: Check Formatting
+        run: bun run format:check
 
-    - name: Generate Prisma Client
-      run: bun run db:generate
+      - name: Generate Prisma Client
+        run: bun run db:generate
 
-    - name: Run CI
-      run: bun run ci
+      - name: Run CI
+        run: bun run ci
