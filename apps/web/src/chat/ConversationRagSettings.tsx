@@ -63,7 +63,7 @@ export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps
     };
     
     await updateConversationSettings(token, conversationId, {
-      kbConfig: kbConfig as any
+      kbConfig
     });
   };
 
