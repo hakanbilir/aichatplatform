@@ -103,16 +103,37 @@ const ConversationListComponent: React.FC = () => {
             allPersonalItemsRef.current = sourceItems;
         }
 
-        newItems = sourceItems || [];
+        let filteredItems = sourceItems || [];
 
         // Client-side search for personal list
         if (opts.search || search) {
             const q = (opts.search ?? search).toLowerCase();
-            newItems = newItems.filter(c => (c.title || '').toLowerCase().includes(q));
+            filteredItems = filteredItems.filter(c => (c.title || '').toLowerCase().includes(q));
         }
-        next = null;
 
-        setItems(newItems);
+        // Optimization: Client-side pagination for personal items to improve performance
+        // Separate pinned and unpinned items
+        const allPinned = filteredItems.filter((i) => i.pinned);
+        const allUnpinned = filteredItems.filter((i) => !i.pinned);
+
+        // Pagination for unpinned items
+        const LIMIT = 50;
+        const offset = opts.cursor ? parseInt(opts.cursor, 10) : 0;
+        const pageUnpinned = allUnpinned.slice(offset, offset + LIMIT);
+
+        const hasMore = offset + LIMIT < allUnpinned.length;
+        next = hasMore ? (offset + LIMIT).toString() : null;
+
+        if (opts.append) {
+          setItems((prev) => {
+            const newPageIds = new Set(pageUnpinned.map((i) => i.id));
+            const uniquePrev = prev.filter((i) => !newPageIds.has(i.id));
+            return [...uniquePrev, ...pageUnpinned];
+          });
+        } else {
+          // Initial load or search reset: pinned + first page of unpinned
+          setItems([...allPinned, ...pageUnpinned]);
+        }
       }
 
       setNextCursor(next);
