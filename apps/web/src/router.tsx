@@ -52,6 +52,14 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/s/:slug',
+    element: (
+      <Suspense fallback={<LoadingState fullWidth />}>
+        <PublicSharedConversationPage />
+      </Suspense>
+    ),
+  },
+  {
     path: '/app',
     element: (
       <RequireAuth>
@@ -161,14 +169,6 @@ const router = createBrowserRouter([
       {
         path: 'orgs/:orgId/settings/scim',
         element: <OrgScimSettingsPage />,
-      },
-      {
-        path: 's/:slug',
-        element: (
-          <Suspense fallback={<LoadingState fullWidth />}>
-            <PublicSharedConversationPage />
-          </Suspense>
-        ),
       },
     ],
   },

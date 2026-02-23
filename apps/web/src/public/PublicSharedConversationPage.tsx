@@ -3,9 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
@@ -25,10 +22,17 @@ import {
   fetchPublicSharedConversation
 } from '../api/sharing';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
+import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
+import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { SpecularButton } from '../components/ui/kinetic/SpecularButton';
+import { RefractionFilter } from '../components/ui/RefractionFilter';
+import { useEcoMode } from '../hooks/useEcoMode';
 
 export const PublicSharedConversationPage: React.FC = () => {
   const { t } = useTranslation(['public', 'common']);
   const { slug } = useParams<{ slug: string }>();
+  const { isEcoMode } = useEcoMode();
   const [conversation, setConversation] = useState<PublicSharedConversation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,112 +83,163 @@ export const PublicSharedConversationPage: React.FC = () => {
     }
   };
 
-  const gradientBg =
-    'radial-gradient(circle at top left, rgba(129,140,248,0.18), transparent 55%), ' +
-    'radial-gradient(circle at bottom right, rgba(56,189,248,0.18), transparent 55%)';
-
   if (loading && !conversation) {
     return (
-      <Box
+      <BentoGrid
         sx={{
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundImage: gradientBg,
-          backgroundColor: 'background.default',
-          position: 'relative'
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
+        <RefractionFilter />
         {/* Language Switcher in top-right corner / Sağ üst köşede dil değiştirici */}
         <Box
           position="absolute"
           top={16}
           right={16}
+          zIndex={10}
         >
           <LanguageSwitcher />
         </Box>
-        <Typography>{t('loading')}</Typography>
-      </Box>
+        <GlassPanel refractive={!isEcoMode} sx={{ p: 4 }}>
+            <KineticTypography variant="body1">{t('loading')}</KineticTypography>
+        </GlassPanel>
+      </BentoGrid>
     );
   }
 
   if (error && !needsPassphrase) {
     return (
-      <Box
+      <BentoGrid
         sx={{
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundImage: gradientBg,
-          backgroundColor: 'background.default',
-          position: 'relative'
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
+        <RefractionFilter />
         {/* Language Switcher in top-right corner / Sağ üst köşede dil değiştirici */}
         <Box
           position="absolute"
           top={16}
           right={16}
+          zIndex={10}
         >
           <LanguageSwitcher />
         </Box>
-        <Typography color="error">{error}</Typography>
-      </Box>
+        <GlassPanel refractive={!isEcoMode} sx={{ p: 4, borderColor: 'error.main' }}>
+            <KineticTypography variant="body1" color="error">{error}</KineticTypography>
+        </GlassPanel>
+      </BentoGrid>
     );
   }
 
   return (
-    <Box
+    <BentoGrid
       sx={{
         minHeight: '100vh',
         p: 2,
-        backgroundImage: gradientBg,
-        backgroundColor: 'background.default',
-        position: 'relative'
+        position: 'relative',
+        display: 'grid',
+        gridTemplateColumns: '1fr', // Single column layout for this page
+        gridTemplateRows: 'auto 1fr', // Header area + Content
+        gap: 3
       }}
     >
+      <RefractionFilter />
+
       {/* Language Switcher in top-right corner / Sağ üst köşede dil değiştirici */}
       <Box
         position="absolute"
         top={16}
         right={16}
+        zIndex={10}
       >
         <LanguageSwitcher />
       </Box>
+
       {conversation && (
-        <Box maxWidth="800px" mx="auto">
-          <Box display="flex" alignItems="center" gap={1} mb={2}>
-            <AutoAwesomeIcon fontSize="small" />
-            <Typography variant="h5">{conversation.title}</Typography>
-          </Box>
+        <Box
+          maxWidth="900px"
+          width="100%"
+          mx="auto"
+          display="flex"
+          flexDirection="column"
+          gap={3}
+          zIndex={1}
+          height="100%"
+        >
+          <GlassPanel refractive={!isEcoMode} sx={{ p: 3, flexShrink: 0 }}>
+            <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+              <AutoAwesomeIcon color="primary" />
+              <KineticTypography variant="h4" component="h1" fontWeight="bold">
+                {conversation.title}
+              </KineticTypography>
+            </Box>
 
-          {conversation.createdBy && (
-            <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-              {t('sharedBy')} {conversation.createdBy.displayName}
-            </Typography>
-          )}
+            {conversation.createdBy && (
+              <KineticTypography variant="caption" color="text.secondary" display="block">
+                {t('sharedBy')} {conversation.createdBy.displayName}
+              </KineticTypography>
+            )}
+          </GlassPanel>
 
-          <Box display="flex" flexDirection="column" gap={1.5}>
+          <Box display="flex" flexDirection="column" gap={2} flex={1} overflow="auto" pb={4}>
             {conversation.messages.map((msg) => (
-              <Card key={msg.id} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <CardContent>
-                  <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                    {msg.role.toUpperCase()} · {new Date(msg.createdAt).toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+              <GlassPanel
+                key={msg.id}
+                refractive={!isEcoMode}
+                sx={{
+                    p: 3,
+                    borderLeft: msg.role === 'ASSISTANT' || msg.role === 'assistant'
+                        ? '4px solid #7c4dff'
+                        : '4px solid transparent',
+                    backgroundColor: msg.role === 'USER' || msg.role === 'user'
+                        ? 'rgba(255,255,255,0.02)'
+                        : undefined
+                }}
+              >
+                  <KineticTypography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    gutterBottom
+                    sx={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem', fontWeight: 600 }}
+                  >
+                    {msg.role} · {new Date(msg.createdAt).toLocaleString()}
+                  </KineticTypography>
+                  <KineticTypography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                     {msg.content}
-                  </Typography>
-                </CardContent>
-              </Card>
+                  </KineticTypography>
+              </GlassPanel>
             ))}
           </Box>
         </Box>
       )}
 
-      <Dialog open={passphraseDialogOpen} onClose={() => {}}>
-        <DialogTitle>{t('enterPassphrase')}</DialogTitle>
+      <Dialog
+        open={passphraseDialogOpen}
+        onClose={() => {}}
+        PaperProps={{
+            component: GlassPanel, // Use GlassPanel as the Dialog Paper
+            refractive: !isEcoMode,
+            sx: {
+                backgroundImage: 'none',
+                backgroundColor: 'rgba(20,20,30,0.8)',
+                backdropFilter: 'blur(20px)'
+            }
+        }}
+      >
+        <DialogTitle>
+            <KineticTypography variant="h6">{t('enterPassphrase')}</KineticTypography>
+        </DialogTitle>
         <DialogContent>
           <TextField
             // eslint-disable-next-line jsx-a11y/no-autofocus
@@ -221,13 +276,12 @@ export const PublicSharedConversationPage: React.FC = () => {
             </Typography>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handlePassphraseSubmit} variant="contained">
+        <DialogActions sx={{ p: 2 }}>
+          <SpecularButton onClick={handlePassphraseSubmit} variant="contained" fullWidth aiAction="submit-passphrase">
             {loading ? t('submitting') : t('submit')}
-          </Button>
+          </SpecularButton>
         </DialogActions>
       </Dialog>
-    </Box>
+    </BentoGrid>
   );
 };
-
