@@ -9,7 +9,7 @@ import { StreamedMessage } from './StreamedMessage';
 
 interface ChatViewProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  messages: Array<{ id: string; role: string; content: string; images?: string[]; meta?: any }>;
+  messages: Array<{ id: string; role: string; content: string; images?: string[]; meta?: any; thinkingText?: string; isThinking?: boolean }>;
   streamingAssistantText: string;
   toolStatus?: string | null;
   thinkingText?: string;
@@ -29,10 +29,8 @@ const MessageList = React.memo(function MessageList({ messages }: { messages: Ch
           content={m.content}
           images={m.images}
           meta={m.meta}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          thinkingText={(m as any).thinkingText}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          isThinking={(m as any).isThinking}
+          thinkingText={m.thinkingText}
+          isThinking={m.isThinking}
         />
       ))}
     </>
