@@ -25,7 +25,7 @@ export default async function billingRoutes(
     });
 
     return reply.send({
-      plans: plans.map((p) => ({
+      plans: plans.map((p: { id: string; code: string; name: string; description: string | null; currency: string; monthlyPriceMinor: number; yearlyPriceMinor: number | null; limits: unknown }) => ({
         id: p.id,
         code: p.code,
         name: p.name,

@@ -231,7 +231,6 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
     let effectiveTemperature: number | undefined = undefined;
     let effectiveTopP: number | undefined = undefined;
     // effectiveMaxTokens is not currently used but kept for future use
-    // @ts-expect-error - intentionally unused, reserved for future use
     let _effectiveMaxTokens: number | null | undefined = undefined;
     void _effectiveMaxTokens; // Suppress unused variable warning
     let effectiveSystemPrompt: string | null | undefined = undefined;

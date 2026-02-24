@@ -1,9 +1,6 @@
 // apps/api-gateway/src/services/orgAiPolicy.ts
 
 import { prisma } from '@ai-chat/db';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - Prisma types are available via workspace
-import type { Prisma } from '@prisma/client';
 
 export interface OrgAiPolicyConfig {
   tone?: 'formal' | 'casual' | 'neutral';
@@ -47,14 +44,14 @@ export async function upsertOrgAiPolicy(params: {
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as unknown as Prisma.InputJsonValue
+      config: (params.config ?? {}) as unknown as Record<string, unknown>
     },
     create: {
       orgId: params.orgId,
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as unknown as Prisma.InputJsonValue
+      config: (params.config ?? {}) as unknown as Record<string, unknown>
     }
   });
 

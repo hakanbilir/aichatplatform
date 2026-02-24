@@ -46,10 +46,10 @@ export default async function experimentRunRoutes(
         return reply.code(404).send({ error: 'EXPERIMENT_NOT_FOUND' });
       }
 
-      const variants = experiment.variants.filter((v) =>
+      const variants = experiment.variants.filter((v: { id: string }) =>
         parsed.data.variantIds ? parsed.data.variantIds.includes(v.id) : true
       );
-      const inputs = experiment.inputs.filter((i) =>
+      const inputs = experiment.inputs.filter((i: { id: string }) =>
         parsed.data.inputIds ? parsed.data.inputIds.includes(i.id) : true
       );
 

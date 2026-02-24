@@ -339,7 +339,7 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
       return reply.code(401).send({ error: request.i18n.t('errors.userNotFound') });
     }
 
-    const activeOrg = user.orgMemberships.find((m) => m.orgId === payload.orgId)?.org ?? null;
+    const activeOrg = user.orgMemberships.find((m: { orgId: string }) => m.orgId === payload.orgId)?.org ?? null;
 
     return reply.send({
       user: {

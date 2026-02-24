@@ -16,7 +16,6 @@ export interface WebhookEventPayload {
 }
 
 // computeSignature reserved for future webhook signature verification
-// @ts-expect-error - intentionally unused, reserved for future use
 function _computeSignature(secret: string, body: string): string {
   return crypto.createHmac('sha256', secret).update(body).digest('hex');
 }

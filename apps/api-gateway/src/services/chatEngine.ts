@@ -1,9 +1,6 @@
 // apps/api-gateway/src/services/chatEngine.ts
 
 import { prisma } from '@ai-chat/db';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - Prisma types are available via workspace
-import type { Prisma } from '@prisma/client';
 import { ChatStreamEvent } from '@ai-chat/core-types';
 
 import { ProviderMessage, ProviderUsage, ContentPart } from '../providers/base';
@@ -40,6 +37,15 @@ export interface RunConversationTurnResult {
   assistantMessageId: string;
   assistantContent: string;
   usage?: ProviderUsage;
+}
+
+
+function toTokenUsage(usage: ProviderUsage | undefined): { promptTokens: number; completionTokens: number; totalTokens: number } | undefined {
+  if (!usage) return undefined;
+  const promptTokens = usage.promptTokens ?? 0;
+  const completionTokens = usage.completionTokens ?? 0;
+  const totalTokens = usage.totalTokens ?? promptTokens + completionTokens;
+  return { promptTokens, completionTokens, totalTokens };
 }
 
 function parseToolEnvelopeCandidate(text: string): ToolCallEnvelope | null {
@@ -354,7 +360,7 @@ async function finalizeConversationTurn(
       role: 'ASSISTANT',
       content,
       meta: {
-        usage: (usage || {}) as unknown as Prisma.JsonValue,
+        usage: (usage || {}) as unknown as Record<string, unknown>,
         toolMessageId: toolMessageId,
         thought: thought || undefined,
       },
@@ -426,7 +432,7 @@ export async function runConversationTurn(
           conversationId: conversation.id,
           role: 'TOOL',
           content: JSON.stringify(toolResults, null, 2),
-          meta: { toolsEnvelope: envelope as unknown as Prisma.JsonValue },
+          meta: { toolsEnvelope: envelope as unknown as Record<string, unknown> },
         },
       });
 
@@ -532,11 +538,11 @@ export async function* streamConversationTurn(
       }
 
       // Emit tool start events to client
-      for (const call of envelope.toolCalls) {
+      for (const [i, call] of envelope.toolCalls.entries()) {
         yield {
            type: 'tool_start',
            toolName: call.tool,
-           toolCallId: call.id, // Ensure tool calls have IDs or fallback
+           toolCallId: `${call.tool}-${i}`
         };
       }
 
@@ -549,7 +555,7 @@ export async function* streamConversationTurn(
         yield {
             type: 'tool_end',
             toolName: call.tool,
-            toolCallId: call.id,
+            toolCallId: `${call.tool}-${i}`,
             toolResult: result
         };
       }
@@ -559,7 +565,7 @@ export async function* streamConversationTurn(
           conversationId: conversation.id,
           role: 'TOOL',
           content: JSON.stringify(toolResults, null, 2),
-          meta: { toolsEnvelope: envelope as unknown as Prisma.JsonValue },
+          meta: { toolsEnvelope: envelope as unknown as Record<string, unknown> },
         },
       });
       toolMessageId = toolMessage.id;
@@ -605,12 +611,12 @@ export async function* streamConversationTurn(
 
         // Let's optimize: If no tools used, we yield the content we got.
         finalContent = planResult.content;
-        finalUsage = planResult.usage;
+        finalUsage = toTokenUsage(planResult.usage);
 
         // Yield synthetic start/token/end
         yield { type: 'start' };
         yield { type: 'token', token: finalContent };
-        yield { type: 'end', usage: finalUsage, finalMessage: { role: 'assistant', content: finalContent } };
+        yield { type: 'end', usage: toTokenUsage(finalUsage), finalMessage: { role: 'assistant', content: finalContent } };
     }
   } else {
     // Single pass streaming

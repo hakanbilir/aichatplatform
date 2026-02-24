@@ -127,7 +127,7 @@ export default async function superadminRoutes(
     });
 
     return reply.send({
-      users: users.map((u) => ({
+      users: users.map((u: { id: string; email: string; name: string | null; isSuperadmin: boolean; customInstructions: string | null; createdAt: Date; updatedAt: Date; _count: { orgMemberships: number; conversations: number } }) => ({
         id: u.id,
         email: u.email,
         name: u.name,
@@ -200,7 +200,7 @@ export default async function superadminRoutes(
       customInstructions: user.customInstructions,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
-      organizations: user.orgMemberships.map((m) => ({
+      organizations: user.orgMemberships.map((m: { org: { id: string; name: string; slug: string; plan: string }; role: string; isDisabled: boolean; createdAt: Date }) => ({
         id: m.org.id,
         name: m.org.name,
         slug: m.org.slug,
@@ -481,7 +481,7 @@ export default async function superadminRoutes(
     });
 
     return reply.send({
-      organizations: orgs.map((org) => ({
+      organizations: orgs.map((org: { id: string; name: string; slug: string; description: string | null; plan: string; monthlySoftLimitTokens: number; monthlyHardLimitTokens: number; _count: { members: number; conversations: number }; createdAt: Date; updatedAt: Date }) => ({
         id: org.id,
         name: org.name,
         slug: org.slug,
@@ -703,7 +703,7 @@ export default async function superadminRoutes(
       plan: org.plan,
       monthlySoftLimitTokens: org.monthlySoftLimitTokens,
       monthlyHardLimitTokens: org.monthlyHardLimitTokens,
-      members: org.members.map((m) => ({
+      members: org.members.map((m: { id: string; userId: string; user: { id: string; email: string; name: string | null; isSuperadmin: boolean }; role: string; isDisabled: boolean; createdAt: Date }) => ({
         id: m.id,
         userId: m.userId,
         user: {

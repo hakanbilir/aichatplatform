@@ -29,8 +29,8 @@
     "db:generate": "bun run --filter=@ai-chat/db prisma:generate",
     "db:studio": "bun run --filter=@ai-chat/db prisma:studio",
     "db:seed": "bun run --filter=@ai-chat/db src/seed.ts",
-    "audit": "npm audit --workspaces --audit-level=high",
-    "quality": "bun run lint && bun run typecheck && bun run test && bun run build && bun run audit"
+    "quality": "bun run lint && bun run test && bun run typecheck && bun run build && bun run audit:deps",
+    "audit:deps": "bun audit"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.49.0",

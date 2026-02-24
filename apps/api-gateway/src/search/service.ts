@@ -1,9 +1,6 @@
 // apps/api-gateway/src/search/service.ts
 
 import { prisma } from '@ai-chat/db';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - Prisma types are available via workspace
-import type { Prisma } from '@prisma/client';
 
 import {
   ConversationSearchFilters,
@@ -21,8 +18,8 @@ function clampPageSize(size: number | undefined): number {
   return Math.min(size, MAX_PAGE_SIZE);
 }
 
-function buildFilterWhere(orgId: string, filters?: ConversationSearchFilters): Prisma.ConversationWhereInput {
-  const where: Prisma.ConversationWhereInput = { orgId };
+function buildFilterWhere(orgId: string, filters?: ConversationSearchFilters): Record<string, unknown> {
+  const where: Record<string, any> = { orgId };
 
   if (!filters) return where;
 
@@ -135,7 +132,7 @@ export async function searchConversations(
     .join(' & ');
 
   // Use raw SQL for FTS search on messages
-  const messageMatches = await prisma.$queryRawUnsafe<Array<{ id: string; conversationId: string; role: string; createdAt: Date; content: string }>>(
+  const messageMatches = (await prisma.$queryRawUnsafe(
     `
     SELECT m.id, m."conversationId", m.role, m."createdAt", m.content
     FROM "Message" m
@@ -145,7 +142,7 @@ export async function searchConversations(
     `,
     req.orgId,
     tsQuery
-  );
+  )) as Array<{ id: string; conversationId: string; role: string; createdAt: Date; content: string }>;
 
   const byConversation = new Map<string, ConversationSearchHitMessageSnippet[]>();
 
