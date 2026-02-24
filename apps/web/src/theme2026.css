@@ -69,10 +69,18 @@
 
 h1, h2 {
   transition: font-variation-settings 0.3s ease, font-weight 0.3s ease;
-  /* Apply logic implicitly if class is missing, but prefer explicit class */
+
+  /* Make all headers react to scroll progress */
+  --scroll-weight: calc(400 + (300 * var(--scroll-progress, 0)));
+  /* Mouse weight is optional (set by JS), defaults to 400 */
+  --mouse-weight-safe: var(--mouse-weight, 400);
+  --target-weight: max(var(--scroll-weight), var(--mouse-weight-safe));
+
+  font-variation-settings: 'wght' var(--target-weight);
 }
 
 h1.kinetic-typography, h2.kinetic-typography {
+  /* No change needed, but kept for specificity if needed */
   font-variation-settings: 'wght' var(--target-weight);
 }
 
