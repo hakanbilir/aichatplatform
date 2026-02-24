@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -48,7 +48,7 @@ export const PromptTemplatesPage: React.FC = () => {
 
   const [newVersionPrompt, setNewVersionPrompt] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!token || !orgId) return;
     try {
       const res = await fetchPromptTemplates(token, orgId);
@@ -57,7 +57,7 @@ export const PromptTemplatesPage: React.FC = () => {
       console.error(err);
       setError("Failed to load prompt templates.");
     }
-  };
+  }, [token, orgId]);
 
   const loadDetail = async (id: string) => {
     if (!token || !orgId) return;
@@ -72,8 +72,7 @@ export const PromptTemplatesPage: React.FC = () => {
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId, token]);
+  }, [load]);
 
   const handleCreateTemplate = async () => {
     if (!token || !orgId) return;

@@ -58,11 +58,15 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     // Gerekirse bir sonek ekleyerek org slug benzersizliğini sağla
     let slug = orgSlugBase || 'workspace';
     let suffix = 1;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    let isUnique = false;
+
+    while (!isUnique) {
       const existingOrg = await prisma.organization.findUnique({ where: { slug } });
-      if (!existingOrg) break;
-      slug = `${orgSlugBase}-${suffix++}`;
+      if (!existingOrg) {
+        isUnique = true;
+      } else {
+        slug = `${orgSlugBase}-${suffix++}`;
+      }
     }
 
     const user = await prisma.user.create({
@@ -210,11 +214,15 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
         
         let slug = orgSlugBase || 'workspace';
         let suffix = 1;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
+        let isUnique = false;
+
+        while (!isUnique) {
           const existingOrg = await prisma.organization.findUnique({ where: { slug } });
-          if (!existingOrg) break;
-          slug = `${orgSlugBase}-${suffix++}`;
+          if (!existingOrg) {
+            isUnique = true;
+          } else {
+            slug = `${orgSlugBase}-${suffix++}`;
+          }
         }
 
         user = await prisma.user.create({

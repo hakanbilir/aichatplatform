@@ -1,6 +1,6 @@
 // apps/web/src/org/OrgModelsSettingsPage.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -33,7 +33,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
     'radial-gradient(circle at top left, rgba(52,211,153,0.18), transparent 55%), ' +
     'radial-gradient(circle at bottom right, rgba(59,130,246,0.18), transparent 55%)';
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!token || !orgId) return;
     try {
       const res = await fetchOrgModels(token, orgId);
@@ -42,12 +42,11 @@ export const OrgModelsSettingsPage: React.FC = () => {
       console.error(err);
       setError("Failed to load models.");
     }
-  };
+  }, [token, orgId]);
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId, token]);
+  }, [load]);
 
   const startEdit = (entry: ModelRegistryEntryDto) => {
     setEditing(entry);

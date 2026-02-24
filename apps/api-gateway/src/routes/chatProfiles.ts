@@ -96,12 +96,16 @@ export default async function chatProfilesRoutes(
     // ensure slug uniqueness
     let slug = slugBase || 'profile';
     let attempt = 1;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    let isUnique = false;
+
+    while (!isUnique) {
       const exists = await prisma.chatProfile.findFirst({ where: { slug } });
-      if (!exists) break;
-      attempt += 1;
-      slug = `${slugBase}-${attempt}`;
+      if (!exists) {
+        isUnique = true;
+      } else {
+        attempt += 1;
+        slug = `${slugBase}-${attempt}`;
+      }
     }
 
     if (data.isDefault) {
