@@ -24,7 +24,6 @@ export default async function scimUsersRoutes(
     }
 
     // Filter parameter reserved for future SCIM filtering support
-    // @ts-expect-error - intentionally unused, reserved for future use
     const _filter = (req.query as any).filter;
     void _filter; // Suppress unused variable warning
     const startIndex = parseInt((req.query as any).startIndex || '1', 10);
@@ -38,7 +37,7 @@ export default async function scimUsersRoutes(
       take: count
     });
 
-    const resources = members.map((m) => ({
+    const resources = members.map((m: { user: { id: string; email: string; name: string | null }; role: string; isDisabled: boolean }) => ({
       id: m.user.id,
       userName: m.user.email,
       name: {

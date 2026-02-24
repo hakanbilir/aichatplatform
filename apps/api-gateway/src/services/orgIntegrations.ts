@@ -60,7 +60,7 @@ export async function listOrgIntegrations(orgId: string) {
   });
 
   // Redact credentials in response
-  return integrations.map((integration) => ({
+  return integrations.map((integration: { credentials: unknown } & Record<string, unknown>) => ({
     ...integration,
     credentials: {},
   }));

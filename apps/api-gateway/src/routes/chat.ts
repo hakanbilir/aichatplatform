@@ -95,8 +95,8 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
         take: 2
       });
 
-      const assistantMessage = messages.find(m => m.role === 'ASSISTANT');
-      const userMessage = messages.find(m => m.role === 'USER');
+      const assistantMessage = messages.find((m: { role: string }) => m.role === 'ASSISTANT');
+      const userMessage = messages.find((m: { role: string }) => m.role === 'USER');
 
       return reply.send({
         conversationId: conversation.id,

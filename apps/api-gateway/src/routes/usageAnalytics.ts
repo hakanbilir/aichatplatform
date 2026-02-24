@@ -161,11 +161,11 @@ export default async function usageAnalyticsRoutes(
         take: 20
       });
 
-      const userIds = raw.map((r) => r.userId);
+      const userIds = raw.map((r: { userId: string }) => r.userId);
       const users = await prisma.user.findMany({ where: { id: { in: userIds } } });
-      const userMap = new Map(users.map((u) => [u.id, u]));
+      const userMap = new Map<string, { id: string; name: string | null; email: string }>(users.map((u: { id: string; name: string | null; email: string }) => [u.id, u]));
 
-      const result = raw.map((r) => ({
+      const result = raw.map((r: { userId: string; _sum: { requestCount: number | null; inputTokens: number | null; outputTokens: number | null; estimatedCostMicros: number | null } }) => ({
         userId: r.userId,
         user: userMap.get(r.userId)
           ? {
@@ -294,11 +294,11 @@ export default async function usageAnalyticsRoutes(
         take: 20
       });
 
-      const userIds = raw.map((r) => r.userId);
+      const userIds = raw.map((r: { userId: string }) => r.userId);
       const users = await prisma.user.findMany({ where: { id: { in: userIds } } });
-      const userMap = new Map(users.map((u) => [u.id, u]));
+      const userMap = new Map<string, { id: string; name: string | null; email: string }>(users.map((u: { id: string; name: string | null; email: string }) => [u.id, u]));
 
-      const result = raw.map((r) => ({
+      const result = raw.map((r: { userId: string; _sum: { requestCount: number | null; inputTokens: number | null; outputTokens: number | null; estimatedCostMicros: number | null } }) => ({
         userId: r.userId,
         user: userMap.get(r.userId)
           ? {

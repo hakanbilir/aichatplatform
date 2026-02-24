@@ -122,7 +122,6 @@ export async function updateUserFromScim(
   }
 
   // Email is not used in updateUserFromScim - user is identified by map.localId
-  // @ts-expect-error - intentionally unused
   const _email = scimUser.emails.find((e) => e.primary)?.value || scimUser.emails[0]?.value;
   void _email; // Suppress unused variable warning
   const name = scimUser.name.formatted || `${scimUser.name.givenName || ''} ${scimUser.name.familyName || ''}`.trim();

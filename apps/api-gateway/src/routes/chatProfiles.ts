@@ -51,7 +51,7 @@ export default async function chatProfilesRoutes(
     });
 
     return reply.send({
-      profiles: profiles.map((p) => ({
+      profiles: profiles.map((p: { id: string; orgId: string; name: string; slug: string; description: string | null; isShared: boolean; isDefault: boolean; modelProvider: string; modelName: string; temperature: number | null; topP: number | null; maxTokens: number | null; systemTemplateId: string | null; systemTemplateVersion: number | null; enableTools: boolean; enableRag: boolean; safetyLevel: string | null; createdAt: Date }) => ({
         id: p.id,
         orgId: p.orgId,
         name: p.name,

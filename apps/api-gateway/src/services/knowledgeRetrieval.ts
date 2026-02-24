@@ -40,7 +40,7 @@ export async function retrieveRelevantChunks(params: {
   // Not: pgvector uzantısının yüklü olduğunu ve embedding'lerin vector tipinde saklandığını varsayar
   let rows: any[];
   if (params.spaceId) {
-    rows = await prisma.$queryRawUnsafe<Array<{ id: string; documentId: string; text: string; score: number }>>(
+    rows = (await prisma.$queryRawUnsafe(
       `
       SELECT id, "documentId", text,
              1 - (embedding <=> $1::vector) AS score
@@ -55,9 +55,9 @@ export async function retrieveRelevantChunks(params: {
       params.orgId,
       params.spaceId,
       limit
-    );
+    )) as Array<{ id: string; documentId: string; text: string; score: number }>;
   } else {
-    rows = await prisma.$queryRawUnsafe<Array<{ id: string; documentId: string; text: string; score: number }>>(
+    rows = (await prisma.$queryRawUnsafe(
       `
       SELECT id, "documentId", text,
              1 - (embedding <=> $1::vector) AS score
@@ -70,7 +70,7 @@ export async function retrieveRelevantChunks(params: {
       embeddingStr,
       params.orgId,
       limit
-    );
+    )) as Array<{ id: string; documentId: string; text: string; score: number }>;
   }
 
   return rows.map((row) => ({

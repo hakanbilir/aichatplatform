@@ -3,12 +3,9 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '@ai-chat/db';
-import type { Prisma } from '@prisma/client';
 
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - Prisma types are available via workspace
 import { generateSlug, hashPassphrase, verifyPassphrase } from '../sharing/utils';
 
 const createShareBodySchema = z.object({
@@ -71,7 +68,7 @@ export default async function sharingRoutes(app: FastifyInstance, _opts: Fastify
     
     await prisma.conversation.update({
       where: { id: conversationId },
-      data: { metadata: updatedMetadata as unknown as Prisma.InputJsonValue }
+      data: { metadata: updatedMetadata as unknown as Record<string, unknown> }
     });
 
     const link = await prisma.conversationShareLink.create({
@@ -144,7 +141,7 @@ export default async function sharingRoutes(app: FastifyInstance, _opts: Fastify
           metadata: {
             ...currentMetadata,
             shareConfig
-          } as unknown as Prisma.InputJsonValue
+          } as unknown as Record<string, unknown>
         }
       });
     }

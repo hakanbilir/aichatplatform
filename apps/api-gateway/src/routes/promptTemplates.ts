@@ -75,7 +75,7 @@ export default async function promptTemplatesRoutes(
       }
     });
 
-    const result = templates.map((t) => {
+    const result = templates.map((t: { id: string; orgId: string; name: string; description: string | null; isArchived: boolean; createdById: string; createdAt: Date; versions: Array<{ id: string; version: number; systemPrompt: string; userPrefix: string | null; assistantStyle: string | null; variables: unknown; createdById: string; createdAt: Date; creator: { name: string | null } | null }> }) => {
       const v = t.versions[0];
       return {
         id: t.id,
@@ -95,7 +95,7 @@ export default async function promptTemplatesRoutes(
               variables: v.variables as any,
               createdById: v.createdById,
               createdAt: v.createdAt.toISOString(),
-              createdByDisplayName: v.creator.name
+              createdByDisplayName: v.creator?.name ?? null
             }
           : null
       };
@@ -238,7 +238,7 @@ export default async function promptTemplatesRoutes(
         isArchived: tmpl.isArchived,
         createdById: tmpl.createdById,
         createdAt: tmpl.createdAt.toISOString(),
-        versions: tmpl.versions.map((v) => ({
+        versions: tmpl.versions.map((v: { id: string; version: number; systemPrompt: string; userPrefix: string | null; assistantStyle: string | null; variables: unknown; createdById: string; createdAt: Date; creator: { name: string | null } | null }) => ({
           id: v.id,
           version: v.version,
           systemPrompt: v.systemPrompt,
@@ -247,7 +247,7 @@ export default async function promptTemplatesRoutes(
           variables: v.variables as any,
           createdById: v.createdById,
           createdAt: v.createdAt.toISOString(),
-          createdByDisplayName: v.creator.name
+          createdByDisplayName: v.creator?.name ?? null
         }))
       }
     });
@@ -302,7 +302,7 @@ export default async function promptTemplatesRoutes(
         variables: v.variables as any,
         createdById: v.createdById,
         createdAt: v.createdAt.toISOString(),
-        createdByDisplayName: v.creator.name
+        createdByDisplayName: v.creator?.name ?? null
       }
     });
   });

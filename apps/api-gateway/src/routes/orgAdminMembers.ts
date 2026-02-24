@@ -171,12 +171,9 @@ export default async function orgAdminMembersRoutes(
       if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
         return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanUpdateOwner') });
       }
-      if (parsed.data.role === 'OWNER' && requesterRole !== 'OWNER') {
-        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
-      }
     }
 
-    const _updated = await prisma.orgMember.update({
+    await prisma.orgMember.update({
       where: { id: member.id },
       data: { role: parsed.data.role as any }
     });
@@ -223,7 +220,7 @@ export default async function orgAdminMembersRoutes(
       }
     }
 
-    const _updated = await prisma.orgMember.update({
+    await prisma.orgMember.update({
       where: { id: member.id },
       data: { isDisabled: parsed.data.disabled }
     });

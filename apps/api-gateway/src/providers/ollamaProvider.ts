@@ -15,6 +15,16 @@ interface OllamaChatMessage {
   content: string;
 }
 
+const toOllamaContent = (content: ProviderMessage['content']): string => {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  return content
+    .map((part) => (part.type === 'text' ? part.text : '[image]'))
+    .join('\n');
+};
+
 interface OllamaChatRequestBody {
   model: string;
   messages: OllamaChatMessage[];
@@ -43,7 +53,7 @@ export class OllamaProvider implements ModelProvider {
       model: options.model,
       messages: messages.map((m) => ({
         role: m.role === 'tool' ? 'assistant' : (m.role as 'system' | 'user' | 'assistant'),
-        content: m.content,
+        content: toOllamaContent(m.content),
       })),
       stream: false,
       options: {
@@ -82,7 +92,7 @@ export class OllamaProvider implements ModelProvider {
       model: options.model,
       messages: messages.map((m) => ({
         role: m.role === 'tool' ? 'assistant' : (m.role as 'system' | 'user' | 'assistant'),
-        content: m.content,
+        content: toOllamaContent(m.content),
       })),
       stream: true,
       options: {
@@ -173,4 +183,3 @@ export class OllamaProvider implements ModelProvider {
     }
   }
 }
-
