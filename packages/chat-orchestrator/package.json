@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src --ext .ts",
     "test": "echo \"no tests yet\"",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-chat/config": "workspace:*",
@@ -16,4 +17,3 @@
     "@ai-chat/ollama-client": "workspace:*"
   }
 }
-

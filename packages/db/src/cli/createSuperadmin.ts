@@ -15,7 +15,10 @@ import * as readline from 'readline';
 
 import bcrypt from 'bcryptjs';
 
-import { prisma, OrgRole } from '../index';
+import { prisma } from '../index';
+
+type OrgRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+const ORG_ROLES: OrgRole[] = ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'];
 
 // Default salt rounds for password hashing
 // Şifre hash'leme için varsayılan tuz turu
@@ -285,7 +288,7 @@ async function main() {
 
           if (!existingMember) {
             const roleInput = (await prompt('Role (OWNER/ADMIN/MEMBER/VIEWER) [OWNER]: ')).toUpperCase();
-            const selectedRole = (Object.values(OrgRole).includes(roleInput as OrgRole) ? roleInput : 'OWNER') as OrgRole;
+            const selectedRole = (ORG_ROLES.includes(roleInput as OrgRole) ? roleInput : 'OWNER') as OrgRole;
 
             await prisma.orgMember.create({
               data: {
@@ -328,4 +331,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-

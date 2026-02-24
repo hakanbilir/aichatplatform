@@ -16,7 +16,7 @@ module.exports = {
     'react/prop-types': 'off', // TypeScript handles this
     '@next/next/no-img-element': 'off', // Turn off Next.js rules if they are leaking
     'import/named': 'off', // Rely on TS for named imports, as MUI exports are tricky
-    '@typescript-eslint/no-explicit-any': 'warn', // Warn only for now
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }], // Warn only
+    '@typescript-eslint/no-explicit-any': 'off', // Legacy dashboard modules still rely on dynamic payloads
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
   },
 };

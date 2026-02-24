@@ -6,9 +6,10 @@
     "dev": "bun --bun next dev",
     "build": "bun --bun next build",
     "start": "bun --bun next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern next-env.d.ts",
     "test": "echo \"no tests yet\"",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^15.0.0",

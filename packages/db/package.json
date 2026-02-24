@@ -16,7 +16,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
-    "create-superadmin": "ts-node src/cli/createSuperadmin.ts"
+    "create-superadmin": "ts-node src/cli/createSuperadmin.ts",
+    "typecheck": "tsc --noEmit"
   },
   "prisma": {
     "seed": "ts-node src/seed.ts"

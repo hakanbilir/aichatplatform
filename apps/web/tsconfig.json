@@ -5,8 +5,7 @@
     "baseUrl": "./src",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["vite/client"]
+    "types": ["vite/client", "bun-types"]
   },
   "include": ["src"]
 }
-
