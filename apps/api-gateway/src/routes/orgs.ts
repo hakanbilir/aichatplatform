@@ -56,11 +56,15 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
     let slug = orgSlugBase || 'workspace';
     let suffix = 1;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    let isUnique = false;
+
+    while (!isUnique) {
       const existingOrg = await prisma.organization.findUnique({ where: { slug } });
-      if (!existingOrg) break;
-      slug = `${orgSlugBase}-${suffix++}`;
+      if (!existingOrg) {
+        isUnique = true;
+      } else {
+        slug = `${orgSlugBase}-${suffix++}`;
+      }
     }
 
     const org = await prisma.organization.create({

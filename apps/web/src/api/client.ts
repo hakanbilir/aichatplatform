@@ -35,12 +35,11 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tok
   if (!response.ok) {
     // Error messages from backend are already localized based on Accept-Language header
     // Backend'den gelen hata mesajları zaten Accept-Language başlığına göre yerelleştirilmiş
+    const errorBody = body as { error?: string; details?: unknown } | undefined;
     const error: ApiError = {
       status: response.status,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      message: (body as any)?.error || response.statusText,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      details: (body as any)?.details,
+      message: errorBody?.error || response.statusText,
+      details: errorBody?.details,
     };
     throw error;
   }
@@ -76,10 +75,9 @@ export async function apiStreamRequest<T>(
 
     if (!response.ok) {
       const isJson = response.headers.get('content-type')?.includes('application/json');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const body = isJson ? await response.json().catch(() => undefined) : undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const message = (body as any)?.error || response.statusText;
+      const errorBody = body as { error?: string } | undefined;
+      const message = errorBody?.error || response.statusText;
       throw new Error(`HTTP ${response.status}: ${message}`);
     }
 

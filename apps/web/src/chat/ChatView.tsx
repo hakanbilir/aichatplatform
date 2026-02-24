@@ -8,8 +8,7 @@ import { StreamStore } from './StreamStore';
 import { StreamedMessage } from './StreamedMessage';
 
 interface ChatViewProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  messages: Array<{ id: string; role: string; content: string; images?: string[]; meta?: any; thinkingText?: string; isThinking?: boolean }>;
+  messages: Array<{ id: string; role: string; content: string; images?: string[]; meta?: unknown; thinkingText?: string; isThinking?: boolean }>;
   streamingAssistantText: string;
   toolStatus?: string | null;
   thinkingText?: string;
