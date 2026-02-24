@@ -7,3 +7,8 @@
 **Issue:** Node version requirement `>=24.0.0` caused confusion and potential incompatibility. Bun version was unpinned (`latest`).
 **Learning:** Always verify engine requirements against actual runtime capabilities. Pinning CI tools ensures reproducibility.
 **Fix:** Adjusted Node engine to `>=18.18.0` and pinned Bun to `1.2.14`.
+
+## 2025-05-xx - Next.js Cache Invalidation
+**Issue:** `actions/cache` key for Next.js used restrictive file extensions (`.js`, `.jsx`, `.ts`, `.tsx`), causing cache to persist (and not update) when CSS or asset files changed.
+**Learning:** `hashFiles` needs to be inclusive of all source files (`**/*`) to ensure correct cache invalidation and saving of new build artifacts.
+**Fix:** Updated glob pattern to `apps/web-app/src/**/*` and `apps/web-app/app/**/*`.
