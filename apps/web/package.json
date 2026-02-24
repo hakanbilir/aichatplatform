@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "echo \"no tests yet\"",
-    "generate-a11y-manifest": "bun scripts/generate-accessibility-manifest.ts"
+    "generate-a11y-manifest": "bun scripts/generate-accessibility-manifest.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",
@@ -33,6 +34,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "bun-types": "^1.3.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",

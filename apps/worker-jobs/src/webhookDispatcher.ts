@@ -5,7 +5,7 @@ import dns from 'node:dns/promises';
 import net from 'node:net';
 import { URL } from 'node:url';
 
-import { prisma, Prisma } from '@ai-chat/db';
+import { prisma } from '@ai-chat/db';
 
 // Helper to check for private/reserved IP ranges (IPv4 and IPv6)
 function isIpPrivate(ip: string): boolean {
@@ -83,6 +83,22 @@ export async function isValidWebhookUrl(url: string): Promise<boolean> {
   }
 }
 
+
+type JsonValue = null | string | number | boolean | { [key: string]: JsonValue } | JsonValue[];
+
+function toJsonValue(value: unknown): JsonValue {
+  if (value === null) return null;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.map((item) => toJsonValue(item));
+  if (typeof value === 'object') {
+    const record: Record<string, JsonValue> = {};
+    for (const [key, item] of Object.entries(value)) {
+      record[key] = toJsonValue(item);
+    }
+    return record;
+  }
+  return String(value);
+}
 function hmacSignature(secret: string, payload: string, timestamp: number): string {
   const toSign = `${timestamp}.${payload}`;
   return crypto.createHmac('sha256', secret).update(toSign).digest('hex');
@@ -155,7 +171,7 @@ async function dispatchDelivery(deliveryId: string) {
       data: {
         status: res.ok ? 'success' : 'failed',
         statusCode: res.status,
-        responseBody: responseBody as Prisma.InputJsonValue,
+        responseBody: toJsonValue(responseBody),
         error: res.ok ? null : `HTTP ${res.status}`
       }
     });
@@ -186,4 +202,3 @@ export async function processWebhooksBatch(limit = 50) {
 
   return pending.length;
 }
-

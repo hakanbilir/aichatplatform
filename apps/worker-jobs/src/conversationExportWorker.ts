@@ -3,7 +3,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { prisma, Conversation, Message } from '@ai-chat/db';
+import { prisma } from '@ai-chat/db';
 import { ConversationExportFormat } from '@ai-chat/core-types';
 
 // This is a simple implementation writing to local disk; in real deployments, use S3/minio.
@@ -15,8 +15,8 @@ async function ensureExportDir() {
 
 async function buildExportContent(
   format: ConversationExportFormat,
-  conversation: Conversation,
-  messages: Message[]
+  conversation: { title: string | null },
+  messages: Array<{ id: string; createdAt: Date; role: string; content: string }>
 ): Promise<string> {
   if (format === 'jsonl') {
     const lines = messages.map((m) =>
@@ -31,7 +31,7 @@ async function buildExportContent(
   }
 
   if (format === 'markdown') {
-    const header = `# ${conversation.title}\n\n`; // basic markdown escape can be added
+    const header = `# ${conversation.title ?? 'Conversation'}\n\n`; // basic markdown escape can be added
     const body = messages
       .map((m) => `**${m.role.toUpperCase()}** (${m.createdAt.toISOString()}):\n\n${m.content}\n`)
       .join('\n');
@@ -52,7 +52,7 @@ async function buildExportContent(
       )
       .join('\n');
 
-    return `<!doctype html><html><head><meta charset="utf-8" /><title>${conversation.title}</title></head><body>${items}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8" /><title>${conversation.title ?? 'Conversation'}</title></head><body>${items}</body></html>`;
   }
 
   throw new Error(`Unsupported export format: ${format}`);
@@ -117,4 +117,3 @@ export async function processConversationExportBatch(limit = 10) {
 
   return jobs.length;
 }
-

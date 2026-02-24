@@ -17,7 +17,8 @@
     "dev:web": "turbo run dev --filter=web-app",
     "dev:worker": "turbo run dev --filter=worker-jobs",
     "build": "turbo run build",
-    "lint": "turbo run lint",
+    "lint": "turbo run lint -- --max-warnings=0",
+    "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "turbo run format",
     "format:check": "prettier --check . --cache",
@@ -27,7 +28,9 @@
     "db:migrate:deploy": "bun run --filter=@ai-chat/db prisma:migrate:deploy",
     "db:generate": "bun run --filter=@ai-chat/db prisma:generate",
     "db:studio": "bun run --filter=@ai-chat/db prisma:studio",
-    "db:seed": "bun run --filter=@ai-chat/db src/seed.ts"
+    "db:seed": "bun run --filter=@ai-chat/db src/seed.ts",
+    "audit": "npm audit --workspaces --audit-level=high",
+    "quality": "bun run lint && bun run typecheck && bun run test && bun run build && bun run audit"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.49.0",
