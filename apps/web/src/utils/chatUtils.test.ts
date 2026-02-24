@@ -1,4 +1,3 @@
-
 // eslint-disable-next-line import/no-unresolved
 import { expect, test, describe } from 'bun:test';
 
@@ -57,7 +56,19 @@ describe('shouldParseToolOutput', () => {
       expect(shouldParseToolOutput('{"foo":"bar"}   ')).toBe(true);
   });
 
+  test('returns true even with newline at end', () => {
+      expect(shouldParseToolOutput('{"foo":"bar"}\n')).toBe(true);
+  });
+
   test('returns false for empty string', () => {
       expect(shouldParseToolOutput('')).toBe(false);
+  });
+
+  test('returns false for whitespace only', () => {
+      expect(shouldParseToolOutput('   ')).toBe(false);
+  });
+
+  test('returns true with complex whitespace', () => {
+      expect(shouldParseToolOutput('[1,2,3]\t\n ')).toBe(true);
   });
 });
