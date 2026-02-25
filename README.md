@@ -7,6 +7,14 @@ bun install --frozen-lockfile
 bun run quality
 ```
 
+## Docs
+
+Generate `DeveloperFollowMe.md`:
+
+```bash
+npm run docs:devfollowme
+```
+
 ## Common Commands
 
 ```bash
