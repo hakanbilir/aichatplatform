@@ -1,0 +1,39 @@
+name: release-readiness
+kind: orchestration-spec
+entry_conditions:
+  - Candidate branch is intended for merge/release.
+  - Intake and command matrix are up to date.
+target_selection_logic:
+  source: .ai/repo-facts.json
+  strategy:
+    - Run full-repo gates for all declared targets.
+    - Apply additional checks for targets detected as nextjs, node-api-fastify, prisma-backed.
+steps:
+  - id: intake
+    skill: 00-repo-intake
+  - id: command-discovery
+    skill: 01-command-discovery
+  - id: security-baseline
+    skill: 15-security-baseline
+  - id: performance-smoke
+    skill: 14-performance-smoke
+  - id: ci-parity
+    skill: 13-ci-parity-check
+  - id: deploy-readiness
+    description: Verify runtime env contract against `.env.example` and PM2/Turbo startup scripts.
+gates:
+  - bun run format:check
+  - bun run db:generate
+  - bun run lint
+  - bun run typecheck
+  - bun run test
+  - bun run build
+  - bun run audit:deps
+  - bun run ci
+stop_conditions:
+  - Any mandatory gate fails.
+  - Required env vars for runtime paths are missing from `.env.example`.
+outputs:
+  - release-readiness-report.md
+  - gate-results.json
+  - deploy-checklist.md

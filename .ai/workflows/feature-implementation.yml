@@ -1,0 +1,45 @@
+name: feature-implementation
+kind: orchestration-spec
+entry_conditions:
+  - Feature request includes clear functional outcome.
+  - Repo intake data is current.
+target_selection_logic:
+  source: .ai/repo-facts.json
+  strategy:
+    - Map requested feature paths/domains to target apps/packages.
+    - Include dependent packages discovered from import graph and workspace dependencies.
+steps:
+  - id: intake
+    skill: 00-repo-intake
+  - id: command-discovery
+    skill: 01-command-discovery
+  - id: plan
+    description: Decompose feature into minimal safe commits and impacted contracts.
+  - id: safe-editing
+    skill: 02-safe-editing-protocol
+  - id: implementation
+    description: Implement code changes using existing architectural patterns.
+  - id: i18n-regression-scan
+    skill: 09-i18n-safe-change
+    when: changed files include user-facing content or locale resources
+  - id: rbac-regression-scan
+    skill: 10-rbac-safe-change
+    when: changed files include auth/guard/role surfaces
+  - id: api-contract-regression-scan
+    skill: 11-api-contract-safe-change
+    when: changed files include routes/shared contracts/db schema
+  - id: observability
+    skill: 12-observability-logging
+    when: changed files touch critical execution paths
+  - id: validate
+    skill: 13-ci-parity-check
+gates:
+  - target-scoped lint/typecheck/test/build for each impacted target
+  - bun run ci
+stop_conditions:
+  - Any impacted target fails lint/typecheck/test/build.
+  - RBAC/i18n/API contract checks fail.
+outputs:
+  - feature-delivery-report.md
+  - validation command log
+  - risk notes (rbac/i18n/contracts)
