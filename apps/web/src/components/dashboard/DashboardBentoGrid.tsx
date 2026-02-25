@@ -25,8 +25,11 @@ export const DashboardBentoGrid: React.FC = () => {
   const { data: templates, isLoading: loadingTemplates } = usePromptTemplates(orgId || '');
 
   const handleNewChat = () => {
-    const event = new CustomEvent('create-conversation');
-    window.dispatchEvent(event);
+    if (orgId) {
+      navigate(`/app/orgs/${orgId}/chat`);
+    } else {
+      navigate('/app/chat');
+    }
   };
 
   const handleSelectConversation = (id: string) => {
