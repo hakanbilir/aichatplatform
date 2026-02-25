@@ -8,6 +8,7 @@ import { LoadingState } from './components/dashboard/LoadingState';
 const LoginPage = lazy(() => import('./auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const SignupPage = lazy(() => import('./auth/SignupPage').then(m => ({ default: m.SignupPage })));
 const Shell = lazy(() => import('./layout/Shell').then(m => ({ default: m.Shell })));
+const DashboardPage = lazy(() => import('./dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const KnowledgeBaseRouteWrapper = lazy(() => import('./knowledge/KnowledgeBaseRouteWrapper').then(m => ({ default: m.KnowledgeBaseRouteWrapper })));
 const OrgAiPolicyPage = lazy(() => import('./org/OrgAiPolicyPage').then(m => ({ default: m.OrgAiPolicyPage })));
 const PresetsGalleryPage = lazy(() => import('./presets/PresetsGalleryPage').then(m => ({ default: m.PresetsGalleryPage })));
@@ -71,6 +72,10 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
+        element: <DashboardPage />,
+      },
+      {
+        path: 'chat',
         element: <ChatPage />,
       },
       {
@@ -78,11 +83,19 @@ const router = createBrowserRouter([
         element: <ChatPage />,
       },
       {
+        path: 'orgs/:orgId',
+        element: <DashboardPage />,
+      },
+      {
         path: 'orgs/:orgId/knowledge',
         element: <KnowledgeBaseRouteWrapper />,
       },
       {
-        path: 'orgs/:orgId/chat/:conversationId?',
+        path: 'orgs/:orgId/chat',
+        element: <ChatPage />,
+      },
+      {
+        path: 'orgs/:orgId/chat/:conversationId',
         element: <ChatPage />,
       },
       {

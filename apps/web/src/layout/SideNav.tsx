@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Drawer, IconButton, useTheme, Divider } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useParams, useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
@@ -56,13 +56,14 @@ const NavItem = ({ to, icon, label, onClick }: { to: string, icon: React.ReactNo
   </NavLink>
 );
 
-export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
+export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation: _onCreateConversation }) => {
   const { t } = useTranslation(['chat', 'common']);
   const theme = useTheme();
   const isMobile = useIsMobile();
   const { isEcoMode } = useEcoMode();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { orgId } = useParams<{ orgId: string }>();
+  const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -94,7 +95,11 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation }) => {
         startIcon={<AddIcon />}
         size="small"
         onClick={() => {
-          onCreateConversation();
+          if (orgId) {
+            navigate(`/app/orgs/${orgId}/chat`);
+          } else {
+            navigate('/app/chat');
+          }
           if (isMobile) setMobileOpen(false);
         }}
         data-ai-action="create-conversation"
