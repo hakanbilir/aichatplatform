@@ -32,7 +32,9 @@
     "quality": "bash ./scripts/quality-gates.sh",
     "repair:ai": "bash ./scripts/ai-repair-loop.sh",
     "security": "bun run audit:deps",
-    "audit:deps": "bash ./scripts/security-checks.sh"
+    "audit:deps": "bash ./scripts/security-checks.sh",
+    "docs:devfollowme": "node ./scripts/devfollowme/generate.mjs",
+    "docs:devfollowme:check": "npm run docs:devfollowme && git diff --exit-code -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.49.0",

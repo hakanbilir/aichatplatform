@@ -1,0 +1,328 @@
+{
+  "metadata": {
+    "generatedAt": "2026-02-25T15:14:31.647Z",
+    "generatorVersion": "1.0.0"
+  },
+  "repo": {
+    "packageManager": {
+      "name": "bun",
+      "spec": "bun@1.2.14"
+    },
+    "monorepoTool": "turbo",
+    "nodeVersion": {
+      "source": "package.json#engines.node",
+      "value": ">=24.0.0"
+    },
+    "rootScripts": {
+      "dev": "turbo run dev --parallel",
+      "dev:api": "turbo run dev --filter=api-gateway",
+      "dev:web": "turbo run dev --filter=web-app",
+      "dev:worker": "turbo run dev --filter=worker-jobs",
+      "build": "turbo run build",
+      "lint": "turbo run lint -- --max-warnings=0",
+      "typecheck": "turbo run typecheck",
+      "test": "turbo run test",
+      "ci": "turbo run lint typecheck test build --continue",
+      "format": "turbo run format",
+      "format:check": "prettier --check 'README.md' 'package.json' 'turbo.json' '.github/workflows/*.yml' 'docs/ai/**/*.md' --cache",
+      "format:write": "prettier --write 'README.md' 'package.json' 'turbo.json' '.github/workflows/*.yml' 'docs/ai/**/*.md' --cache",
+      "clean": "turbo run clean",
+      "db:migrate:dev": "bun run --filter=@ai-chat/db prisma:migrate:dev",
+      "db:migrate:deploy": "bun run --filter=@ai-chat/db prisma:migrate:deploy",
+      "db:generate": "bun run --filter=@ai-chat/db prisma:generate",
+      "db:studio": "bun run --filter=@ai-chat/db prisma:studio",
+      "db:seed": "bun run --filter=@ai-chat/db src/seed.ts",
+      "quality": "bash ./scripts/quality-gates.sh",
+      "repair:ai": "bash ./scripts/ai-repair-loop.sh",
+      "security": "bun run audit:deps",
+      "audit:deps": "bash ./scripts/security-checks.sh",
+      "docs:devfollowme": "node ./scripts/devfollowme/generate.mjs",
+      "docs:devfollowme:check": "npm run docs:devfollowme && git diff --exit-code -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json"
+    },
+    "workspacePackages": [
+      {
+        "path": "apps/api-gateway/package.json",
+        "name": "api-gateway",
+        "scripts": {
+          "dev": "node --watch --import tsx/esm src/main.ts",
+          "dev:node": "node --watch --import tsx/esm src/main.ts",
+          "build": "tsc -p tsconfig.json",
+          "start": "bun run dist/main.js",
+          "lint": "eslint src --ext .ts",
+          "test": "bun test ./src",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@ai-chat/chat-orchestrator": "workspace:*",
+          "@ai-chat/config": "workspace:*",
+          "@ai-chat/core-types": "workspace:*",
+          "@ai-chat/db": "workspace:*",
+          "@fastify/cors": "^10.1.0",
+          "@fastify/helmet": "^12.0.1",
+          "@fastify/jwt": "^9.0.0",
+          "@fastify/rate-limit": "^10.1.1",
+          "bcryptjs": "^2.4.3",
+          "fastify": "^5.0.0",
+          "fastify-plugin": "^5.0.0",
+          "i18next": "^23.15.0",
+          "i18next-fs-backend": "^2.2.1",
+          "nodemailer": "^6.9.0",
+          "pino": "^9.0.0",
+          "pino-pretty": "^11.0.0",
+          "prom-client": "^15.0.0",
+          "slugify": "^1.6.6",
+          "zod": "^3.23.0"
+        },
+        "devDependencies": {
+          "@types/bcryptjs": "^2.4.2",
+          "@types/bun": "latest",
+          "@types/node": "^22.0.0",
+          "@types/nodemailer": "^6.4.0",
+          "tsx": "^4.21.0"
+        }
+      },
+      {
+        "path": "apps/web-app/package.json",
+        "name": "web-app",
+        "scripts": {
+          "dev": "bun --bun next dev",
+          "build": "bun --bun next build",
+          "start": "bun --bun next start",
+          "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern next-env.d.ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf .next",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "next": "^15.0.0",
+          "react": "^19.0.0",
+          "react-dom": "^19.0.0"
+        },
+        "devDependencies": {
+          "@types/node": "^20.0.0",
+          "@types/react": "^19.0.0",
+          "@types/react-dom": "^19.0.0",
+          "eslint-config-next": "15.0.0"
+        }
+      },
+      {
+        "path": "apps/web/package.json",
+        "name": "web",
+        "scripts": {
+          "dev": "vite",
+          "build": "vite build",
+          "preview": "vite preview",
+          "lint": "eslint src --ext .ts,.tsx",
+          "test": "echo \"no tests yet\"",
+          "generate-a11y-manifest": "bun scripts/generate-accessibility-manifest.ts",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@emotion/react": "^11.13.0",
+          "@emotion/styled": "^11.13.0",
+          "@mui/icons-material": "^6.0.0",
+          "@mui/material": "^6.0.0",
+          "@tanstack/react-query": "^5.90.20",
+          "dompurify": "^3.3.1",
+          "i18next": "^23.15.0",
+          "i18next-browser-languagedetector": "^7.2.0",
+          "react": "^19.0.0",
+          "react-dom": "^19.0.0",
+          "react-i18next": "^14.1.0",
+          "react-router-dom": "^7.0.0",
+          "recharts": "^2.12.0"
+        },
+        "devDependencies": {
+          "@types/dompurify": "^3.2.0",
+          "@types/react": "^19.0.0",
+          "@types/react-dom": "^19.0.0",
+          "@vitejs/plugin-react": "^4.0.0",
+          "bun-types": "^1.3.0",
+          "eslint-plugin-jsx-a11y": "^6.10.2",
+          "eslint-plugin-react": "^7.37.5",
+          "eslint-plugin-react-hooks": "^7.0.1",
+          "typescript": "^5.7.0",
+          "vite": "^6.0.0"
+        }
+      },
+      {
+        "path": "apps/worker-jobs/package.json",
+        "name": "worker-jobs",
+        "scripts": {
+          "dev": "node --watch --import tsx/esm src/main.ts",
+          "build": "tsc -p tsconfig.json",
+          "start": "bun run dist/main.js",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@ai-chat/config": "workspace:*",
+          "@ai-chat/core-types": "workspace:*",
+          "@ai-chat/db": "workspace:*"
+        },
+        "devDependencies": {
+          "@types/node": "^22.0.0",
+          "tsx": "^4.21.0"
+        }
+      },
+      {
+        "path": "packages/chat-orchestrator/package.json",
+        "name": "@ai-chat/chat-orchestrator",
+        "scripts": {
+          "build": "tsc -p tsconfig.json",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@ai-chat/config": "workspace:*",
+          "@ai-chat/core-types": "workspace:*",
+          "@ai-chat/ollama-client": "workspace:*"
+        },
+        "devDependencies": {}
+      },
+      {
+        "path": "packages/config/package.json",
+        "name": "@ai-chat/config",
+        "scripts": {
+          "build": "tsc -p tsconfig.json",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@aws-sdk/client-s3": "^3.958.0",
+          "@aws-sdk/s3-request-presigner": "^3.958.0",
+          "dotenv": "^16.4.0",
+          "zod": "^3.23.0"
+        },
+        "devDependencies": {}
+      },
+      {
+        "path": "packages/core-types/package.json",
+        "name": "@ai-chat/core-types",
+        "scripts": {
+          "build": "tsc -p tsconfig.json",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {},
+        "devDependencies": {}
+      },
+      {
+        "path": "packages/db/package.json",
+        "name": "@ai-chat/db",
+        "scripts": {
+          "build": "tsc -p tsconfig.json",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "prisma:migrate:dev": "prisma migrate dev",
+          "prisma:migrate:deploy": "prisma migrate deploy",
+          "prisma:generate": "prisma generate",
+          "prisma:studio": "prisma studio",
+          "create-superadmin": "ts-node src/cli/createSuperadmin.ts",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@prisma/client": "^6.0.0",
+          "bcryptjs": "^2.4.3"
+        },
+        "devDependencies": {
+          "@types/bcryptjs": "^2.4.2",
+          "@types/node": "^22.0.0",
+          "argon2": "^0.44.0",
+          "prisma": "^6.0.0",
+          "ts-node": "^10.9.2",
+          "typescript": "^5.6.0"
+        }
+      },
+      {
+        "path": "packages/ollama-client/package.json",
+        "name": "@ai-chat/ollama-client",
+        "scripts": {
+          "build": "tsc -p tsconfig.json",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@ai-chat/config": "workspace:*",
+          "@ai-chat/core-types": "workspace:*"
+        },
+        "devDependencies": {}
+      },
+      {
+        "path": "packages/telemetry/package.json",
+        "name": "@ai-chat/telemetry",
+        "scripts": {
+          "build": "tsc -p tsconfig.json",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {},
+        "devDependencies": {}
+      },
+      {
+        "path": "packages/tools-engine/package.json",
+        "name": "@ai-chat/tools-engine",
+        "scripts": {
+          "build": "tsc -p tsconfig.json",
+          "lint": "eslint src --ext .ts",
+          "test": "echo \"no tests yet\"",
+          "clean": "rm -rf dist",
+          "typecheck": "tsc --noEmit"
+        },
+        "dependencies": {},
+        "devDependencies": {}
+      }
+    ],
+    "ciWorkflows": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/docs-devfollowme.yml",
+      ".github/workflows/security.yml"
+    ],
+    "docsFiles": [
+      "docs/_generated/devfollowme.repo-profile.json",
+      "docs/ai/DEVFOLLOWME_WORKFLOW.md",
+      "docs/ai/RELEASE.md",
+      "docs/ai/REPAIR_LOOP.md",
+      "docs/ai/SECURITY.md",
+      "docs/ai/WORKFLOWS.md",
+      "PM2_GUIDE.md",
+      "README.md",
+      "security.md"
+    ],
+    "dockerFiles": [],
+    "pm2Files": [
+      "apps/api-gateway/ecosystem.config.js",
+      "apps/worker-jobs/ecosystem.config.js",
+      "ecosystem.config.js"
+    ],
+    "mobileSignals": {
+      "iosDir": false,
+      "androidDir": false,
+      "appJson": false,
+      "reactNativeConfig": false,
+      "expoDependency": false
+    },
+    "envExamples": [
+      ".env.example"
+    ],
+    "envIgnored": [
+      ".env.backup",
+      ".env.development",
+      "apps/api-gateway/.env.test"
+    ]
+  }
+}
