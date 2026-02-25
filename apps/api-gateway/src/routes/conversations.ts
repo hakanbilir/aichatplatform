@@ -710,6 +710,7 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
       select: {
         id: true,
         orgId: true,
+        userId: true,
       },
     });
 

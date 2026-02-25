@@ -171,7 +171,8 @@ async function dispatchDelivery(deliveryId: string) {
       data: {
         status: res.ok ? 'success' : 'failed',
         statusCode: res.status,
-        responseBody: toJsonValue(responseBody),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        responseBody: toJsonValue(responseBody) as any,
         error: res.ok ? null : `HTTP ${res.status}`
       }
     });

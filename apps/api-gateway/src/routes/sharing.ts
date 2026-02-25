@@ -68,7 +68,7 @@ export default async function sharingRoutes(app: FastifyInstance, _opts: Fastify
     
     await prisma.conversation.update({
       where: { id: conversationId },
-      data: { metadata: updatedMetadata as unknown as Record<string, unknown> }
+      data: { metadata: updatedMetadata as any }
     });
 
     const link = await prisma.conversationShareLink.create({
@@ -141,7 +141,7 @@ export default async function sharingRoutes(app: FastifyInstance, _opts: Fastify
           metadata: {
             ...currentMetadata,
             shareConfig
-          } as unknown as Record<string, unknown>
+          } as any
         }
       });
     }

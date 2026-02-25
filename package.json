@@ -12,7 +12,6 @@
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
-    "ci": "turbo run lint test build --continue",
     "dev:api": "turbo run dev --filter=api-gateway",
     "dev:web": "turbo run dev --filter=web-app",
     "dev:worker": "turbo run dev --filter=worker-jobs",
@@ -20,6 +19,7 @@
     "lint": "turbo run lint -- --max-warnings=0",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "ci": "turbo run lint typecheck test build --continue",
     "format": "turbo run format",
     "format:check": "prettier --check . --cache",
     "format:write": "prettier --write . --cache",

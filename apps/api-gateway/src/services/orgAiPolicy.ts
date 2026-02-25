@@ -44,14 +44,14 @@ export async function upsertOrgAiPolicy(params: {
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as unknown as Record<string, unknown>
+      config: (params.config ?? {}) as any
     },
     create: {
       orgId: params.orgId,
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as unknown as Record<string, unknown>
+      config: (params.config ?? {}) as any
     }
   });
 

@@ -12,3 +12,8 @@
 **Issue:** `actions/cache` key for Next.js used restrictive file extensions (`.js`, `.jsx`, `.ts`, `.tsx`), causing cache to persist (and not update) when CSS or asset files changed.
 **Learning:** `hashFiles` needs to be inclusive of all source files (`**/*`) to ensure correct cache invalidation and saving of new build artifacts.
 **Fix:** Updated glob pattern to `apps/web-app/src/**/*` and `apps/web-app/app/**/*`.
+
+## 2025-06-xx - Missing Typecheck in CI and Monorepo Test Leaks
+**Issue:** `apps/web` (Vite) was not being type-checked in CI, allowing type errors to merge. Enabling type-check revealed existing type errors in `apps/api-gateway` and `apps/worker-jobs`. Also, `bun test src` in `api-gateway` was picking up compiled tests in `dist`, causing duplicate/failing runs.
+**Learning:** Vite build skips `tsc` by default. Monorepos using `tsc` to build into `dist` need explicit exclusion of `dist` in test scripts if using globbing or broad patterns.
+**Fix:** Added `typecheck` to `ci` script. Fixed strict type errors in `api-gateway`/`worker-jobs`. Updated `api-gateway` test script to `bun test ./src` to ignore `dist`.
