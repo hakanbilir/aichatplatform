@@ -1,53 +1,31 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": [
-    "DATABASE_URL",
-    "REDIS_URL",
-    "JWT_SECRET",
-    "LOG_LEVEL",
-    "NODE_ENV",
-    "CI"
-  ],
+  "globalEnv": ["DATABASE_URL", "REDIS_URL", "JWT_SECRET", "LOG_LEVEL", "NODE_ENV", "CI"],
   "tasks": {
     "dev": {
       "cache": false,
       "persistent": true
     },
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "build/**"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "build/**"]
     },
     "lint": {
       "outputs": []
     },
     "typecheck": {
-      "dependsOn": [
-        "^typecheck"
-      ],
+      "dependsOn": ["^typecheck"],
       "outputs": []
     },
     "test": {
-      "outputs": [
-        "coverage/**"
-      ]
+      "outputs": ["coverage/**"]
     },
     "format": {
       "outputs": []
     },
     "clean": {
       "cache": false,
-      "outputs": [
-        "dist/**",
-        "build/**",
-        ".next/**",
-        "coverage/**"
-      ]
+      "outputs": ["dist/**", "build/**", ".next/**", "coverage/**"]
     }
   }
 }

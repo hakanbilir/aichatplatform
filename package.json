@@ -21,16 +21,18 @@
     "test": "turbo run test",
     "ci": "turbo run lint typecheck test build --continue",
     "format": "turbo run format",
-    "format:check": "prettier --check . --cache",
-    "format:write": "prettier --write . --cache",
+    "format:check": "prettier --check 'README.md' 'package.json' 'turbo.json' '.github/workflows/*.yml' 'docs/ai/**/*.md' --cache",
+    "format:write": "prettier --write 'README.md' 'package.json' 'turbo.json' '.github/workflows/*.yml' 'docs/ai/**/*.md' --cache",
     "clean": "turbo run clean",
     "db:migrate:dev": "bun run --filter=@ai-chat/db prisma:migrate:dev",
     "db:migrate:deploy": "bun run --filter=@ai-chat/db prisma:migrate:deploy",
     "db:generate": "bun run --filter=@ai-chat/db prisma:generate",
     "db:studio": "bun run --filter=@ai-chat/db prisma:studio",
     "db:seed": "bun run --filter=@ai-chat/db src/seed.ts",
-    "quality": "bun run lint && bun run test && bun run typecheck && bun run build && bun run audit:deps",
-    "audit:deps": "bun audit"
+    "quality": "bash ./scripts/quality-gates.sh",
+    "repair:ai": "bash ./scripts/ai-repair-loop.sh",
+    "security": "bun run audit:deps",
+    "audit:deps": "bash ./scripts/security-checks.sh"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.49.0",
