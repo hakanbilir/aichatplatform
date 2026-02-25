@@ -1,0 +1,46 @@
+name: autofix-quality
+kind: orchestration-spec
+entry_conditions:
+  - Repository contains root package.json and .ai/repo-facts.json.
+  - Change request is quality-focused (lint/type/test/build/audit) or CI is failing.
+target_selection_logic:
+  source: .ai/repo-facts.json
+  strategy:
+    - If changed files are known, map to targets by path prefix.
+    - If unknown or broad failures, run root gates across all targets.
+steps:
+  - id: intake
+    skill: 00-repo-intake
+  - id: command-discovery
+    skill: 01-command-discovery
+  - id: lint-fix
+    skill: 03-lint-fix
+  - id: typecheck-fix
+    skill: 04-typecheck-fix
+  - id: test-repair
+    skill: 05-test-repair
+  - id: build-repair-next
+    when: target type includes nextjs
+    skill: 06-build-repair-next
+  - id: build-repair-rn
+    when: repo-facts.notDetected.reactNative is false
+    skill: 07-build-repair-react-native
+  - id: dep-audit-fix
+    skill: 08-dep-audit-fix
+  - id: ci-parity
+    skill: 13-ci-parity-check
+gates:
+  - bun run format:check
+  - bun run lint
+  - bun run typecheck
+  - bun run test
+  - bun run build
+  - bun run audit:deps
+  - bun run ci
+stop_conditions:
+  - Any mandatory gate fails after repair attempts.
+  - Required scripts are missing and cannot be derived from source-of-truth files.
+outputs:
+  - quality-report.md (gate-by-gate status)
+  - changed-files list
+  - ci-parity summary

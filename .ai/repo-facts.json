@@ -1,0 +1,245 @@
+{
+  "generatedAt": "2026-02-25",
+  "sourceOfTruth": {
+    "rootPackageJson": "package.json",
+    "workspacePackageJsonGlobs": ["apps/*/package.json", "packages/*/package.json"],
+    "ciWorkflows": [".github/workflows/ci.yml"],
+    "monorepoConfig": ["turbo.json"],
+    "toolingConfig": [".eslintrc.cjs", ".prettierrc", "tsconfig.base.json"],
+    "lockfiles": ["bun.lock"]
+  },
+  "workspace": {
+    "manager": "bun workspaces",
+    "packageManager": "bun@1.2.14",
+    "monorepoTool": "turborepo",
+    "workspaces": ["apps/*", "packages/*"],
+    "nodeEngine": ">=24.0.0"
+  },
+  "topology": {
+    "apps": ["apps/api-gateway", "apps/web", "apps/web-app", "apps/worker-jobs"],
+    "packages": [
+      "packages/chat-orchestrator",
+      "packages/config",
+      "packages/core-types",
+      "packages/db",
+      "packages/ollama-client",
+      "packages/telemetry",
+      "packages/tools-engine"
+    ],
+    "infra": ["infra/monitoring"],
+    "otherTopLevel": ["scripts", "home", "verification"]
+  },
+  "commandCatalog": {
+    "install": "bun install",
+    "root": {
+      "lint": "bun run lint",
+      "typecheck": "bun run typecheck",
+      "test": "bun run test",
+      "build": "bun run build",
+      "ci": "bun run ci",
+      "formatCheck": "bun run format:check",
+      "formatWrite": "bun run format:write",
+      "audit": "bun run audit:deps",
+      "quality": "bun run quality",
+      "dbGenerate": "bun run db:generate"
+    },
+    "turboScopedTemplates": {
+      "lint": "bunx turbo run lint --filter=<target>",
+      "typecheck": "bunx turbo run typecheck --filter=<target>",
+      "test": "bunx turbo run test --filter=<target>",
+      "build": "bunx turbo run build --filter=<target>"
+    }
+  },
+  "targets": [
+    {
+      "name": "api-gateway",
+      "path": "apps/api-gateway",
+      "type": "node-api-fastify",
+      "signals": [
+        "apps/api-gateway/package.json dependency: fastify",
+        "apps/api-gateway/src/routes/*",
+        "apps/api-gateway/src/plugins/*"
+      ],
+      "scripts": {
+        "dev": "node --watch --import tsx/esm src/main.ts",
+        "build": "tsc -p tsconfig.json",
+        "start": "bun run dist/main.js",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test ./src",
+        "clean": "rm -rf dist"
+      }
+    },
+    {
+      "name": "web",
+      "path": "apps/web",
+      "type": "react-vite",
+      "signals": ["apps/web/package.json dependency: vite", "apps/web/src/main.tsx"],
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "lint": "eslint src --ext .ts,.tsx",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\""
+      }
+    },
+    {
+      "name": "web-app",
+      "path": "apps/web-app",
+      "type": "nextjs",
+      "signals": ["apps/web-app/next.config.mjs", "apps/web-app/package.json dependency: next"],
+      "scripts": {
+        "dev": "bun --bun next dev",
+        "build": "bun --bun next build",
+        "start": "bun --bun next start",
+        "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern next-env.d.ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf .next"
+      }
+    },
+    {
+      "name": "worker-jobs",
+      "path": "apps/worker-jobs",
+      "type": "node-worker",
+      "signals": ["apps/worker-jobs/package.json", "apps/worker-jobs/src/main.ts"],
+      "scripts": {
+        "dev": "node --watch --import tsx/esm src/main.ts",
+        "build": "tsc -p tsconfig.json",
+        "start": "bun run dist/main.js",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist"
+      }
+    },
+    {
+      "name": "@ai-chat/chat-orchestrator",
+      "path": "packages/chat-orchestrator",
+      "type": "typescript-library",
+      "signals": [
+        "packages/chat-orchestrator/package.json",
+        "packages/chat-orchestrator/src/index.ts"
+      ],
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist"
+      }
+    },
+    {
+      "name": "@ai-chat/config",
+      "path": "packages/config",
+      "type": "typescript-library",
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist"
+      }
+    },
+    {
+      "name": "@ai-chat/core-types",
+      "path": "packages/core-types",
+      "type": "typescript-library",
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist"
+      }
+    },
+    {
+      "name": "@ai-chat/db",
+      "path": "packages/db",
+      "type": "typescript-library-prisma",
+      "signals": ["packages/db/prisma/schema.prisma", "packages/db/package.json prisma scripts"],
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist",
+        "prisma:migrate:dev": "prisma migrate dev",
+        "prisma:migrate:deploy": "prisma migrate deploy",
+        "prisma:generate": "prisma generate",
+        "prisma:studio": "prisma studio"
+      }
+    },
+    {
+      "name": "@ai-chat/ollama-client",
+      "path": "packages/ollama-client",
+      "type": "typescript-library",
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist"
+      }
+    },
+    {
+      "name": "@ai-chat/telemetry",
+      "path": "packages/telemetry",
+      "type": "typescript-library",
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist"
+      }
+    },
+    {
+      "name": "@ai-chat/tools-engine",
+      "path": "packages/tools-engine",
+      "type": "typescript-library",
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit",
+        "test": "echo \"no tests yet\"",
+        "clean": "rm -rf dist"
+      }
+    }
+  ],
+  "ci": {
+    "workflow": ".github/workflows/ci.yml",
+    "job": "build-and-test",
+    "steps": ["bun install", "bun run format:check", "bun run db:generate", "bun run ci"],
+    "gates": ["format", "lint", "typecheck", "test", "build"]
+  },
+  "crossCuttingSafetySignals": {
+    "i18n": ["apps/api-gateway/src/i18n/locales", "apps/web/src/i18n/locales"],
+    "rbac": [
+      "apps/api-gateway/src/rbac/roles.ts",
+      "apps/api-gateway/src/plugins/guards.ts",
+      "apps/api-gateway/test/*security*.test.ts"
+    ],
+    "apiContracts": [
+      "apps/api-gateway/src/routes",
+      "packages/core-types/src",
+      "packages/db/prisma/schema.prisma"
+    ],
+    "observability": [
+      "packages/telemetry/src",
+      "apps/api-gateway/src/plugins/metrics.ts",
+      "infra/monitoring/prometheus.yml"
+    ]
+  },
+  "notDetected": {
+    "reactNative": true,
+    "pythonProject": true,
+    "terraform": true,
+    "dockerfiles": true,
+    "helm": true,
+    "nx": true,
+    "pnpm": true,
+    "yarn": true
+  }
+}
