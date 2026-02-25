@@ -481,14 +481,14 @@ export default async function superadminRoutes(
     });
 
     return reply.send({
-      organizations: orgs.map((org: { id: string; name: string; slug: string; description: string | null; plan: string; monthlySoftLimitTokens: number; monthlyHardLimitTokens: number; _count: { members: number; conversations: number }; createdAt: Date; updatedAt: Date }) => ({
+      organizations: orgs.map((org: { id: string; name: string; slug: string; description: string | null; plan: string; monthlySoftLimitTokens: number | null; monthlyHardLimitTokens: number | null; _count: { members: number; conversations: number }; createdAt: Date; updatedAt: Date }) => ({
         id: org.id,
         name: org.name,
         slug: org.slug,
         description: org.description,
         plan: org.plan,
-        monthlySoftLimitTokens: org.monthlySoftLimitTokens,
-        monthlyHardLimitTokens: org.monthlyHardLimitTokens,
+        monthlySoftLimitTokens: org.monthlySoftLimitTokens ?? 0,
+        monthlyHardLimitTokens: org.monthlyHardLimitTokens ?? 0,
         memberCount: org._count.members,
         conversationCount: org._count.conversations,
         createdAt: org.createdAt.toISOString(),

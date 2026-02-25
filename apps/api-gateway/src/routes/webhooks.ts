@@ -107,11 +107,11 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
           orgId,
           providerId: provider.id,
           name: parsed.data.name || 'Webhook Integration',
-          credentials: {} as unknown as Record<string, unknown>,
+          credentials: {} as any,
           config: {
             name: parsed.data.name,
             description: parsed.data.description ?? null
-          } as unknown as Record<string, unknown>,
+          } as any,
           isEnabled: true
         }
       });

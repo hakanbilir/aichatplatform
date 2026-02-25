@@ -360,7 +360,7 @@ async function finalizeConversationTurn(
       role: 'ASSISTANT',
       content,
       meta: {
-        usage: (usage || {}) as unknown as Record<string, unknown>,
+        usage: (usage || {}) as any,
         toolMessageId: toolMessageId,
         thought: thought || undefined,
       },
@@ -432,7 +432,7 @@ export async function runConversationTurn(
           conversationId: conversation.id,
           role: 'TOOL',
           content: JSON.stringify(toolResults, null, 2),
-          meta: { toolsEnvelope: envelope as unknown as Record<string, unknown> },
+          meta: { toolsEnvelope: envelope as any },
         },
       });
 
@@ -565,7 +565,7 @@ export async function* streamConversationTurn(
           conversationId: conversation.id,
           role: 'TOOL',
           content: JSON.stringify(toolResults, null, 2),
-          meta: { toolsEnvelope: envelope as unknown as Record<string, unknown> },
+          meta: { toolsEnvelope: envelope as any },
         },
       });
       toolMessageId = toolMessage.id;
