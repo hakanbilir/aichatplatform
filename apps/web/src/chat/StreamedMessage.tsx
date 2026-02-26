@@ -20,6 +20,12 @@ export const StreamedMessage: React.FC<StreamedMessageProps> = ({
   );
 
   return (
-    <MessageBubble role={role} content={content} thinkingText={thinking} isThinking={isThinking} />
+    <MessageBubble
+      role={role}
+      content={content}
+      thinkingText={thinking}
+      isThinking={isThinking}
+      isStreaming={true}
+    />
   );
 };
