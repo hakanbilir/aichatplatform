@@ -72,7 +72,10 @@ async function getUserOrgIds(userId: string): Promise<string[]> {
   return memberships.map((r: { orgId: string }) => r.orgId);
 }
 
-export default async function conversationsRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+export default async function conversationsRoutes(
+  app: FastifyInstance,
+  _opts: FastifyPluginOptions,
+) {
   // Real-time updates for conversations (SSE)
   // Konuşmalar için gerçek zamanlı güncellemeler (SSE)
   app.get('/conversations/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -81,8 +84,8 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
     });
 
     const sendEvent = (data: any) => {
@@ -118,324 +121,174 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
   });
 
   // List conversations for an org (non-archived by default)
-  app.get('/orgs/:orgId/conversations', {
-    preHandler: [app.authenticate],
-    config: {
-      rateLimit: {
-        max: 60,
-        timeWindow: '1 minute'
-      }
-    }
-  }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-
-    const paramsSchema = z.object({ orgId: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
-    }
-    const orgId = parsedParams.data.orgId;
-
-    const parsedQuery = listQuerySchema.safeParse(request.query);
-    if (!parsedQuery.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidQuery'), details: parsedQuery.error.format() });
-    }
-
-    const { search, limit, cursor } = parsedQuery.data;
-
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'conversation:chat'
-    );
-
-    const whereClause: any = {
-      orgId,
-      archivedAt: null,
-    };
-
-    if (search && search.trim()) {
-      whereClause.title = {
-        contains: search.trim(),
-        mode: 'insensitive',
-      };
-    }
-
-    const conversations = await prisma.conversation.findMany({
-      where: whereClause,
-      orderBy: [{ pinned: 'desc' }, { lastActivityAt: 'desc' }],
-      take: limit + 1,
-      cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0,
-      select: {
-        id: true,
-        title: true,
-        model: true,
-        pinned: true,
-        archivedAt: true,
-        lastActivityAt: true,
-        createdAt: true,
+  app.get(
+    '/orgs/:orgId/conversations',
+    {
+      preHandler: [app.authenticate],
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
       },
-    });
+    },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    let nextCursor: string | null = null;
-    let items = conversations;
+      const paramsSchema = z.object({ orgId: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
+      }
+      const orgId = parsedParams.data.orgId;
 
-    if (conversations.length > limit) {
-      const last = conversations[conversations.length - 1];
-      nextCursor = last.id;
-      items = conversations.slice(0, limit);
-    }
+      const parsedQuery = listQuerySchema.safeParse(request.query);
+      if (!parsedQuery.success) {
+        return reply
+          .code(400)
+          .send({
+            error: request.i18n.t('errors.invalidQuery'),
+            details: parsedQuery.error.format(),
+          });
+      }
 
-    return reply.send({
-      items,
-      nextCursor,
-    });
-  });
+      const { search, limit, cursor } = parsedQuery.data;
+
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'conversation:chat',
+      );
+
+      const whereClause: any = {
+        orgId,
+        archivedAt: null,
+      };
+
+      if (search && search.trim()) {
+        whereClause.title = {
+          contains: search.trim(),
+          mode: 'insensitive',
+        };
+      }
+
+      const conversations = await prisma.conversation.findMany({
+        where: whereClause,
+        orderBy: [{ pinned: 'desc' }, { lastActivityAt: 'desc' }],
+        take: limit + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
+        select: {
+          id: true,
+          title: true,
+          model: true,
+          pinned: true,
+          archivedAt: true,
+          lastActivityAt: true,
+          createdAt: true,
+        },
+      });
+
+      let nextCursor: string | null = null;
+      let items = conversations;
+
+      if (conversations.length > limit) {
+        const last = conversations[conversations.length - 1];
+        nextCursor = last.id;
+        items = conversations.slice(0, limit);
+      }
+
+      return reply.send({
+        items,
+        nextCursor,
+      });
+    },
+  );
 
   // Create a new conversation in an org
-  app.post('/orgs/:orgId/conversations', {
-    preHandler: [app.authenticate],
-    config: {
-      rateLimit: {
-        max: 60,
-        timeWindow: '1 minute'
+  app.post(
+    '/orgs/:orgId/conversations',
+    {
+      preHandler: [app.authenticate],
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+
+      const paramsSchema = z.object({ orgId: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
       }
-    }
-  }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+      const orgId = parsedParams.data.orgId;
 
-    const paramsSchema = z.object({ orgId: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
-    }
-    const orgId = parsedParams.data.orgId;
-
-    const parsedBody = createOrgConversationBodySchema.safeParse(request.body);
-    if (!parsedBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.validationError'), details: parsedBody.error.format() });
-    }
-
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'conversation:chat'
-    );
-
-    const { title, model, chatProfileId } = parsedBody.data;
-
-    // If chatProfileId is provided, load profile and use its config (42.md)
-    // chatProfileId sağlanmışsa, profili yükle ve yapılandırmasını kullan (42.md)
-    let effectiveModel = model && model.trim() ? model.trim() : 'llama3.1';
-    let effectiveTemperature: number | undefined = undefined;
-    let effectiveTopP: number | undefined = undefined;
-    // effectiveMaxTokens is not currently used but kept for future use
-    let _effectiveMaxTokens: number | null | undefined = undefined;
-    void _effectiveMaxTokens; // Suppress unused variable warning
-    let effectiveSystemPrompt: string | null | undefined = undefined;
-    const effectiveChatProfileId: string | null = chatProfileId ?? null;
-    let effectiveToolsEnabled: any = undefined;
-    let effectiveKbConfig: any = undefined;
-
-    if (chatProfileId) {
-      const profile = await prisma.chatProfile.findFirst({
-        where: { id: chatProfileId, orgId }
-      });
-
-      if (!profile) {
-        return reply.code(404).send({ error: 'CHAT_PROFILE_NOT_FOUND' });
+      const parsedBody = createOrgConversationBodySchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        return reply
+          .code(400)
+          .send({
+            error: request.i18n.t('errors.validationError'),
+            details: parsedBody.error.format(),
+          });
       }
 
-      // Validate model against registry
-      try {
-        await resolveModelForOrg(orgId, profile.modelProvider, profile.modelName);
-      } catch (err) {
-        return reply.code(400).send({ error: 'MODEL_NOT_ENABLED', message: (err as Error).message });
-      }
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'conversation:chat',
+      );
 
-      // Use profile's model config
-      effectiveModel = `${profile.modelProvider}:${profile.modelName}`;
-      effectiveTemperature = profile.temperature;
-      effectiveTopP = profile.topP;
-      _effectiveMaxTokens = profile.maxTokens;
+      const { title, model, chatProfileId } = parsedBody.data;
+
+      // If chatProfileId is provided, load profile and use its config (42.md)
+      // chatProfileId sağlanmışsa, profili yükle ve yapılandırmasını kullan (42.md)
+      let effectiveModel = model && model.trim() ? model.trim() : 'llama3.1';
+      let effectiveTemperature: number | undefined = undefined;
+      let effectiveTopP: number | undefined = undefined;
+      // effectiveMaxTokens is not currently used but kept for future use
+      let _effectiveMaxTokens: number | null | undefined = undefined;
       void _effectiveMaxTokens; // Suppress unused variable warning
+      let effectiveSystemPrompt: string | null | undefined = undefined;
+      const effectiveChatProfileId: string | null = chatProfileId ?? null;
+      let effectiveToolsEnabled: any = undefined;
+      let effectiveKbConfig: any = undefined;
 
-      // Render system prompt from template if present
-      if (profile.systemTemplateId && profile.systemTemplateVersion) {
-        const rendered = await renderSystemPromptFromProfile(profile.id, {
-          orgId,
-          userId: payload.userId,
-          conversationId: undefined
+      if (chatProfileId) {
+        const profile = await prisma.chatProfile.findFirst({
+          where: { id: chatProfileId, orgId },
         });
-        if (rendered) {
-          effectiveSystemPrompt = rendered;
+
+        if (!profile) {
+          return reply.code(404).send({ error: 'CHAT_PROFILE_NOT_FOUND' });
         }
-      }
 
-      // Configure tools and RAG based on profile
-      if (profile.enableTools) {
-        effectiveToolsEnabled = { structuredTools: true };
-      }
-      if (profile.enableRag) {
-        effectiveKbConfig = { rag: { enabled: true } };
-      }
-    }
-
-    const conversation = await prisma.conversation.create({
-      data: {
-        orgId,
-        userId: payload.userId,
-        title: title && title.trim() ? title.trim() : 'New chat',
-        model: effectiveModel,
-        temperature: effectiveTemperature,
-        topP: effectiveTopP,
-        systemPrompt: effectiveSystemPrompt,
-        chatProfileId: effectiveChatProfileId,
-        toolsEnabled: effectiveToolsEnabled,
-        kbConfig: effectiveKbConfig,
-      },
-      select: {
-        id: true,
-        title: true,
-        model: true,
-        pinned: true,
-        archivedAt: true,
-        lastActivityAt: true,
-        createdAt: true,
-        chatProfileId: true,
-      },
-    });
-
-    // Emit event for conversation creation
-    await emitEvent({
-      type: 'conversation.created',
-      context: {
-        orgId,
-        userId: payload.userId,
-        conversationId: conversation.id
-      },
-      metadata: {
-        modelId: conversation.model,
-        chatProfileId: conversation.chatProfileId
-      }
-    }).catch((err) => {
-      // Log but don't fail the request
-      console.error('Failed to emit conversation.created event:', err);
-    });
-
-    return reply.code(201).send(conversation);
-  });
-
-  // List conversations visible to the user (own + orgs)
-  // Kullanıcının görebileceği konuşmaları listele (kendi + org'lar)
-  app.get('/conversations', {
-    preHandler: [app.authenticate],
-    config: {
-      rateLimit: {
-        max: 60,
-        timeWindow: '1 minute'
-      }
-    }
-  }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-
-    const parsedQuery = listPersonalQuerySchema.safeParse(request.query);
-    const limit = parsedQuery.success ? parsedQuery.data.limit : 100;
-
-    const orgIds = await getUserOrgIds(payload.userId);
-
-    const orConditions: any[] = [{ userId: payload.userId }];
-    if (orgIds.length > 0) {
-      orConditions.push({ orgId: { in: orgIds } });
-    }
-
-    const conversations = await prisma.conversation.findMany({
-      where: {
-        OR: orConditions,
-      },
-      select: {
-        id: true,
-        title: true,
-        lastActivityAt: true,
-        createdAt: true,
-        updatedAt: true,
-        orgId: true,
-        userId: true,
-        model: true,
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-      take: limit,
-    });
-
-    return reply.send({
-      conversations: conversations.map((c: { id: string; title: string; lastActivityAt: Date; createdAt: Date; updatedAt: Date; orgId: string | null; userId: string | null; model: string }) => ({
-        id: c.id,
-        title: c.title,
-        model: c.model,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-        orgId: c.orgId || undefined,
-      })),
-    });
-  });
-
-  // Create a new conversation
-  // Yeni bir konuşma oluştur
-  app.post('/conversations', {
-    preHandler: [app.authenticate],
-    config: {
-      rateLimit: {
-        max: 60,
-        timeWindow: '1 minute'
-      }
-    }
-  }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-
-    const parseResult = createConversationBodySchema.safeParse(request.body);
-    if (!parseResult.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseResult.error.format() });
-    }
-
-    const { title, systemPrompt, model, temperature, topP, chatProfileId } = parseResult.data;
-
-    // If chatProfileId is provided, load profile and use its config (42.md)
-    // chatProfileId sağlanmışsa, profili yükle ve yapılandırmasını kullan (42.md)
-    let effectiveModel = model ?? undefined;
-    let effectiveTemperature: number | undefined = temperature;
-    let effectiveTopP: number | undefined = topP;
-    let effectiveSystemPrompt: string | undefined = systemPrompt;
-    const effectiveChatProfileId: string | null = chatProfileId ?? null;
-    let effectiveToolsEnabled: any = undefined;
-    let effectiveKbConfig: any = undefined;
-
-    if (chatProfileId && payload.orgId) {
-      const profile = await prisma.chatProfile.findFirst({
-        where: { id: chatProfileId, orgId: payload.orgId }
-      });
-
-      if (profile) {
         // Validate model against registry
         try {
-          await resolveModelForOrg(payload.orgId, profile.modelProvider, profile.modelName);
+          await resolveModelForOrg(orgId, profile.modelProvider, profile.modelName);
         } catch (err) {
-          return reply.code(400).send({ error: 'MODEL_NOT_ENABLED', message: (err as Error).message });
+          return reply
+            .code(400)
+            .send({ error: 'MODEL_NOT_ENABLED', message: (err as Error).message });
         }
 
         // Use profile's model config
         effectiveModel = `${profile.modelProvider}:${profile.modelName}`;
         effectiveTemperature = profile.temperature;
         effectiveTopP = profile.topP;
+        _effectiveMaxTokens = profile.maxTokens;
+        void _effectiveMaxTokens; // Suppress unused variable warning
 
         // Render system prompt from template if present
         if (profile.systemTemplateId && profile.systemTemplateVersion) {
           const rendered = await renderSystemPromptFromProfile(profile.id, {
-            orgId: payload.orgId!,
+            orgId,
             userId: payload.userId,
-            conversationId: undefined
+            conversationId: undefined,
           });
           if (rendered) {
             effectiveSystemPrompt = rendered;
@@ -450,33 +303,229 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
           effectiveKbConfig = { rag: { enabled: true } };
         }
       }
-    }
 
-    const conversation = await prisma.conversation.create({
-      data: {
-        title: title ?? undefined,
-        systemPrompt: effectiveSystemPrompt,
-        model: effectiveModel ?? undefined,
-        temperature: effectiveTemperature,
-        topP: effectiveTopP,
-        userId: payload.userId,
-        orgId: payload.orgId ?? null,
-        chatProfileId: effectiveChatProfileId,
-        toolsEnabled: effectiveToolsEnabled,
-        kbConfig: effectiveKbConfig,
+      const conversation = await prisma.conversation.create({
+        data: {
+          orgId,
+          userId: payload.userId,
+          title: title && title.trim() ? title.trim() : 'New chat',
+          model: effectiveModel,
+          temperature: effectiveTemperature,
+          topP: effectiveTopP,
+          systemPrompt: effectiveSystemPrompt,
+          chatProfileId: effectiveChatProfileId,
+          toolsEnabled: effectiveToolsEnabled,
+          kbConfig: effectiveKbConfig,
+        },
+        select: {
+          id: true,
+          title: true,
+          model: true,
+          pinned: true,
+          archivedAt: true,
+          lastActivityAt: true,
+          createdAt: true,
+          chatProfileId: true,
+        },
+      });
+
+      // Emit event for conversation creation
+      await emitEvent({
+        type: 'conversation.created',
+        context: {
+          orgId,
+          userId: payload.userId,
+          conversationId: conversation.id,
+        },
+        metadata: {
+          modelId: conversation.model,
+          chatProfileId: conversation.chatProfileId,
+        },
+      }).catch((err) => {
+        // Log but don't fail the request
+        console.error('Failed to emit conversation.created event:', err);
+      });
+
+      return reply.code(201).send(conversation);
+    },
+  );
+
+  // List conversations visible to the user (own + orgs)
+  // Kullanıcının görebileceği konuşmaları listele (kendi + org'lar)
+  app.get(
+    '/conversations',
+    {
+      preHandler: [app.authenticate],
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
       },
-    });
+    },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    return reply.code(201).send({
-      id: conversation.id,
-      title: conversation.title,
-      model: conversation.model,
-      createdAt: conversation.createdAt,
-      updatedAt: conversation.updatedAt,
-      orgId: conversation.orgId,
-      chatProfileId: conversation.chatProfileId,
-    });
-  });
+      const parsedQuery = listPersonalQuerySchema.safeParse(request.query);
+      const limit = parsedQuery.success ? parsedQuery.data.limit : 100;
+
+      const orgIds = await getUserOrgIds(payload.userId);
+
+      const orConditions: any[] = [{ userId: payload.userId }];
+      if (orgIds.length > 0) {
+        orConditions.push({ orgId: { in: orgIds } });
+      }
+
+      const conversations = await prisma.conversation.findMany({
+        where: {
+          OR: orConditions,
+        },
+        select: {
+          id: true,
+          title: true,
+          lastActivityAt: true,
+          createdAt: true,
+          updatedAt: true,
+          orgId: true,
+          userId: true,
+          model: true,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+        take: limit,
+      });
+
+      return reply.send({
+        conversations: conversations.map(
+          (c: {
+            id: string;
+            title: string;
+            lastActivityAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
+            orgId: string | null;
+            userId: string | null;
+            model: string;
+          }) => ({
+            id: c.id,
+            title: c.title,
+            model: c.model,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+            orgId: c.orgId || undefined,
+          }),
+        ),
+      });
+    },
+  );
+
+  // Create a new conversation
+  // Yeni bir konuşma oluştur
+  app.post(
+    '/conversations',
+    {
+      preHandler: [app.authenticate],
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+
+      const parseResult = createConversationBodySchema.safeParse(request.body);
+      if (!parseResult.success) {
+        return reply
+          .code(400)
+          .send({
+            error: request.i18n.t('errors.invalidMessageData'),
+            details: parseResult.error.format(),
+          });
+      }
+
+      const { title, systemPrompt, model, temperature, topP, chatProfileId } = parseResult.data;
+
+      // If chatProfileId is provided, load profile and use its config (42.md)
+      // chatProfileId sağlanmışsa, profili yükle ve yapılandırmasını kullan (42.md)
+      let effectiveModel = model ?? undefined;
+      let effectiveTemperature: number | undefined = temperature;
+      let effectiveTopP: number | undefined = topP;
+      let effectiveSystemPrompt: string | undefined = systemPrompt;
+      const effectiveChatProfileId: string | null = chatProfileId ?? null;
+      let effectiveToolsEnabled: any = undefined;
+      let effectiveKbConfig: any = undefined;
+
+      if (chatProfileId && payload.orgId) {
+        const profile = await prisma.chatProfile.findFirst({
+          where: { id: chatProfileId, orgId: payload.orgId },
+        });
+
+        if (profile) {
+          // Validate model against registry
+          try {
+            await resolveModelForOrg(payload.orgId, profile.modelProvider, profile.modelName);
+          } catch (err) {
+            return reply
+              .code(400)
+              .send({ error: 'MODEL_NOT_ENABLED', message: (err as Error).message });
+          }
+
+          // Use profile's model config
+          effectiveModel = `${profile.modelProvider}:${profile.modelName}`;
+          effectiveTemperature = profile.temperature;
+          effectiveTopP = profile.topP;
+
+          // Render system prompt from template if present
+          if (profile.systemTemplateId && profile.systemTemplateVersion) {
+            const rendered = await renderSystemPromptFromProfile(profile.id, {
+              orgId: payload.orgId!,
+              userId: payload.userId,
+              conversationId: undefined,
+            });
+            if (rendered) {
+              effectiveSystemPrompt = rendered;
+            }
+          }
+
+          // Configure tools and RAG based on profile
+          if (profile.enableTools) {
+            effectiveToolsEnabled = { structuredTools: true };
+          }
+          if (profile.enableRag) {
+            effectiveKbConfig = { rag: { enabled: true } };
+          }
+        }
+      }
+
+      const conversation = await prisma.conversation.create({
+        data: {
+          title: title ?? undefined,
+          systemPrompt: effectiveSystemPrompt,
+          model: effectiveModel ?? undefined,
+          temperature: effectiveTemperature,
+          topP: effectiveTopP,
+          userId: payload.userId,
+          orgId: payload.orgId ?? null,
+          chatProfileId: effectiveChatProfileId,
+          toolsEnabled: effectiveToolsEnabled,
+          kbConfig: effectiveKbConfig,
+        },
+      });
+
+      return reply.code(201).send({
+        id: conversation.id,
+        title: conversation.title,
+        model: conversation.model,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        orgId: conversation.orgId,
+        chatProfileId: conversation.chatProfileId,
+      });
+    },
+  );
 
   // Get conversation details + recent messages
   // Konuşma detaylarını + son mesajları al
@@ -527,13 +576,15 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
         orgId: conversation.orgId,
-        messages: conversation.messages.map((m: { id: string; role: string; content: string; createdAt: Date; meta: unknown }) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          createdAt: m.createdAt,
-          meta: m.meta,
-        })),
+        messages: conversation.messages.map(
+          (m: { id: string; role: string; content: string; createdAt: Date; meta: unknown }) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            createdAt: m.createdAt,
+            meta: m.meta,
+          }),
+        ),
       },
     });
   });
@@ -552,7 +603,12 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
 
     const parseBody = updateConversationBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.validationError'), details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({
+          error: request.i18n.t('errors.validationError'),
+          details: parseBody.error.format(),
+        });
     }
 
     const orgIds = await getUserOrgIds(payload.userId);
@@ -582,7 +638,7 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
       const userRole = await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         existingConversation.orgId,
-        'conversation:chat'
+        'conversation:chat',
       );
 
       // IDOR Prevention: Only allow update if:
@@ -683,125 +739,132 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
 
   // Delete a message
   // Bir mesajı sil
-  app.delete('/conversations/:id/messages/:messageId', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.delete(
+    '/conversations/:id/messages/:messageId',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    const paramsSchema = z.object({
-      id: z.string().min(1),
-      messageId: z.string().min(1),
-    });
-    const parseParams = paramsSchema.safeParse(request.params);
-    if (!parseParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidParams') });
-    }
-    const { id: conversationId, messageId } = parseParams.data;
+      const paramsSchema = z.object({
+        id: z.string().min(1),
+        messageId: z.string().min(1),
+      });
+      const parseParams = paramsSchema.safeParse(request.params);
+      if (!parseParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidParams') });
+      }
+      const { id: conversationId, messageId } = parseParams.data;
 
-    const orgIds = await getUserOrgIds(payload.userId);
-    const orConditions: any[] = [{ userId: payload.userId }];
-    if (orgIds.length > 0) {
-      orConditions.push({ orgId: { in: orgIds } });
-    }
+      const orgIds = await getUserOrgIds(payload.userId);
+      const orConditions: any[] = [{ userId: payload.userId }];
+      if (orgIds.length > 0) {
+        orConditions.push({ orgId: { in: orgIds } });
+      }
 
-    const conversation = await prisma.conversation.findFirst({
-      where: {
-        id: conversationId,
-        OR: orConditions,
-      },
-      select: {
-        id: true,
-        orgId: true,
-        userId: true,
-      },
-    });
+      const conversation = await prisma.conversation.findFirst({
+        where: {
+          id: conversationId,
+          OR: orConditions,
+        },
+        select: {
+          id: true,
+          orgId: true,
+          userId: true,
+        },
+      });
 
-    if (!conversation) {
-      return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
-    }
+      if (!conversation) {
+        return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
+      }
 
-    // Verify access
-    let userRole: string | null = null;
-    if (conversation.orgId) {
-      userRole = await assertOrgPermission(
-        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-        conversation.orgId,
-        'conversation:chat'
-      );
-    }
+      // Verify access
+      let userRole: string | null = null;
+      if (conversation.orgId) {
+        userRole = await assertOrgPermission(
+          { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+          conversation.orgId,
+          'conversation:chat',
+        );
+      }
 
-    const message = await prisma.message.findFirst({
-      where: {
-        id: messageId,
-        conversationId: conversation.id,
-      },
-    });
+      const message = await prisma.message.findFirst({
+        where: {
+          id: messageId,
+          conversationId: conversation.id,
+        },
+      });
 
-    if (!message) {
-      return reply.code(404).send({ error: request.i18n.t('errors.messageNotFound') });
-    }
+      if (!message) {
+        return reply.code(404).send({ error: request.i18n.t('errors.messageNotFound') });
+      }
 
-    // Authorization: Only allow if:
-    // 1. User is Superadmin
-    // 2. User is Org Owner or Admin
-    // 3. User is the creator of the conversation
-    // 4. User is the author of the message
-    const isSuperadmin = payload.isSuperadmin;
-    const isOrgAdmin = userRole === 'OWNER' || userRole === 'ADMIN';
-    const isConversationOwner = conversation.userId === payload.userId;
-    const isMessageAuthor = message.authorId === payload.userId;
+      // Authorization: Only allow if:
+      // 1. User is Superadmin
+      // 2. User is Org Owner or Admin
+      // 3. User is the creator of the conversation
+      // 4. User is the author of the message
+      const isSuperadmin = payload.isSuperadmin;
+      const isOrgAdmin = userRole === 'OWNER' || userRole === 'ADMIN';
+      const isConversationOwner = conversation.userId === payload.userId;
+      const isMessageAuthor = message.authorId === payload.userId;
 
-    if (!isSuperadmin && !isOrgAdmin && !isConversationOwner && !isMessageAuthor) {
-      return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
-    }
+      if (!isSuperadmin && !isOrgAdmin && !isConversationOwner && !isMessageAuthor) {
+        return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
+      }
 
-    await prisma.message.delete({
-      where: { id: messageId },
-    });
+      await prisma.message.delete({
+        where: { id: messageId },
+      });
 
-    await prisma.conversation.update({
-      where: { id: conversation.id },
-      data: { updatedAt: new Date() },
-    });
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
 
-    return reply.send({ success: true });
-  });
+      return reply.send({ success: true });
+    },
+  );
 
   // Usage summary for a conversation (aggregated from assistant messages)
   // Bir konuşma için kullanım özeti (asistan mesajlarından toplanır)
-  app.get('/conversations/:id/usage', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.get(
+    '/conversations/:id/usage',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    const paramsSchema = z.object({ id: z.string().min(1) });
-    const parseParams = paramsSchema.safeParse(request.params);
-    if (!parseParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidConversationId') });
-    }
+      const paramsSchema = z.object({ id: z.string().min(1) });
+      const parseParams = paramsSchema.safeParse(request.params);
+      if (!parseParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidConversationId') });
+      }
 
-    const conversationId = parseParams.data.id;
+      const conversationId = parseParams.data.id;
 
-    const orgIds = await getUserOrgIds(payload.userId);
-    const orConditions: any[] = [{ userId: payload.userId }];
-    if (orgIds.length > 0) {
-      orConditions.push({ orgId: { in: orgIds } });
-    }
+      const orgIds = await getUserOrgIds(payload.userId);
+      const orConditions: any[] = [{ userId: payload.userId }];
+      if (orgIds.length > 0) {
+        orConditions.push({ orgId: { in: orgIds } });
+      }
 
-    const conversation = await prisma.conversation.findFirst({
-      where: {
-        id: conversationId,
-        OR: orConditions,
-      },
-      select: {
-        id: true,
-      },
-    });
+      const conversation = await prisma.conversation.findFirst({
+        where: {
+          id: conversationId,
+          OR: orConditions,
+        },
+        select: {
+          id: true,
+        },
+      });
 
-    if (!conversation) {
-      return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
-    }
+      if (!conversation) {
+        return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
+      }
 
-    // Optimized aggregation using raw SQL to avoid fetching all message bodies
-    // This is significantly faster for long conversations as it avoids transferring
-    // large JSON payloads and processing them in the application layer.
-    const result: any[] = await prisma.$queryRaw`
+      // Optimized aggregation using raw SQL to avoid fetching all message bodies
+      // This is significantly faster for long conversations as it avoids transferring
+      // large JSON payloads and processing them in the application layer.
+      const result: any[] = await prisma.$queryRaw`
       SELECT
         COALESCE(SUM(CASE WHEN meta->'usage'->>'promptTokens' ~ '^[0-9]+$' THEN CAST(meta->'usage'->>'promptTokens' AS INTEGER) ELSE 0 END), 0) as "promptTokens",
         COALESCE(SUM(CASE WHEN meta->'usage'->>'completionTokens' ~ '^[0-9]+$' THEN CAST(meta->'usage'->>'completionTokens' AS INTEGER) ELSE 0 END), 0) as "completionTokens",
@@ -812,25 +875,25 @@ export default async function conversationsRoutes(app: FastifyInstance, _opts: F
         AND "role" = 'ASSISTANT'
     `;
 
-    const row = result[0] || {};
-    // Prisma/Postgres returns BigInt for aggregations, so we must convert to Number
-    const totalPromptTokens = Number(row.promptTokens || 0);
-    const totalCompletionTokens = Number(row.completionTokens || 0);
-    const completions = Number(row.completions || 0);
-    const lastMessageAt = row.lastMessageAt ? new Date(row.lastMessageAt) : null;
+      const row = result[0] || {};
+      // Prisma/Postgres returns BigInt for aggregations, so we must convert to Number
+      const totalPromptTokens = Number(row.promptTokens || 0);
+      const totalCompletionTokens = Number(row.completionTokens || 0);
+      const completions = Number(row.completions || 0);
+      const lastMessageAt = row.lastMessageAt ? new Date(row.lastMessageAt) : null;
 
-    const totalTokens = totalPromptTokens + totalCompletionTokens;
+      const totalTokens = totalPromptTokens + totalCompletionTokens;
 
-    return reply.send({
-      conversationId,
-      totals: {
-        promptTokens: totalPromptTokens,
-        completionTokens: totalCompletionTokens,
-        totalTokens,
-      },
-      completions,
-      lastMessageAt: lastMessageAt ? lastMessageAt.toISOString() : null,
-    });
-  });
+      return reply.send({
+        conversationId,
+        totals: {
+          promptTokens: totalPromptTokens,
+          completionTokens: totalCompletionTokens,
+          totalTokens,
+        },
+        completions,
+        lastMessageAt: lastMessageAt ? lastMessageAt.toISOString() : null,
+      });
+    },
+  );
 }
-

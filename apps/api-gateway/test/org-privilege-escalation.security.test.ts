@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock } from 'bun:test';
 
 // Mock the db module
@@ -7,18 +6,18 @@ mock.module('@ai-chat/db', () => {
     prisma: {
       orgMember: {
         findUnique: mock((args) => {
-            // Mock finding target member for PATCH/DELETE
-            if (args.where.id === 'target_owner_id') {
-                return Promise.resolve({ id: 'target_owner_id', orgId: 'org_id', role: 'OWNER' });
-            }
-            if (args.where.id === 'target_member_id') {
-                return Promise.resolve({ id: 'target_member_id', orgId: 'org_id', role: 'MEMBER' });
-            }
-             // Mock finding existing membership for POST (invite)
-            if (args.where.userId_orgId) {
-                return Promise.resolve(null); // No existing member
-            }
-            return Promise.resolve(null);
+          // Mock finding target member for PATCH/DELETE
+          if (args.where.id === 'target_owner_id') {
+            return Promise.resolve({ id: 'target_owner_id', orgId: 'org_id', role: 'OWNER' });
+          }
+          if (args.where.id === 'target_member_id') {
+            return Promise.resolve({ id: 'target_member_id', orgId: 'org_id', role: 'MEMBER' });
+          }
+          // Mock finding existing membership for POST (invite)
+          if (args.where.userId_orgId) {
+            return Promise.resolve(null); // No existing member
+          }
+          return Promise.resolve(null);
         }),
         update: mock(() => Promise.resolve({ id: 'updated_id', role: 'OWNER' })),
         create: mock(() => Promise.resolve({ id: 'new_id', role: 'OWNER' })),
@@ -26,8 +25,8 @@ mock.module('@ai-chat/db', () => {
       },
       organization: {
         findUnique: mock(() => Promise.resolve({ id: 'org_id', name: 'Org 1' })),
-      }
-    }
+      },
+    },
   };
 });
 
@@ -53,9 +52,9 @@ describe('Org Privilege Escalation Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgRoutes);
@@ -69,9 +68,9 @@ describe('Org Privilege Escalation Security', () => {
       method: 'POST',
       url: '/orgs/org_id/members',
       payload: {
-          userId: 'new_user_id',
-          role: 'OWNER'
-      }
+        userId: 'new_user_id',
+        role: 'OWNER',
+      },
     });
 
     expect(response.statusCode).toBe(403);
@@ -84,8 +83,8 @@ describe('Org Privilege Escalation Security', () => {
       method: 'PATCH',
       url: '/orgs/org_id/members/target_member_id',
       payload: {
-          role: 'OWNER'
-      }
+        role: 'OWNER',
+      },
     });
 
     expect(response.statusCode).toBe(403);
@@ -96,7 +95,7 @@ describe('Org Privilege Escalation Security', () => {
 
     const response = await app.inject({
       method: 'DELETE',
-      url: '/orgs/org_id/members/target_owner_id'
+      url: '/orgs/org_id/members/target_owner_id',
     });
 
     expect(response.statusCode).toBe(403);

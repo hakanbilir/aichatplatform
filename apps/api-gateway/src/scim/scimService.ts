@@ -21,7 +21,7 @@ interface ScimUser {
 export async function createUserFromScim(
   orgId: string,
   scimUser: ScimUser,
-  _connectionId: string // Reserved for future audit logging
+  _connectionId: string, // Reserved for future audit logging
 ) {
   const email = scimUser.emails.find((e) => e.primary)?.value || scimUser.emails[0]?.value;
   if (!email) {
@@ -33,24 +33,27 @@ export async function createUserFromScim(
     throw new Error(`Seat limit reached (${seatCheck.current}/${seatCheck.limit})`);
   }
 
-  const name = scimUser.name.formatted || `${scimUser.name.givenName || ''} ${scimUser.name.familyName || ''}`.trim() || email.split('@')[0];
+  const name =
+    scimUser.name.formatted ||
+    `${scimUser.name.givenName || ''} ${scimUser.name.familyName || ''}`.trim() ||
+    email.split('@')[0];
 
   const user = await prisma.user.upsert({
     where: { email },
     update: {
       name: name || undefined,
-      isSuperadmin: false
+      isSuperadmin: false,
     },
     create: {
       email,
       name: name || undefined,
-      passwordHash: '' // SCIM users don't have passwords
-    }
+      passwordHash: '', // SCIM users don't have passwords
+    },
   });
 
   // Ensure org membership
   const membership = await prisma.orgMember.findUnique({
-    where: { userId_orgId: { userId: user.id, orgId } }
+    where: { userId_orgId: { userId: user.id, orgId } },
   });
 
   if (!membership) {
@@ -58,8 +61,8 @@ export async function createUserFromScim(
       data: {
         userId: user.id,
         orgId,
-        role: 'MEMBER'
-      }
+        role: 'MEMBER',
+      },
     });
   }
 
@@ -69,14 +72,14 @@ export async function createUserFromScim(
     where: {
       orgId,
       resourceType: 'User',
-      scimId
-    }
+      scimId,
+    },
   });
 
   if (existing) {
     await prisma.scimResourceMap.update({
       where: { id: existing.id },
-      data: { localId: user.id }
+      data: { localId: user.id },
     });
   } else {
     await prisma.scimResourceMap.create({
@@ -84,8 +87,8 @@ export async function createUserFromScim(
         orgId,
         resourceType: 'User',
         scimId,
-        localId: user.id
-      }
+        localId: user.id,
+      },
     });
   }
 
@@ -96,8 +99,8 @@ export async function createUserFromScim(
       scimId: scimUser.id || email,
       localId: user.id,
       action: 'create',
-      status: 'success'
-    }
+      status: 'success',
+    },
   });
 
   return user;
@@ -107,14 +110,14 @@ export async function updateUserFromScim(
   orgId: string,
   scimUserId: string,
   scimUser: ScimUser,
-  _connectionId: string // Reserved for future audit logging
+  _connectionId: string, // Reserved for future audit logging
 ) {
   const map = await prisma.scimResourceMap.findFirst({
     where: {
       orgId,
       resourceType: 'User',
-      scimId: scimUserId
-    }
+      scimId: scimUserId,
+    },
   });
 
   if (!map) {
@@ -124,25 +127,27 @@ export async function updateUserFromScim(
   // Email is not used in updateUserFromScim - user is identified by map.localId
   const _email = scimUser.emails.find((e) => e.primary)?.value || scimUser.emails[0]?.value;
   void _email; // Suppress unused variable warning
-  const name = scimUser.name.formatted || `${scimUser.name.givenName || ''} ${scimUser.name.familyName || ''}`.trim();
+  const name =
+    scimUser.name.formatted ||
+    `${scimUser.name.givenName || ''} ${scimUser.name.familyName || ''}`.trim();
 
   await prisma.user.update({
     where: { id: map.localId },
     data: {
-      name: name || undefined
-    }
+      name: name || undefined,
+    },
   });
 
   // Update membership active status
   if (scimUser.active === false) {
     await prisma.orgMember.updateMany({
       where: { userId: map.localId, orgId },
-      data: { isDisabled: true }
+      data: { isDisabled: true },
     });
   } else {
     await prisma.orgMember.updateMany({
       where: { userId: map.localId, orgId },
-      data: { isDisabled: false }
+      data: { isDisabled: false },
     });
   }
 
@@ -153,22 +158,22 @@ export async function updateUserFromScim(
       scimId: scimUserId,
       localId: map.localId,
       action: 'update',
-      status: 'success'
-    }
+      status: 'success',
+    },
   });
 }
 
 export async function deleteUserFromScim(
   orgId: string,
   scimUserId: string,
-  _connectionId: string // Reserved for future audit logging
+  _connectionId: string, // Reserved for future audit logging
 ) {
   const map = await prisma.scimResourceMap.findFirst({
     where: {
       orgId,
       resourceType: 'User',
-      scimId: scimUserId
-    }
+      scimId: scimUserId,
+    },
   });
 
   if (!map) {
@@ -178,7 +183,7 @@ export async function deleteUserFromScim(
   // Soft delete: disable org membership
   await prisma.orgMember.updateMany({
     where: { userId: map.localId, orgId },
-    data: { isDisabled: true }
+    data: { isDisabled: true },
   });
 
   await prisma.scimAudit.create({
@@ -188,7 +193,7 @@ export async function deleteUserFromScim(
       scimId: scimUserId,
       localId: map.localId,
       action: 'delete',
-      status: 'success'
-    }
+      status: 'success',
+    },
   });
 }

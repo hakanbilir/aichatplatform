@@ -44,12 +44,12 @@ export interface PromptTemplateDetailDto {
 
 export async function fetchPromptTemplates(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<PromptTemplate[]> {
   const res = await apiRequest<{ templates: PromptTemplate[] }>(
     `/orgs/${orgId}/prompt-templates`,
     { method: 'GET' },
-    token
+    token,
   );
   return res.templates;
 }
@@ -67,18 +67,18 @@ export interface CreatePromptTemplateInput {
 export async function createPromptTemplateApi(
   token: string,
   orgId: string,
-  input: CreatePromptTemplateInput
+  input: CreatePromptTemplateInput,
 ): Promise<PromptTemplate> {
   const res = await apiRequest<{ template: PromptTemplate }>(
     `/orgs/${orgId}/prompt-templates`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
   return res.template;
 }
@@ -87,18 +87,18 @@ export async function updatePromptTemplateApi(
   token: string,
   orgId: string,
   templateId: string,
-  data: { name?: string; description?: string; isArchived?: boolean }
+  data: { name?: string; description?: string; isArchived?: boolean },
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/prompt-templates/${templateId}`,
     {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     },
-    token
+    token,
   );
 }
 
@@ -106,24 +106,24 @@ export async function updatePromptTemplateApi(
 export async function deletePromptTemplateApi(
   token: string,
   orgId: string,
-  templateId: string
+  templateId: string,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/prompt-templates/${templateId}`,
     { method: 'DELETE' },
-    token
+    token,
   );
 }
 
 export async function fetchPromptTemplateDetail(
   token: string,
   orgId: string,
-  templateId: string
+  templateId: string,
 ): Promise<{ template: PromptTemplateDetailDto }> {
   return apiRequest<{ template: PromptTemplateDetailDto }>(
     `/orgs/${orgId}/prompt-templates/${templateId}`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
@@ -137,14 +137,14 @@ export async function createPromptTemplateVersion(
     assistantStyle?: string;
     variables?: Record<string, PromptVariable>;
     metadata?: Record<string, any>;
-  }
+  },
 ): Promise<{ version: PromptTemplateVersionDto }> {
   return apiRequest<{ version: PromptTemplateVersionDto }>(
     `/orgs/${orgId}/prompt-templates/${templateId}/versions`,
     {
       method: 'POST',
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }

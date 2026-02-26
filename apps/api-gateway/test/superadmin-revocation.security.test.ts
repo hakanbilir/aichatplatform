@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock } from 'bun:test';
 import fastify from 'fastify';
 
@@ -15,24 +14,24 @@ mock.module('@ai-chat/db', () => {
             name: 'Admin',
             isSuperadmin: false, // Revoked!
             orgMemberships: [],
-            _count: { orgMemberships: 0, conversations: 0 }
+            _count: { orgMemberships: 0, conversations: 0 },
           });
         }),
         findMany: mock(() => Promise.resolve([])),
         count: mock(() => Promise.resolve(0)),
-      }
-    }
+      },
+    },
   };
 });
 
 // Mock other dependencies
 mock.module('../src/services/audit', () => ({
-  writeAuditLog: mock(() => Promise.resolve())
+  writeAuditLog: mock(() => Promise.resolve()),
 }));
 
 mock.module('../src/auth/password', () => ({
   hashPassword: mock(() => Promise.resolve('hashed')),
-  verifyPassword: mock(() => Promise.resolve(true))
+  verifyPassword: mock(() => Promise.resolve(true)),
 }));
 
 // We need to import the routes AFTER mocking
@@ -50,9 +49,9 @@ describe('Superadmin Revocation Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(superadminRoutes);
@@ -65,7 +64,7 @@ describe('Superadmin Revocation Security', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/superadmin/users',
-      query: { page: '1', limit: '10' }
+      query: { page: '1', limit: '10' },
     });
 
     console.log('Status code:', response.statusCode);

@@ -43,6 +43,8 @@ export interface ModelProvider {
   /**
    * Execute a single-turn streaming chat completion.
    */
-  chatStream?(messages: ProviderMessage[], options: ProviderChatOptions): AsyncGenerator<ChatStreamEvent, void, unknown>;
+  chatStream?(
+    messages: ProviderMessage[],
+    options: ProviderChatOptions,
+  ): AsyncGenerator<ChatStreamEvent, void, unknown>;
 }
-

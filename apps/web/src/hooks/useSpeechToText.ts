@@ -8,7 +8,12 @@ export interface UseSpeechToTextOptions {
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
-  const { continuous = true, silenceTimeoutMs = 2000, lang = 'en-US', interimResults = true } = options;
+  const {
+    continuous = true,
+    silenceTimeoutMs = 2000,
+    lang = 'en-US',
+    interimResults = true,
+  } = options;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -48,7 +53,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = continuous;
@@ -80,7 +86,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
 
           if (continuous && silenceTimeoutMs > 0) {
             silenceTimerRef.current = setTimeout(() => {
-               stopListening();
+              stopListening();
             }, silenceTimeoutMs);
           }
 
@@ -113,15 +119,15 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
     }
 
     return () => {
-       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-       if (recognitionRef.current) {
-         try {
-           recognitionRef.current.abort();
-         } catch {
-           // ignore
-         }
-         recognitionRef.current = null;
-       }
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // ignore
+        }
+        recognitionRef.current = null;
+      }
     };
   }, [continuous, silenceTimeoutMs, lang, interimResults, stopListening]);
 
@@ -132,6 +138,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
     startListening,
     stopListening,
     resetTranscript,
-    supported: typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    supported:
+      typeof window !== 'undefined' &&
+      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition),
   };
 }

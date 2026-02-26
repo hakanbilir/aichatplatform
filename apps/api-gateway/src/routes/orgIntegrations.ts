@@ -29,55 +29,65 @@ export default async function orgIntegrationsRoutes(
   app: FastifyInstance,
   _opts: FastifyPluginOptions,
 ) {
-  app.get('/orgs/:orgId/integrations', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const paramsSchema = z.object({ orgId: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
-    }
-    const orgId = parsedParams.data.orgId;
+  app.get(
+    '/orgs/:orgId/integrations',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const paramsSchema = z.object({ orgId: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
+      }
+      const orgId = parsedParams.data.orgId;
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:update',
-    );
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'org:update',
+      );
 
-    const integrations = await listOrgIntegrations(orgId);
-    return reply.send({ integrations });
-  });
+      const integrations = await listOrgIntegrations(orgId);
+      return reply.send({ integrations });
+    },
+  );
 
-  app.post('/orgs/:orgId/integrations', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const paramsSchema = z.object({ orgId: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
-    }
-    const orgId = parsedParams.data.orgId;
+  app.post(
+    '/orgs/:orgId/integrations',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const paramsSchema = z.object({ orgId: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgIdParam') });
+      }
+      const orgId = parsedParams.data.orgId;
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:update',
-    );
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'org:update',
+      );
 
-    const parsed = createBodySchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
-    }
+      const parsed = createBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(400)
+          .send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
+      }
 
-    const integration = await createOrgIntegration({
-      orgId,
-      providerKey: parsed.data.providerKey,
-      name: parsed.data.name,
-      credentials: parsed.data.credentials,
-      config: parsed.data.config,
-    });
+      const integration = await createOrgIntegration({
+        orgId,
+        providerKey: parsed.data.providerKey,
+        name: parsed.data.name,
+        credentials: parsed.data.credentials,
+        config: parsed.data.config,
+      });
 
-    return reply.code(201).send({ integration });
-  });
+      return reply.code(201).send({ integration });
+    },
+  );
 
   app.patch(
     '/orgs/:orgId/integrations/:integrationId',
@@ -102,7 +112,9 @@ export default async function orgIntegrationsRoutes(
 
       const parsed = updateBodySchema.safeParse(request.body);
       if (!parsed.success) {
-        return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
+        return reply
+          .code(400)
+          .send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
       }
 
       await updateOrgIntegration(orgId, integrationId, parsed.data);
@@ -138,4 +150,3 @@ export default async function orgIntegrationsRoutes(
     },
   );
 }
-

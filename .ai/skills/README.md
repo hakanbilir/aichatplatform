@@ -3,6 +3,7 @@
 This directory contains deterministic playbooks used for autonomous changes in this repository.
 
 ## Available skills
+
 - `repo-intake`
 - `lint-fix`
 - `typecheck-fix`

@@ -152,4 +152,3 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
     </Box>
   );
 };
-

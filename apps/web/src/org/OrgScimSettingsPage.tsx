@@ -14,7 +14,7 @@ import {
   FormControlLabel,
   Switch,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -26,7 +26,7 @@ import {
   fetchScimConnection,
   createScimConnection,
   rotateScimToken,
-  ScimConnectionDto
+  ScimConnectionDto,
 } from '../api/scim';
 
 export const OrgScimSettingsPage: React.FC = () => {
@@ -50,7 +50,7 @@ export const OrgScimSettingsPage: React.FC = () => {
       setConnection(res.connection);
     } catch (err) {
       console.error(err);
-      setError("Failed to load SCIM connection.");
+      setError('Failed to load SCIM connection.');
     }
   };
 
@@ -71,7 +71,7 @@ export const OrgScimSettingsPage: React.FC = () => {
       setNewName('');
     } catch (err) {
       console.error(err);
-      setError("Failed to create SCIM connection.");
+      setError('Failed to create SCIM connection.');
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export const OrgScimSettingsPage: React.FC = () => {
       setConnection((prev) => (prev ? { ...prev, bearerToken: res.bearerToken } : prev));
     } catch (err) {
       console.error(err);
-      setError("Failed to rotate token.");
+      setError('Failed to rotate token.');
     } finally {
       setLoading(false);
     }
@@ -108,7 +108,7 @@ export const OrgScimSettingsPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -159,7 +159,12 @@ export const OrgScimSettingsPage: React.FC = () => {
                     <Button size="small" startIcon={<ContentCopyIcon />} onClick={copyToken}>
                       Copy
                     </Button>
-                    <Button size="small" startIcon={<RefreshIcon />} onClick={() => void handleRotate()} disabled={loading}>
+                    <Button
+                      size="small"
+                      startIcon={<RefreshIcon />}
+                      onClick={() => void handleRotate()}
+                      disabled={loading}
+                    >
                       Rotate
                     </Button>
                   </Box>
@@ -172,12 +177,16 @@ export const OrgScimSettingsPage: React.FC = () => {
                     p: 1,
                     backgroundColor: 'action.hover',
                     borderRadius: 1,
-                    wordBreak: 'break-all'
+                    wordBreak: 'break-all',
                   }}
                 >
                   {connection.bearerToken}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5, display: 'block' }}
+                >
                   Save this token securely. It will not be shown again.
                 </Typography>
               </Box>
@@ -212,7 +221,9 @@ export const OrgScimSettingsPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
           <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
             Create
           </Button>

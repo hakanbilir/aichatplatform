@@ -46,17 +46,12 @@ export const ALL_PERMISSIONS = [
   'org:scim:write',
 ] as const;
 
-export type OrgPermission = typeof ALL_PERMISSIONS[number];
+export type OrgPermission = (typeof ALL_PERMISSIONS)[number];
 
 export const ORG_ROLE_HIERARCHY: OrgRole[] = ['VIEWER', 'MEMBER', 'ADMIN', 'OWNER'];
 
 export const ORG_ROLE_PERMISSIONS: Record<OrgRole, OrgPermission[]> = {
-  VIEWER: [
-    'org:read',
-    'conversation:read',
-    'analytics:view',
-    'org:analytics:read',
-  ],
+  VIEWER: ['org:read', 'conversation:read', 'analytics:view', 'org:analytics:read'],
   MEMBER: [
     'org:read',
     'conversation:read',

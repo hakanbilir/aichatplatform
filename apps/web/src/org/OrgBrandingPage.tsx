@@ -9,7 +9,7 @@ import {
   FormControlLabel,
   Switch,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -61,8 +61,8 @@ export const OrgBrandingPage: React.FC = () => {
               hideGlobalBranding: false,
               footerText: null,
               footerLinks: null,
-              showLogoOnChat: true
-            }
+              showLogoOnChat: true,
+            },
           );
         }
       } catch (err) {
@@ -88,7 +88,7 @@ export const OrgBrandingPage: React.FC = () => {
         displayName: config.displayName,
         logoUrl: config.logoUrl,
         primaryColor: config.primaryColor,
-        showLogoOnChat: config.showLogoOnChat
+        showLogoOnChat: config.showLogoOnChat,
       });
 
       setConfig(res.config);
@@ -112,7 +112,7 @@ export const OrgBrandingPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -125,7 +125,12 @@ export const OrgBrandingPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving || loading}>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSave}
+          disabled={saving || loading}
+        >
           {saving ? t('saving') : t('saveChanges', { ns: 'common' })}
         </Button>
       </Box>
@@ -169,9 +174,7 @@ export const OrgBrandingPage: React.FC = () => {
               <Switch
                 checked={config.showLogoOnChat}
                 onChange={(e) =>
-                  setConfig((prev) =>
-                    prev ? { ...prev, showLogoOnChat: e.target.checked } : prev
-                  )
+                  setConfig((prev) => (prev ? { ...prev, showLogoOnChat: e.target.checked } : prev))
                 }
               />
             }
@@ -198,4 +201,3 @@ export const OrgBrandingPage: React.FC = () => {
     </Box>
   );
 };
-

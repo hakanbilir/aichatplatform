@@ -51,4 +51,3 @@ export interface ConversationSearchResponse {
   pageSize: number;
   hits: ConversationSearchHit[];
 }
-

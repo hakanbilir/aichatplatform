@@ -8,7 +8,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
@@ -17,12 +17,23 @@ import StorageIcon from '@mui/icons-material/Storage';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
-import { UsageAnalyticsResponse, TopUserDto, streamUsageAnalytics, streamTopUsers } from '../api/usageAnalytics';
+import {
+  UsageAnalyticsResponse,
+  TopUserDto,
+  streamUsageAnalytics,
+  streamTopUsers,
+} from '../api/usageAnalytics';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
 import { useEcoMode } from '../hooks/useEcoMode';
-import { MetricCard, TimeSeriesChart, DataGrid, DataGridColumn, TimeSeriesDataPoint } from '../components/dashboard';
+import {
+  MetricCard,
+  TimeSeriesChart,
+  DataGrid,
+  DataGridColumn,
+  TimeSeriesDataPoint,
+} from '../components/dashboard';
 
 type AugmentedTopUser = TopUserDto & { totalTokens: number };
 
@@ -52,7 +63,7 @@ export const OrgUsageDashboardPage: React.FC = () => {
       },
       (err) => console.error('TopUsers Stream error', err),
       { feature: featureFilter === 'all' ? undefined : featureFilter },
-      controller.signal
+      controller.signal,
     );
 
     // Stream Usage Analytics
@@ -66,7 +77,7 @@ export const OrgUsageDashboardPage: React.FC = () => {
       },
       (err) => console.error('Usage Stream error', err),
       { feature: featureFilter === 'all' ? undefined : featureFilter },
-      controller.signal
+      controller.signal,
     );
 
     return () => {
@@ -85,12 +96,12 @@ export const OrgUsageDashboardPage: React.FC = () => {
     // Sort by date just in case
     return [...usage.usage]
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map(d => ({
+      .map((d) => ({
         timestamp: d.date,
         requestCount: d.requestCount,
         totalTokens: d.inputTokens + d.outputTokens,
-        estimatedCost: d.estimatedCostMicros / 1_000_000
-    }));
+        estimatedCost: d.estimatedCostMicros / 1_000_000,
+      }));
   }, [usage]);
 
   // Columns for DataGrid
@@ -99,37 +110,37 @@ export const OrgUsageDashboardPage: React.FC = () => {
       key: 'userId', // Use userId as key for sorting, but render user name
       label: 'User',
       render: (_, row) => row.user?.name || row.user?.email || `User ${row.userId.slice(0, 8)}`,
-      sortable: true
+      sortable: true,
     },
     {
       key: 'requestCount',
       label: 'Requests',
       align: 'right',
       sortable: true,
-      render: (val) => val.toLocaleString()
+      render: (val) => val.toLocaleString(),
     },
     {
-        key: 'totalTokens', // Custom key for sorting
-        label: 'Total Tokens',
-        align: 'right',
-        sortable: true,
-        render: (val) => val.toLocaleString()
+      key: 'totalTokens', // Custom key for sorting
+      label: 'Total Tokens',
+      align: 'right',
+      sortable: true,
+      render: (val) => val.toLocaleString(),
     },
     {
       key: 'estimatedCostMicros',
       label: 'Cost',
       align: 'right',
       sortable: true,
-      render: (val) => formatCost(val)
-    }
+      render: (val) => formatCost(val),
+    },
   ];
 
   // Augment data for sorting
   const augmentedTopUsers = useMemo(() => {
-      return topUsers.map(u => ({
-          ...u,
-          totalTokens: u.inputTokens + u.outputTokens
-      }));
+    return topUsers.map((u) => ({
+      ...u,
+      totalTokens: u.inputTokens + u.outputTokens,
+    }));
   }, [topUsers]);
 
   return (
@@ -141,14 +152,22 @@ export const OrgUsageDashboardPage: React.FC = () => {
         gap: 3,
         height: '100%',
         backgroundColor: 'background.default',
-        overflowY: 'auto'
+        overflowY: 'auto',
       }}
     >
-      <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        flexWrap="wrap"
+        gap={2}
+      >
         <Box display="flex" alignItems="center" gap={1}>
           <AutoAwesomeIcon fontSize="small" color="primary" />
           <Box>
-            <KineticTypography variant="h4" component="h1">Usage & cost dashboard</KineticTypography>
+            <KineticTypography variant="h4" component="h1">
+              Usage & cost dashboard
+            </KineticTypography>
             <Typography variant="caption" color="text.secondary">
               Track token usage and estimated costs across your organization.
             </Typography>
@@ -197,18 +216,31 @@ export const OrgUsageDashboardPage: React.FC = () => {
 
         {/* Time Series Chart */}
         {usage?.usage && usage.usage.length > 0 && (
-          <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: '1 / -1', minHeight: 400, p: 2, display: 'flex', flexDirection: 'column' }}>
+          <GlassPanel
+            refractive={!isEcoMode}
+            sx={{
+              gridColumn: '1 / -1',
+              minHeight: 400,
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <Box mb={2}>
-                <KineticTypography variant="h6">Usage Trends</KineticTypography>
-                <Typography variant="caption" color="text.secondary">Daily request volume and token usage</Typography>
+              <KineticTypography variant="h6">Usage Trends</KineticTypography>
+              <Typography variant="caption" color="text.secondary">
+                Daily request volume and token usage
+              </Typography>
             </Box>
             <Box flex={1}>
-                <TimeSeriesChart
-                    data={chartData}
-                    dataKeys={['requestCount', 'totalTokens']}
-                    colors={['#7C4DFF', '#00E5FF']}
-                    formatXAxis={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                />
+              <TimeSeriesChart
+                data={chartData}
+                dataKeys={['requestCount', 'totalTokens']}
+                colors={['#7C4DFF', '#00E5FF']}
+                formatXAxis={(val) =>
+                  new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                }
+              />
             </Box>
           </GlassPanel>
         )}
@@ -217,20 +249,22 @@ export const OrgUsageDashboardPage: React.FC = () => {
         <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: '1 / -1', minHeight: 400 }}>
           <CardContent>
             <Box mb={2}>
-                <KineticTypography variant="h5" gutterBottom>
+              <KineticTypography variant="h5" gutterBottom>
                 Top users
-                </KineticTypography>
-                <Typography variant="caption" color="text.secondary">Highest usage by user</Typography>
+              </KineticTypography>
+              <Typography variant="caption" color="text.secondary">
+                Highest usage by user
+              </Typography>
             </Box>
 
             <DataGrid
-                data={augmentedTopUsers}
-                columns={columns}
-                initialSortColumn="estimatedCostMicros"
-                initialSortDirection="desc"
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                defaultRowsPerPage={5}
-                emptyMessage="No usage data available for this period."
+              data={augmentedTopUsers}
+              columns={columns}
+              initialSortColumn="estimatedCostMicros"
+              initialSortDirection="desc"
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              defaultRowsPerPage={5}
+              emptyMessage="No usage data available for this period."
             />
           </CardContent>
         </GlassPanel>

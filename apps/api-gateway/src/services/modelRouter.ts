@@ -20,4 +20,3 @@ export function getProviderForModel(config: ModelConfig): ModelProvider {
       return new OllamaProvider();
   }
 }
-

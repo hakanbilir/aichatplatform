@@ -30,11 +30,14 @@ export interface RetrievedChunk {
   score: number;
 }
 
-export async function fetchKnowledgeSpaces(token: string, orgId: string): Promise<KnowledgeSpace[]> {
+export async function fetchKnowledgeSpaces(
+  token: string,
+  orgId: string,
+): Promise<KnowledgeSpace[]> {
   const res = await apiRequest<{ spaces: KnowledgeSpace[] }>(
     `/orgs/${orgId}/knowledge/spaces`,
     { method: 'GET' },
-    token
+    token,
   );
   return res.spaces;
 }
@@ -42,18 +45,18 @@ export async function fetchKnowledgeSpaces(token: string, orgId: string): Promis
 export async function createKnowledgeSpace(
   token: string,
   orgId: string,
-  name: string
+  name: string,
 ): Promise<{ id: string }> {
   return apiRequest<{ id: string }>(
     `/orgs/${orgId}/knowledge/spaces`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name }),
     },
-    token
+    token,
   );
 }
 
@@ -62,25 +65,25 @@ export async function ingestTextDocument(
   orgId: string,
   spaceId: string,
   title: string,
-  text: string
+  text: string,
 ): Promise<{ documentId: string }> {
   return apiRequest<{ documentId: string }>(
     `/orgs/${orgId}/knowledge/documents:text`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ spaceId, title, text })
+      body: JSON.stringify({ spaceId, title, text }),
     },
-    token
+    token,
   );
 }
 
 export async function retrieveKnowledgeChunks(
   token: string,
   orgId: string,
-  params: { spaceId?: string; query: string; limit?: number }
+  params: { spaceId?: string; query: string; limit?: number },
 ): Promise<RetrievedChunk[]> {
   const qs = new URLSearchParams();
   qs.set('query', params.query);
@@ -90,9 +93,8 @@ export async function retrieveKnowledgeChunks(
   const res = await apiRequest<{ chunks: RetrievedChunk[] }>(
     `/orgs/${orgId}/knowledge/retrieve?${qs.toString()}`,
     { method: 'GET' },
-    token
+    token,
   );
 
   return res.chunks;
 }
-

@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock } from 'bun:test';
 
 // Mock the db module
@@ -10,8 +9,8 @@ mock.module('@ai-chat/db', () => {
         create: mock((args: any) => Promise.resolve({ id: 'key_1', ...args.data })),
         updateMany: mock(() => Promise.resolve({ count: 1 })),
         deleteMany: mock(() => Promise.resolve({ count: 1 })),
-      }
-    }
+      },
+    },
   };
 });
 
@@ -24,9 +23,9 @@ mock.module('../src/rbac/guards', () => {
 
 // Mock audit log
 mock.module('../src/services/audit', () => {
-    return {
-        writeAuditLog: mock(() => Promise.resolve()),
-    };
+  return {
+    writeAuditLog: mock(() => Promise.resolve()),
+  };
 });
 
 import fastify from 'fastify';
@@ -43,9 +42,9 @@ describe('Org API Keys Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgApiKeysRoutes);
@@ -54,9 +53,9 @@ describe('Org API Keys Security', () => {
       method: 'POST',
       url: '/orgs/org_id/admin/api-keys',
       payload: {
-          name: 'Test Key',
-          scopes: ['org:read', 'conversation:write'] // Valid scopes
-      }
+        name: 'Test Key',
+        scopes: ['org:read', 'conversation:write'], // Valid scopes
+      },
     });
 
     expect(response.statusCode).toBe(201);
@@ -72,9 +71,9 @@ describe('Org API Keys Security', () => {
     });
 
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgApiKeysRoutes);
@@ -83,9 +82,9 @@ describe('Org API Keys Security', () => {
       method: 'POST',
       url: '/orgs/org_id/admin/api-keys',
       payload: {
-          name: 'Test Key',
-          scopes: ['org:read', 'invalid:scope'] // Invalid scope
-      }
+        name: 'Test Key',
+        scopes: ['org:read', 'invalid:scope'], // Invalid scope
+      },
     });
 
     expect(response.statusCode).toBe(400);
@@ -102,9 +101,9 @@ describe('Org API Keys Security', () => {
     });
 
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgApiKeysRoutes);
@@ -113,8 +112,8 @@ describe('Org API Keys Security', () => {
       method: 'PATCH',
       url: '/orgs/org_id/admin/api-keys/key_1',
       payload: {
-          scopes: ['super:admin:godmode'] // Invalid scope
-      }
+        scopes: ['super:admin:godmode'], // Invalid scope
+      },
     });
 
     expect(response.statusCode).toBe(400);

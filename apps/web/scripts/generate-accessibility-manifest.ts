@@ -24,7 +24,9 @@ function auditCodebase(srcDir: string) {
         ariaLabels += (content.match(/aria-label/g) || []).length;
         glassPanels += (content.match(/GlassPanel/g) || []).length;
         // Count both the class name and the component usage
-        kineticType += (content.match(/kinetic-typography/g) || []).length + (content.match(/KineticTypography/g) || []).length;
+        kineticType +=
+          (content.match(/kinetic-typography/g) || []).length +
+          (content.match(/KineticTypography/g) || []).length;
         tabIndices += (content.match(/tabIndex/g) || []).length;
         roles += (content.match(/role=/g) || []).length;
       }
@@ -36,7 +38,9 @@ function auditCodebase(srcDir: string) {
 }
 
 const cwd = process.cwd();
-const srcDir = fs.existsSync(path.join(cwd, 'src')) ? path.join(cwd, 'src') : path.join(cwd, 'apps/web/src');
+const srcDir = fs.existsSync(path.join(cwd, 'src'))
+  ? path.join(cwd, 'src')
+  : path.join(cwd, 'apps/web/src');
 const auditStats = auditCodebase(srcDir);
 
 // Read CSS variables
@@ -46,7 +50,7 @@ let themeVars: Record<string, string> = {};
 if (fs.existsSync(themePath)) {
   const css = fs.readFileSync(themePath, 'utf-8');
   const varMatches = css.match(/--[\w-]+:\s*[^;]+/g) || [];
-  varMatches.forEach(match => {
+  varMatches.forEach((match) => {
     const [name, value] = match.split(':');
     if (name && value) {
       themeVars[name.trim()] = value.trim();
@@ -57,10 +61,11 @@ if (fs.existsSync(themePath)) {
 const glassBg = themeVars['--glass-bg'] || 'rgba(255, 255, 255, 0.05)';
 const glassBorder = themeVars['--glass-border'] || '1px solid rgba(255, 255, 255, 0.15)';
 // Extract color from border definition if possible
-const glassBorderColor = glassBorder.match(/rgba?\(.*?\)|#[0-9a-fA-F]+/)?.[0] || 'rgba(255, 255, 255, 0.15)';
+const glassBorderColor =
+  glassBorder.match(/rgba?\(.*?\)|#[0-9a-fA-F]+/)?.[0] || 'rgba(255, 255, 255, 0.15)';
 
 // Helper to parse color
-function parseColor(color: string): { r: number, g: number, b: number, a: number } {
+function parseColor(color: string): { r: number; g: number; b: number; a: number } {
   // Simple parser for rgba and hex
   if (color.startsWith('#')) {
     const hex = color.slice(1);
@@ -75,7 +80,7 @@ function parseColor(color: string): { r: number, g: number, b: number, a: number
         r: parseInt(match[1]),
         g: parseInt(match[2]),
         b: parseInt(match[3]),
-        a: match[4] ? parseFloat(match[4]) : 1
+        a: match[4] ? parseFloat(match[4]) : 1,
       };
     }
   }
@@ -83,7 +88,7 @@ function parseColor(color: string): { r: number, g: number, b: number, a: number
 }
 
 function getLuminance(r: number, g: number, b: number) {
-  const a = [r, g, b].map(v => {
+  const a = [r, g, b].map((v) => {
     v /= 255;
     return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
   });
@@ -91,20 +96,20 @@ function getLuminance(r: number, g: number, b: number) {
 }
 
 function getContrast(fg: string, bg: string) {
-    const f = parseColor(fg);
-    const b = parseColor(bg);
+  const f = parseColor(fg);
+  const b = parseColor(bg);
 
-    // Mix foreground with background if foreground has alpha
-    // Simplified mixing: Result = FG * A + BG * (1-A)
-    const mixedR = f.r * f.a + b.r * (1 - f.a);
-    const mixedG = f.g * f.a + b.g * (1 - f.a);
-    const mixedB = f.b * f.a + b.b * (1 - f.a);
+  // Mix foreground with background if foreground has alpha
+  // Simplified mixing: Result = FG * A + BG * (1-A)
+  const mixedR = f.r * f.a + b.r * (1 - f.a);
+  const mixedG = f.g * f.a + b.g * (1 - f.a);
+  const mixedB = f.b * f.a + b.b * (1 - f.a);
 
-    const l1 = getLuminance(mixedR, mixedG, mixedB);
-    const l2 = getLuminance(b.r, b.g, b.b);
+  const l1 = getLuminance(mixedR, mixedG, mixedB);
+  const l2 = getLuminance(b.r, b.g, b.b);
 
-    if (l1 > l2) return (l1 + 0.05) / (l2 + 0.05);
-    return (l2 + 0.05) / (l1 + 0.05);
+  if (l1 > l2) return (l1 + 0.05) / (l2 + 0.05);
+  return (l2 + 0.05) / (l1 + 0.05);
 }
 
 // Calculate contrast for Glass Panel
@@ -120,7 +125,7 @@ const contrastGlass = getContrast('#FFFFFF', panelBgString);
 const contrastGlassFormatted = contrastGlass.toFixed(2) + ':1';
 
 const manifest = {
-  version: "2026.1.1",
+  version: '2026.1.1',
   generatedAt: new Date().toISOString(),
   auditStats: {
     filesScanned: auditStats.filesScanned,
@@ -128,57 +133,59 @@ const manifest = {
     glassComponentsDetected: auditStats.glassPanels,
     kineticTypographyUsage: auditStats.kineticType,
     explicitTabIndices: auditStats.tabIndices,
-    explicitRoles: auditStats.roles
+    explicitRoles: auditStats.roles,
   },
   compliance: {
-    wcag: "2.1 AA",
-    section508: true
+    wcag: '2.1 AA',
+    section508: true,
   },
   features: {
     ecoMode: {
       enabled: true,
-      description: "Disables blur, refraction, and animations for reduced motion/battery.",
-      toggle: "User preference or System setting"
+      description: 'Disables blur, refraction, and animations for reduced motion/battery.',
+      toggle: 'User preference or System setting',
     },
     kineticTypography: {
       enabled: true,
-      description: "Variable fonts adapt weight based on interaction.",
-      fallback: "Standard sans-serif weight"
-    }
+      description: 'Variable fonts adapt weight based on interaction.',
+      fallback: 'Standard sans-serif weight',
+    },
   },
   components: {
-    "kinetic-glass-panel": {
-      role: "region",
+    'kinetic-glass-panel': {
+      role: 'region',
       contrastRatio: `${contrastGlassFormatted} (White Text vs Glass on Dark)`,
-      keyboardNavigation: "Pass through",
-      attributes: ["data-eco-mode"]
+      keyboardNavigation: 'Pass through',
+      attributes: ['data-eco-mode'],
     },
-    "specular-button": {
-      role: "button",
-      contrastRatio: "> 7:1",
-      keyboardNavigation: "Focusable (Tab)",
-      states: ["hover", "focus", "active"],
+    'specular-button': {
+      role: 'button',
+      contrastRatio: '> 7:1',
+      keyboardNavigation: 'Focusable (Tab)',
+      states: ['hover', 'focus', 'active'],
       aria: {
-        required: ["aria-label", "aria-pressed (if toggle)"]
-      }
+        required: ['aria-label', 'aria-pressed (if toggle)'],
+      },
     },
-    "bento-grid": {
-      role: "none (Layout)",
-      description: "Grid layout managing focus order logically from top-left to bottom-right.",
-      gap: themeVars['--bento-gap'] || "24px"
-    }
+    'bento-grid': {
+      role: 'none (Layout)',
+      description: 'Grid layout managing focus order logically from top-left to bottom-right.',
+      gap: themeVars['--bento-gap'] || '24px',
+    },
   },
   colorPalette: {
     glassBackground: glassBg,
     glassBorder: glassBorderColor,
-    textPrimary: "#FFFFFF",
-    textSecondary: "rgba(255, 255, 255, 0.7)"
+    textPrimary: '#FFFFFF',
+    textSecondary: 'rgba(255, 255, 255, 0.7)',
   },
-  tabOrder: "Logical flow (Top-Left -> Bottom-Right) enforced by CSS Grid.",
-  ariaRoles: "Standard ARIA roles used where semantic HTML is insufficient."
+  tabOrder: 'Logical flow (Top-Left -> Bottom-Right) enforced by CSS Grid.',
+  ariaRoles: 'Standard ARIA roles used where semantic HTML is insufficient.',
 };
 
-const outputPath = fs.existsSync(path.join(cwd, 'public')) ? path.join(cwd, 'public/accessibility-manifest.json') : path.join(cwd, 'apps/web/public/accessibility-manifest.json');
+const outputPath = fs.existsSync(path.join(cwd, 'public'))
+  ? path.join(cwd, 'public/accessibility-manifest.json')
+  : path.join(cwd, 'apps/web/public/accessibility-manifest.json');
 
 // Ensure directory exists
 const dir = path.dirname(outputPath);

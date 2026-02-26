@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 
 import { useAuth } from '../auth/AuthContext';
-import { OrgAiPolicy, OrgAiPolicyConfig, fetchOrgAiPolicy, saveOrgAiPolicy } from '../api/orgAiPolicy';
+import {
+  OrgAiPolicy,
+  OrgAiPolicyConfig,
+  fetchOrgAiPolicy,
+  saveOrgAiPolicy,
+} from '../api/orgAiPolicy';
 
 export function useOrgAiPolicy(orgId: string | null) {
   const { token } = useAuth();
@@ -59,7 +64,6 @@ export function useOrgAiPolicy(orgId: string | null) {
     policy,
     loading,
     error,
-    save
+    save,
   };
 }
-

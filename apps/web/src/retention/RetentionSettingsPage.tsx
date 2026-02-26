@@ -9,7 +9,7 @@ import {
   Checkbox,
   FormControlLabel,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -20,7 +20,7 @@ import { useAuth } from '../auth/AuthContext';
 import {
   OrgDataRetentionConfig,
   fetchRetentionConfig,
-  updateRetentionConfig
+  updateRetentionConfig,
 } from '../api/retention';
 
 export const RetentionSettingsPage: React.FC = () => {
@@ -86,7 +86,7 @@ export const RetentionSettingsPage: React.FC = () => {
         allowUserDeletion,
         allowExports,
         allowShareLinks,
-        hardDeleteAfterDays: hardDeleteDays ? Number(hardDeleteDays) : null
+        hardDeleteAfterDays: hardDeleteDays ? Number(hardDeleteDays) : null,
       });
       setConfig(updated);
     } catch (err) {
@@ -109,7 +109,7 @@ export const RetentionSettingsPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" gap={1}>
@@ -201,4 +201,3 @@ export const RetentionSettingsPage: React.FC = () => {
     </Box>
   );
 };
-

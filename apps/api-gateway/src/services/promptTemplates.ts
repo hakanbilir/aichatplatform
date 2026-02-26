@@ -29,10 +29,10 @@ export async function createPromptTemplate(input: PromptTemplateInput) {
           assistantStyle: input.assistantStyle ?? null,
           variables: input.variables ?? {},
           metadata: input.metadata ?? {},
-          createdById: input.createdById
-        }
-      }
-    }
+          createdById: input.createdById,
+        },
+      },
+    },
   });
 }
 
@@ -43,9 +43,9 @@ export async function listPromptTemplates(orgId: string) {
     include: {
       versions: {
         orderBy: { version: 'desc' },
-        take: 1
-      }
-    }
+        take: 1,
+      },
+    },
   });
 }
 
@@ -56,14 +56,14 @@ export async function updatePromptTemplate(
     name: string;
     description: string | null;
     isArchived: boolean;
-  }>
+  }>,
 ) {
   return prisma.promptTemplate.updateMany({
     where: {
       id: templateId,
-      orgId
+      orgId,
     },
-    data
+    data,
   });
 }
 
@@ -71,8 +71,8 @@ export async function deletePromptTemplate(orgId: string, templateId: string) {
   await prisma.promptTemplate.deleteMany({
     where: {
       id: templateId,
-      orgId
-    }
+      orgId,
+    },
   });
 }
 
@@ -87,8 +87,7 @@ export async function recordPromptUsage(params: {
       orgId: params.orgId,
       templateId: params.templateId,
       userId: params.userId,
-      conversationId: params.conversationId
-    }
+      conversationId: params.conversationId,
+    },
   });
 }
-

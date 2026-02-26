@@ -30,15 +30,18 @@ export class OpenAIProvider implements ModelProvider {
           return {
             type: 'image_url',
             image_url: {
-              url: part.data
-            }
+              url: part.data,
+            },
           };
-        })
+        }),
       };
     });
   }
 
-  async chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult> {
+  async chat(
+    messages: ProviderMessage[],
+    options: ProviderChatOptions,
+  ): Promise<ProviderChatResult> {
     const apiKey = this.getApiKey();
 
     const body: any = {
@@ -52,7 +55,7 @@ export class OpenAIProvider implements ModelProvider {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
     });
@@ -62,7 +65,7 @@ export class OpenAIProvider implements ModelProvider {
       throw new Error(`OpenAI chat failed with status ${response.status}: ${text}`);
     }
 
-    const json = await response.json() as any;
+    const json = (await response.json()) as any;
     const content = json.choices?.[0]?.message?.content || '';
     const usage = json.usage;
 
@@ -76,7 +79,10 @@ export class OpenAIProvider implements ModelProvider {
     };
   }
 
-  async *chatStream(messages: ProviderMessage[], options: ProviderChatOptions): AsyncGenerator<ChatStreamEvent, void, unknown> {
+  async *chatStream(
+    messages: ProviderMessage[],
+    options: ProviderChatOptions,
+  ): AsyncGenerator<ChatStreamEvent, void, unknown> {
     const apiKey = this.getApiKey();
 
     const body: any = {
@@ -95,7 +101,7 @@ export class OpenAIProvider implements ModelProvider {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
     });
@@ -135,17 +141,17 @@ export class OpenAIProvider implements ModelProvider {
             const chunk = JSON.parse(jsonStr);
 
             if (chunk.usage) {
-               yield {
-                 type: 'end', // Usage usually comes in the last chunk which might be 'end' equivalent
-                 // Actually we should yield a dedicated usage update or attach to end.
-                 // Core types `end` event has usage.
-                 usage: {
-                   promptTokens: chunk.usage.prompt_tokens,
-                   completionTokens: chunk.usage.completion_tokens,
-                   totalTokens: chunk.usage.total_tokens
-                 }
-               };
-               continue;
+              yield {
+                type: 'end', // Usage usually comes in the last chunk which might be 'end' equivalent
+                // Actually we should yield a dedicated usage update or attach to end.
+                // Core types `end` event has usage.
+                usage: {
+                  promptTokens: chunk.usage.prompt_tokens,
+                  completionTokens: chunk.usage.completion_tokens,
+                  totalTokens: chunk.usage.total_tokens,
+                },
+              };
+              continue;
             }
 
             const delta = chunk.choices?.[0]?.delta;
@@ -154,7 +160,7 @@ export class OpenAIProvider implements ModelProvider {
             if (delta?.content) {
               yield {
                 type: 'token',
-                token: delta.content
+                token: delta.content,
               };
             }
 
@@ -163,7 +169,7 @@ export class OpenAIProvider implements ModelProvider {
               // But OpenAI might send usage AFTER stop.
             }
           } catch (e) {
-             console.warn('Failed to parse OpenAI chunk', e);
+            console.warn('Failed to parse OpenAI chunk', e);
           }
         }
       }

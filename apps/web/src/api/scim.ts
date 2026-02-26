@@ -12,39 +12,39 @@ export interface ScimConnectionDto {
 
 export async function fetchScimConnection(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ connection: ScimConnectionDto | null }> {
   return apiRequest<{ connection: ScimConnectionDto | null }>(
     `/orgs/${orgId}/scim-connection`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
 export async function createScimConnection(
   token: string,
   orgId: string,
-  input: { name: string; isEnabled?: boolean }
+  input: { name: string; isEnabled?: boolean },
 ): Promise<{ connection: ScimConnectionDto }> {
   return apiRequest<{ connection: ScimConnectionDto }>(
     `/orgs/${orgId}/scim-connection`,
     {
       method: 'POST',
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
 export async function rotateScimToken(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ bearerToken: string }> {
   return apiRequest<{ bearerToken: string }>(
     `/orgs/${orgId}/scim-connection/rotate-token`,
     {
-      method: 'POST'
+      method: 'POST',
     },
-    token
+    token,
   );
 }

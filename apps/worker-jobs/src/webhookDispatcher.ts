@@ -37,7 +37,13 @@ function isIpPrivate(ip: string): boolean {
 
     const lower = ip.toLowerCase();
     if (lower.startsWith('fc') || lower.startsWith('fd')) return true;
-    if (lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) return true;
+    if (
+      lower.startsWith('fe8') ||
+      lower.startsWith('fe9') ||
+      lower.startsWith('fea') ||
+      lower.startsWith('feb')
+    )
+      return true;
 
     // Check for IPv4 mapped address ::ffff:127.0.0.1
     if (lower.startsWith('::ffff:')) {
@@ -83,12 +89,12 @@ export async function isValidWebhookUrl(url: string): Promise<boolean> {
   }
 }
 
-
 type JsonValue = null | string | number | boolean | { [key: string]: JsonValue } | JsonValue[];
 
 function toJsonValue(value: unknown): JsonValue {
   if (value === null) return null;
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+    return value;
   if (Array.isArray(value)) return value.map((item) => toJsonValue(item));
   if (typeof value === 'object') {
     const record: Record<string, JsonValue> = {};
@@ -110,11 +116,11 @@ async function dispatchDelivery(deliveryId: string) {
     include: {
       webhook: {
         include: {
-          orgIntegration: true
-        }
+          orgIntegration: true,
+        },
       },
-      event: true
-    }
+      event: true,
+    },
   });
 
   if (!delivery || !delivery.webhook.isActive || !delivery.webhook.orgIntegration.isEnabled) {
@@ -130,7 +136,7 @@ async function dispatchDelivery(deliveryId: string) {
     userId: event.userId,
     conversationId: event.conversationId,
     messageId: event.messageId,
-    metadata: event.metadata
+    metadata: event.metadata,
   };
 
   const body = JSON.stringify(payloadObj);
@@ -149,10 +155,10 @@ async function dispatchDelivery(deliveryId: string) {
       headers: {
         'Content-Type': 'application/json',
         'X-AIChat-Signature': signature,
-        'X-AIChat-Timestamp': String(timestamp)
+        'X-AIChat-Timestamp': String(timestamp),
       },
       body,
-      redirect: 'error' // Do not follow redirects to prevent open redirect SSRF bypass
+      redirect: 'error', // Do not follow redirects to prevent open redirect SSRF bypass
     });
 
     const text = await res.text();
@@ -173,16 +179,16 @@ async function dispatchDelivery(deliveryId: string) {
         statusCode: res.status,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         responseBody: toJsonValue(responseBody) as any,
-        error: res.ok ? null : `HTTP ${res.status}`
-      }
+        error: res.ok ? null : `HTTP ${res.status}`,
+      },
     });
   } catch (err) {
     await prisma.webhookDelivery.update({
       where: { id: delivery.id },
       data: {
         status: 'failed',
-        error: (err as Error).message
-      }
+        error: (err as Error).message,
+      },
     });
   }
 }
@@ -193,8 +199,8 @@ export async function processWebhooksBatch(limit = 50) {
     take: limit,
     include: {
       webhook: true,
-      event: true
-    }
+      event: true,
+    },
   });
 
   for (const d of pending) {

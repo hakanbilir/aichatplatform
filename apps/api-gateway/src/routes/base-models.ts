@@ -107,7 +107,9 @@ export default async function baseModelsRoutes(app: FastifyInstance, _opts: Fast
 
     const parseBody = createBaseModelBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: 'Invalid base model data', details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({ error: 'Invalid base model data', details: parseBody.error.format() });
     }
 
     const modelOrgId = parseBody.data.orgId || orgId;
@@ -137,7 +139,9 @@ export default async function baseModelsRoutes(app: FastifyInstance, _opts: Fast
     });
 
     if (existing) {
-      return reply.code(409).send({ error: 'Base model with this provider and modelId already exists' });
+      return reply
+        .code(409)
+        .send({ error: 'Base model with this provider and modelId already exists' });
     }
 
     const baseModel = await prisma.baseModel.create({
@@ -158,69 +162,73 @@ export default async function baseModelsRoutes(app: FastifyInstance, _opts: Fast
   });
 
   // Seed default base models (system-wide, superadmin only)
-  app.post('/api/v1/base-models/seed', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.post(
+    '/api/v1/base-models/seed',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    if (!payload.isSuperadmin) {
-      return reply.code(403).send({ error: 'Only superadmins can seed base models' });
-    }
-
-    const defaultModels = [
-      {
-        orgId: null,
-        provider: 'ollama',
-        name: 'Llama 3 8B',
-        modelId: 'llama3:8b',
-        family: 'llama',
-        contextWindow: 8192,
-        languages: ['en', 'tr'],
-        capabilities: ['chat', 'completion'],
-        isTrainingAllowed: true,
-      },
-      {
-        orgId: null,
-        provider: 'ollama',
-        name: 'Mistral 7B',
-        modelId: 'mistral:7b',
-        family: 'mistral',
-        contextWindow: 8192,
-        languages: ['en', 'tr'],
-        capabilities: ['chat', 'completion'],
-        isTrainingAllowed: true,
-      },
-      {
-        orgId: null,
-        provider: 'ollama',
-        name: 'Llama 3.1 8B',
-        modelId: 'llama3.1:8b',
-        family: 'llama',
-        contextWindow: 8192,
-        languages: ['en', 'tr'],
-        capabilities: ['chat', 'completion'],
-        isTrainingAllowed: true,
-      },
-    ];
-
-    const created = [];
-    for (const model of defaultModels) {
-      try {
-        const existing = await prisma.baseModel.findFirst({
-          where: {
-            orgId: model.orgId,
-            provider: model.provider,
-            modelId: model.modelId,
-          },
-        });
-
-        if (!existing) {
-          const baseModel = await prisma.baseModel.create({ data: model });
-          created.push(baseModel);
-        }
-      } catch {
-        // Skip if already exists
+      if (!payload.isSuperadmin) {
+        return reply.code(403).send({ error: 'Only superadmins can seed base models' });
       }
-    }
 
-    return reply.send({ created: created.length, models: created });
-  });
+      const defaultModels = [
+        {
+          orgId: null,
+          provider: 'ollama',
+          name: 'Llama 3 8B',
+          modelId: 'llama3:8b',
+          family: 'llama',
+          contextWindow: 8192,
+          languages: ['en', 'tr'],
+          capabilities: ['chat', 'completion'],
+          isTrainingAllowed: true,
+        },
+        {
+          orgId: null,
+          provider: 'ollama',
+          name: 'Mistral 7B',
+          modelId: 'mistral:7b',
+          family: 'mistral',
+          contextWindow: 8192,
+          languages: ['en', 'tr'],
+          capabilities: ['chat', 'completion'],
+          isTrainingAllowed: true,
+        },
+        {
+          orgId: null,
+          provider: 'ollama',
+          name: 'Llama 3.1 8B',
+          modelId: 'llama3.1:8b',
+          family: 'llama',
+          contextWindow: 8192,
+          languages: ['en', 'tr'],
+          capabilities: ['chat', 'completion'],
+          isTrainingAllowed: true,
+        },
+      ];
+
+      const created = [];
+      for (const model of defaultModels) {
+        try {
+          const existing = await prisma.baseModel.findFirst({
+            where: {
+              orgId: model.orgId,
+              provider: model.provider,
+              modelId: model.modelId,
+            },
+          });
+
+          if (!existing) {
+            const baseModel = await prisma.baseModel.create({ data: model });
+            created.push(baseModel);
+          }
+        } catch {
+          // Skip if already exists
+        }
+      }
+
+      return reply.send({ created: created.length, models: created });
+    },
+  );
 }

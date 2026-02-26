@@ -6,7 +6,7 @@
 /**
  * CLI tool to create a superadmin user.
  * Süperadmin kullanıcı oluşturmak için CLI aracı.
- * 
+ *
  * Usage: ts-node src/cli/createSuperadmin.ts
  * Or: npm run create-superadmin
  */
@@ -49,18 +49,18 @@ function prompt(question: string): Promise<string> {
 function promptPassword(question: string): Promise<string> {
   return new Promise((resolve, reject) => {
     process.stdout.write(question);
-    
+
     // Store original settings
     // Orijinal ayarları sakla
     const stdin = process.stdin;
     const wasRaw = stdin.isRaw || false;
-    
+
     stdin.setRawMode(true);
     stdin.resume();
     stdin.setEncoding('utf8');
 
     let password = '';
-    
+
     const cleanup = () => {
       stdin.setRawMode(wasRaw);
       stdin.pause();
@@ -71,13 +71,13 @@ function promptPassword(question: string): Promise<string> {
       // Handle Buffer input (common in raw mode)
       // Buffer girdisini işle (raw modda yaygın)
       const charStr = typeof char === 'string' ? char : char.toString('utf8');
-      
+
       // Handle multi-byte characters
       // Çok baytlı karakterleri işle
       if (charStr.length === 0) return;
-      
+
       const firstChar = charStr[0];
-      
+
       switch (firstChar) {
         case '\n':
         case '\r':
@@ -110,7 +110,7 @@ function promptPassword(question: string): Promise<string> {
     };
 
     stdin.on('data', onData);
-    
+
     // Handle errors
     // Hataları işle
     stdin.on('error', (err) => {
@@ -182,7 +182,7 @@ async function main() {
     if (existingUser) {
       console.log(`\nUser with email ${email} already exists.`);
       console.log(`E-posta ${email} ile kullanıcı zaten mevcut.`);
-      
+
       if (existingUser.isSuperadmin) {
         console.log('This user is already a superadmin.');
         console.log('Bu kullanıcı zaten bir süperadmin.');
@@ -287,8 +287,12 @@ async function main() {
           });
 
           if (!existingMember) {
-            const roleInput = (await prompt('Role (OWNER/ADMIN/MEMBER/VIEWER) [OWNER]: ')).toUpperCase();
-            const selectedRole = (ORG_ROLES.includes(roleInput as OrgRole) ? roleInput : 'OWNER') as OrgRole;
+            const roleInput = (
+              await prompt('Role (OWNER/ADMIN/MEMBER/VIEWER) [OWNER]: ')
+            ).toUpperCase();
+            const selectedRole = (
+              ORG_ROLES.includes(roleInput as OrgRole) ? roleInput : 'OWNER'
+            ) as OrgRole;
 
             await prisma.orgMember.create({
               data: {

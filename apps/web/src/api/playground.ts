@@ -20,14 +20,14 @@ export async function playgroundComplete(
     temperature?: number;
     topP?: number;
     maxTokens?: number | null;
-  }
+  },
 ): Promise<PlaygroundCompletionResponse> {
   return apiRequest<PlaygroundCompletionResponse>(
     `/orgs/${orgId}/playground/complete`,
     {
       method: 'POST',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     },
-    token
+    token,
   );
 }

@@ -47,7 +47,7 @@ export const TopBar: React.FC = () => {
   const handleSearchSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!orgId || !searchQuery.trim()) return;
-    
+
     // Navigate to inbox page with search query / Arama sorgusu ile inbox sayfasına git
     navigate(`/app/orgs/${orgId}/inbox?q=${encodeURIComponent(searchQuery.trim())}`);
   };
@@ -86,7 +86,13 @@ export const TopBar: React.FC = () => {
         }}
       >
         {/* Logo and app name / Logo ve uygulama adı */}
-        <Box display="flex" alignItems="center" gap={1.5} minWidth={0} flex={isMobile ? '1 1 100%' : '0 0 auto'}>
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1.5}
+          minWidth={0}
+          flex={isMobile ? '1 1 100%' : '0 0 auto'}
+        >
           <Box
             sx={{
               width: 32,
@@ -125,7 +131,14 @@ export const TopBar: React.FC = () => {
 
         {/* Search bar (hidden on mobile) / Arama çubuğu (mobilde gizli) */}
         {!isMobile && orgId && (
-          <Box flex={1} maxWidth={400} mx={2} component="form" onSubmit={handleSearchSubmit} data-ai-action="search">
+          <Box
+            flex={1}
+            maxWidth={400}
+            mx={2}
+            component="form"
+            onSubmit={handleSearchSubmit}
+            data-ai-action="search"
+          >
             <TextField
               fullWidth
               size="small"
@@ -193,10 +206,10 @@ export const TopBar: React.FC = () => {
           justifyContent={isMobile ? 'space-between' : 'flex-end'}
         >
           {/* Eco Mode Toggle */}
-          <Tooltip title={isEcoMode ? "Turn off Eco Mode" : "Turn on Eco Mode"}>
+          <Tooltip title={isEcoMode ? 'Turn off Eco Mode' : 'Turn on Eco Mode'}>
             <IconButton
               onClick={toggleEcoMode}
-              color={isEcoMode ? "success" : "inherit"}
+              color={isEcoMode ? 'success' : 'inherit'}
               size="small"
               data-ai-action="toggle-eco-mode"
             >

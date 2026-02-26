@@ -96,7 +96,9 @@ async function buildServer() {
   setModerationProvider(new HeuristicModerationProvider());
 
   const allowedOrigins = config.CORS_ALLOWED_ORIGINS
-    ? config.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    ? config.CORS_ALLOWED_ORIGINS.split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
     : [];
 
   await app.register(cors, {
@@ -215,5 +217,3 @@ async function start() {
 }
 
 start();
-
-

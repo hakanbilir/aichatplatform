@@ -33,4 +33,3 @@ export interface EmitEventParams {
   };
   metadata?: Record<string, any>;
 }
-

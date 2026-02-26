@@ -48,27 +48,27 @@ export interface ExperimentDto {
 
 export async function fetchExperiments(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ experiments: ExperimentDto[] }> {
   return apiRequest<{ experiments: ExperimentDto[] }>(
     `/orgs/${orgId}/experiments`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
 export async function createExperiment(
   token: string,
   orgId: string,
-  input: { name: string; description?: string }
+  input: { name: string; description?: string },
 ): Promise<{ experiment: ExperimentDto }> {
   return apiRequest<{ experiment: ExperimentDto }>(
     `/orgs/${orgId}/experiments`,
     {
       method: 'POST',
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
@@ -76,15 +76,15 @@ export async function addExperimentVariant(
   token: string,
   orgId: string,
   experimentId: string,
-  input: { name: string; description?: string; chatProfileId?: string; systemPrompt?: string }
+  input: { name: string; description?: string; chatProfileId?: string; systemPrompt?: string },
 ): Promise<{ variant: ExperimentVariantDto }> {
   return apiRequest<{ variant: ExperimentVariantDto }>(
     `/orgs/${orgId}/experiments/${experimentId}/variants`,
     {
       method: 'POST',
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
@@ -92,15 +92,15 @@ export async function addExperimentInputs(
   token: string,
   orgId: string,
   experimentId: string,
-  inputs: { key: string; content: string }[]
+  inputs: { key: string; content: string }[],
 ): Promise<{ ok: boolean }> {
   return apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/experiments/${experimentId}/inputs`,
     {
       method: 'POST',
-      body: JSON.stringify({ inputs })
+      body: JSON.stringify({ inputs }),
     },
-    token
+    token,
   );
 }
 
@@ -108,15 +108,15 @@ export async function runExperiment(
   token: string,
   orgId: string,
   experimentId: string,
-  body: { inputIds?: string[]; variantIds?: string[] }
+  body: { inputIds?: string[]; variantIds?: string[] },
 ): Promise<{ ok: boolean; runs: ExperimentRunDto[] }> {
   return apiRequest<{ ok: boolean; runs: ExperimentRunDto[] }>(
     `/orgs/${orgId}/experiments/${experimentId}/run`,
     {
       method: 'POST',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     },
-    token
+    token,
   );
 }
 
@@ -124,15 +124,15 @@ export async function sendExperimentFeedback(
   token: string,
   orgId: string,
   runId: string,
-  body: { thumbsUp?: boolean; note?: string }
+  body: { thumbsUp?: boolean; note?: string },
 ): Promise<{ ok: boolean }> {
   return apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/experiments/runs/${runId}/feedback`,
     {
       method: 'POST',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     },
-    token
+    token,
   );
 }
 
@@ -140,14 +140,14 @@ export async function sendExperimentScore(
   token: string,
   orgId: string,
   runId: string,
-  body: { metricKey: string; value: number; note?: string }
+  body: { metricKey: string; value: number; note?: string },
 ): Promise<{ score: ExperimentScoreDto }> {
   return apiRequest<{ score: ExperimentScoreDto }>(
     `/orgs/${orgId}/experiments/runs/${runId}/scores`,
     {
       method: 'POST',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     },
-    token
+    token,
   );
 }

@@ -88,10 +88,7 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
       }}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={data}
-          margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-        >
+        <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           {showGrid && (
             <CartesianGrid
               strokeDasharray="3 3"
@@ -165,4 +162,3 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     </Box>
   );
 };
-

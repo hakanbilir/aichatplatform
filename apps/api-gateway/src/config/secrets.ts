@@ -40,12 +40,7 @@ export interface SecretsConfig {
 }
 
 export function loadSecrets(): SecretsConfig {
-  const required = [
-    'DATABASE_URL',
-    'JWT_PRIVATE_KEY',
-    'JWT_PUBLIC_KEY',
-    'OLLAMA_BASE_URL'
-  ];
+  const required = ['DATABASE_URL', 'JWT_PRIVATE_KEY', 'JWT_PUBLIC_KEY', 'OLLAMA_BASE_URL'];
 
   for (const key of required) {
     if (!process.env[key]) {
@@ -70,6 +65,6 @@ export function loadSecrets(): SecretsConfig {
     smtpHost: process.env.SMTP_HOST,
     smtpUser: process.env.SMTP_USER,
     smtpPassword: process.env.SMTP_PASSWORD,
-    encryptionKey: process.env.ENCRYPTION_KEY
+    encryptionKey: process.env.ENCRYPTION_KEY,
   };
 }

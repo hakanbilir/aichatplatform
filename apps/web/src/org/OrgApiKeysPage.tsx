@@ -13,7 +13,7 @@ import {
   IconButton,
   TextField,
   Tooltip,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -27,7 +27,7 @@ import {
   OrgApiKeySummary,
   fetchOrgApiKeys,
   createOrgApiKey,
-  deleteOrgApiKey
+  deleteOrgApiKey,
 } from '../api/orgApiKeys';
 
 export const OrgApiKeysPage: React.FC = () => {
@@ -81,7 +81,7 @@ export const OrgApiKeysPage: React.FC = () => {
       name: name.trim(),
       description: description.trim() || undefined,
       scopes,
-      expiresAt
+      expiresAt,
     });
 
     setNewToken(res.token);
@@ -116,7 +116,7 @@ export const OrgApiKeysPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -161,7 +161,7 @@ export const OrgApiKeysPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: 2
+                gap: 2,
               }}
             >
               <Box>
@@ -178,7 +178,7 @@ export const OrgApiKeysPage: React.FC = () => {
                         py: 0.25,
                         borderRadius: 999,
                         border: '1px solid',
-                        borderColor: 'divider'
+                        borderColor: 'divider',
                       }}
                     >
                       <Typography variant="caption">{s}</Typography>
@@ -250,13 +250,10 @@ export const OrgApiKeysPage: React.FC = () => {
                   borderColor: 'divider',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 1
+                  gap: 1,
                 }}
               >
-                <Typography
-                  variant="caption"
-                  sx={{ wordBreak: 'break-all', flex: 1 }}
-                >
+                <Typography variant="caption" sx={{ wordBreak: 'break-all', flex: 1 }}>
                   {newToken}
                 </Typography>
                 <Button
@@ -273,11 +270,7 @@ export const OrgApiKeysPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           {!newToken && (
-            <Button
-              onClick={handleCreate}
-              disabled={!name.trim()}
-              variant="contained"
-            >
+            <Button onClick={handleCreate} disabled={!name.trim()} variant="contained">
               {t('apiKeys.create')}
             </Button>
           )}
@@ -287,4 +280,3 @@ export const OrgApiKeysPage: React.FC = () => {
     </Box>
   );
 };
-

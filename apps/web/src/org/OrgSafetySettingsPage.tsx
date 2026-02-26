@@ -10,17 +10,13 @@ import {
   Checkbox,
   FormControlLabel,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
-import {
-  fetchOrgSafetyConfig,
-  updateOrgSafetyConfig,
-  OrgSafetyConfigDto
-} from '../api/orgSafety';
+import { fetchOrgSafetyConfig, updateOrgSafetyConfig, OrgSafetyConfigDto } from '../api/orgSafety';
 
 const KNOWN_CATEGORIES: { key: string; label: string }[] = [
   { key: 'self_harm', label: 'Self-harm' },
@@ -32,14 +28,14 @@ const KNOWN_CATEGORIES: { key: string; label: string }[] = [
   { key: 'malware', label: 'Malware / hacking' },
   { key: 'pii', label: 'Personal data (PII)' },
   { key: 'prompt_injection', label: 'Prompt injection / jailbreak' },
-  { key: 'copyright', label: 'Copyright / IP' }
+  { key: 'copyright', label: 'Copyright / IP' },
 ];
 
 const ACTION_OPTIONS: { value: 'block' | 'warn' | 'log_only' | 'allow'; label: string }[] = [
   { value: 'block', label: 'Block' },
   { value: 'warn', label: 'Warn' },
   { value: 'log_only', label: 'Log only' },
-  { value: 'allow', label: 'Allow' }
+  { value: 'allow', label: 'Allow' },
 ];
 
 export const OrgSafetySettingsPage: React.FC = () => {
@@ -76,14 +72,14 @@ export const OrgSafetySettingsPage: React.FC = () => {
               moderateUserMessages: true,
               moderateAssistantMessages: false,
               categoryActions: {},
-              allowedDomains: []
-            }
+              allowedDomains: [],
+            },
           );
         }
       } catch (err) {
         if (!cancelled) {
           console.error(err);
-          setError("Failed to load safety configuration.");
+          setError('Failed to load safety configuration.');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -107,13 +103,13 @@ export const OrgSafetySettingsPage: React.FC = () => {
         moderateUserMessages: config.moderateUserMessages,
         moderateAssistantMessages: config.moderateAssistantMessages,
         categoryActions: config.categoryActions,
-        allowedDomains: config.allowedDomains
+        allowedDomains: config.allowedDomains,
       });
 
       setConfig(res.config);
     } catch (err) {
       console.error(err);
-      setError("Failed to save safety configuration.");
+      setError('Failed to save safety configuration.');
     } finally {
       setLoading(false);
     }
@@ -126,8 +122,8 @@ export const OrgSafetySettingsPage: React.FC = () => {
         ...prev,
         categoryActions: {
           ...prev.categoryActions,
-          [category]: action
-        }
+          [category]: action,
+        },
       };
     });
   };
@@ -164,7 +160,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -193,7 +189,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
                 checked={config.moderateUserMessages}
                 onChange={(e) =>
                   setConfig((prev) =>
-                    prev ? { ...prev, moderateUserMessages: e.target.checked } : prev
+                    prev ? { ...prev, moderateUserMessages: e.target.checked } : prev,
                   )
                 }
                 disabled={loading}
@@ -208,7 +204,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
                 checked={config.moderateAssistantMessages}
                 onChange={(e) =>
                   setConfig((prev) =>
-                    prev ? { ...prev, moderateAssistantMessages: e.target.checked } : prev
+                    prev ? { ...prev, moderateAssistantMessages: e.target.checked } : prev,
                   )
                 }
                 disabled={loading}
@@ -235,7 +231,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  py: 0.75
+                  py: 0.75,
                 }}
               >
                 <Box>

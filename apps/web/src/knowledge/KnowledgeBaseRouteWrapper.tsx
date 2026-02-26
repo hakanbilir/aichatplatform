@@ -7,4 +7,3 @@ import { KnowledgeBasePage } from './KnowledgeBasePage';
 export const KnowledgeBaseRouteWrapper: React.FC = () => {
   return <KnowledgeBasePage />;
 };
-

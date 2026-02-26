@@ -1,23 +1,24 @@
-
 // eslint-disable-next-line import/no-unresolved
 import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test';
 import fastify from 'fastify';
 
 // Mock dependencies
 mock.module('../search/service', () => ({
-  searchConversations: mock(() => Promise.resolve({
-    total: 2,
-    page: 0,
-    pageSize: 20,
-    hits: [
-      { conversationId: '1', conversationTitle: 'Hit 1' },
-      { conversationId: '2', conversationTitle: 'Hit 2' }
-    ]
-  }))
+  searchConversations: mock(() =>
+    Promise.resolve({
+      total: 2,
+      page: 0,
+      pageSize: 20,
+      hits: [
+        { conversationId: '1', conversationTitle: 'Hit 1' },
+        { conversationId: '2', conversationTitle: 'Hit 2' },
+      ],
+    }),
+  ),
 }));
 
 mock.module('../rbac/guards', () => ({
-  assertOrgPermission: mock(() => Promise.resolve())
+  assertOrgPermission: mock(() => Promise.resolve()),
 }));
 
 import searchRoutes from './search';
@@ -48,8 +49,8 @@ describe('Search Routes Streaming', () => {
       url: '/orgs/org-1/search',
       payload: {
         query: 'test',
-        stream: true
-      }
+        stream: true,
+      },
     });
 
     expect(response.statusCode).toBe(200);
@@ -68,8 +69,8 @@ describe('Search Routes Streaming', () => {
       method: 'POST',
       url: '/orgs/org-1/search',
       payload: {
-        query: 'test'
-      }
+        query: 'test',
+      },
     });
 
     expect(response.statusCode).toBe(200);

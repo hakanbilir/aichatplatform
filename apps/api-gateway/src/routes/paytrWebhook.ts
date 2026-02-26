@@ -8,7 +8,7 @@ import { createOrUpdateSubscription } from '../billing/billingService';
 
 export default async function paytrWebhookRoutes(
   app: FastifyInstance,
-  _opts: FastifyPluginOptions
+  _opts: FastifyPluginOptions,
 ) {
   app.post('/billing/paytr/webhook', async (req, reply) => {
     const body = req.body as any;
@@ -16,14 +16,14 @@ export default async function paytrWebhookRoutes(
     const paytr = new PaytrClient({
       merchantId: process.env.PAYTR_MERCHANT_ID || '',
       merchantKey: process.env.PAYTR_MERCHANT_KEY || '',
-      merchantSalt: process.env.PAYTR_MERCHANT_SALT || ''
+      merchantSalt: process.env.PAYTR_MERCHANT_SALT || '',
     });
 
     const isValid = paytr.verifyWebhook({
       merchantOid: body.merchant_oid,
       status: body.status,
       totalAmount: body.total_amount,
-      hash: body.hash
+      hash: body.hash,
     });
 
     if (!isValid) {
@@ -33,11 +33,11 @@ export default async function paytrWebhookRoutes(
     const transaction = await prisma.paymentTransaction.findFirst({
       where: {
         providerReference: body.merchant_oid,
-        paymentProvider: 'paytr'
+        paymentProvider: 'paytr',
       },
       include: {
-        org: true
-      }
+        org: true,
+      },
     });
 
     if (!transaction) {
@@ -50,8 +50,8 @@ export default async function paytrWebhookRoutes(
       where: { id: transaction.id },
       data: {
         status,
-        responsePayload: body
-      }
+        responsePayload: body,
+      },
     });
 
     if (status === 'completed') {
@@ -59,7 +59,12 @@ export default async function paytrWebhookRoutes(
       const planId = requestPayload?.planId;
 
       if (planId) {
-        await createOrUpdateSubscription(transaction.orgId, planId, 'paytr', body.customer_id || null);
+        await createOrUpdateSubscription(
+          transaction.orgId,
+          planId,
+          'paytr',
+          body.customer_id || null,
+        );
 
         // Optional: emitEvent('billing.subscription_updated', { orgId: transaction.orgId, planId })
       }

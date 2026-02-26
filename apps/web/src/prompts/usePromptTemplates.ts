@@ -10,7 +10,7 @@ import {
   createPromptTemplateVersion,
   deletePromptTemplateApi,
   fetchPromptTemplates,
-  updatePromptTemplateApi
+  updatePromptTemplateApi,
 } from '../api/prompts';
 
 export function usePromptTemplates(orgId: string | null) {
@@ -53,42 +53,51 @@ export function usePromptTemplates(orgId: string | null) {
     };
   }, [token, orgId]);
 
-  const createTemplate = useCallback(async (input: CreatePromptTemplateInput) => {
-    if (!token || !orgId) return;
-    const created = await createPromptTemplateApi(token, orgId, input);
-    setTemplates((prev) => [...prev, created]);
-  }, [token, orgId]);
+  const createTemplate = useCallback(
+    async (input: CreatePromptTemplateInput) => {
+      if (!token || !orgId) return;
+      const created = await createPromptTemplateApi(token, orgId, input);
+      setTemplates((prev) => [...prev, created]);
+    },
+    [token, orgId],
+  );
 
-  const updateTemplate = useCallback(async (templateId: string, data: Partial<CreatePromptTemplateInput>) => {
-    if (!token || !orgId) return;
+  const updateTemplate = useCallback(
+    async (templateId: string, data: Partial<CreatePromptTemplateInput>) => {
+      if (!token || !orgId) return;
 
-    // 1. Update metadata (name, description)
-    if (data.name || data.description) {
-      await updatePromptTemplateApi(token, orgId, templateId, {
-        name: data.name,
-        description: data.description,
-      });
-    }
+      // 1. Update metadata (name, description)
+      if (data.name || data.description) {
+        await updatePromptTemplateApi(token, orgId, templateId, {
+          name: data.name,
+          description: data.description,
+        });
+      }
 
-    // 2. Create new version if content changed (systemPrompt)
-    if (data.systemPrompt) {
-      await createPromptTemplateVersion(token, orgId, templateId, {
-        systemPrompt: data.systemPrompt,
-        variables: data.variables,
-        userPrefix: data.userPrefix,
-        assistantStyle: data.assistantStyle
-      });
-    }
+      // 2. Create new version if content changed (systemPrompt)
+      if (data.systemPrompt) {
+        await createPromptTemplateVersion(token, orgId, templateId, {
+          systemPrompt: data.systemPrompt,
+          variables: data.variables,
+          userPrefix: data.userPrefix,
+          assistantStyle: data.assistantStyle,
+        });
+      }
 
-    const next = await fetchPromptTemplates(token, orgId);
-    setTemplates(next);
-  }, [token, orgId]);
+      const next = await fetchPromptTemplates(token, orgId);
+      setTemplates(next);
+    },
+    [token, orgId],
+  );
 
-  const deleteTemplate = useCallback(async (templateId: string) => {
-    if (!token || !orgId) return;
-    await deletePromptTemplateApi(token, orgId, templateId);
-    setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-  }, [token, orgId]);
+  const deleteTemplate = useCallback(
+    async (templateId: string) => {
+      if (!token || !orgId) return;
+      await deletePromptTemplateApi(token, orgId, templateId);
+      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+    },
+    [token, orgId],
+  );
 
   return {
     templates,
@@ -96,6 +105,6 @@ export function usePromptTemplates(orgId: string | null) {
     error,
     createTemplate,
     updateTemplate,
-    deleteTemplate
+    deleteTemplate,
   };
 }

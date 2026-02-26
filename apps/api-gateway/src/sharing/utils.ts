@@ -16,4 +16,3 @@ export async function hashPassphrase(passphrase: string): Promise<string> {
 export async function verifyPassphrase(hash: string, passphrase: string): Promise<boolean> {
   return bcrypt.compare(passphrase, hash);
 }
-

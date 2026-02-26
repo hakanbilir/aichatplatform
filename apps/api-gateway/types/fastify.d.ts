@@ -13,4 +13,3 @@ declare module 'fastify' {
     authenticate: import('fastify').preHandlerHookHandler;
   }
 }
-

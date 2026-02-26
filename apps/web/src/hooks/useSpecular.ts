@@ -1,4 +1,3 @@
-
 import { useRef, useCallback } from 'react';
 
 export function useSpecular<T extends HTMLElement>() {

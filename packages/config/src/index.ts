@@ -15,21 +15,23 @@ if (!process.env.SKIP_DOTENV) {
   // pnpm-workspace.yaml veya turbo.json bulana kadar
   let projectRoot = process.cwd();
   let current = process.cwd();
-  
+
   while (current !== path.dirname(current)) {
-    if (existsSync(path.join(current, 'pnpm-workspace.yaml')) || 
-        existsSync(path.join(current, 'turbo.json'))) {
+    if (
+      existsSync(path.join(current, 'pnpm-workspace.yaml')) ||
+      existsSync(path.join(current, 'turbo.json'))
+    ) {
       projectRoot = current;
       break;
     }
     current = path.dirname(current);
   }
-  
+
   // Try loading from project root first (explicit path resolution)
   // Önce proje kökünden yüklemeyi dene (açık yol çözümleme)
   const rootEnvPath = path.resolve(projectRoot, '.env');
   const rootEnvDevPath = path.resolve(projectRoot, `.env.${nodeEnv}`);
-  
+
   // Load .env files - dotenv.config() will merge variables, later loads override earlier ones
   // .env dosyalarını yükle - dotenv.config() değişkenleri birleştirir, sonraki yüklemeler öncekileri geçersiz kılar
   if (existsSync(rootEnvPath)) {
@@ -38,7 +40,7 @@ if (!process.env.SKIP_DOTENV) {
   if (existsSync(rootEnvDevPath)) {
     dotenv.config({ path: rootEnvDevPath });
   }
-  
+
   // Also try loading from current working directory as fallback
   // Ayrıca geri dönüş olarak mevcut çalışma dizininden de yüklemeyi dene
   dotenv.config();
@@ -47,9 +49,7 @@ if (!process.env.SKIP_DOTENV) {
 
 const baseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  LOG_LEVEL: z
-    .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
-    .default('info'),
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 
   // API
   API_HOST: z.string().default('0.0.0.0'),
@@ -75,10 +75,7 @@ const baseSchema = z.object({
       }
       return parsed;
     }),
-  NEXT_PUBLIC_API_BASE_URL: z
-    .string()
-    .url()
-    .default('http://localhost:4000'),
+  NEXT_PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:4000'),
 
   CORS_ALLOWED_ORIGINS: z.string().default(''),
 

@@ -55,12 +55,14 @@ pnpm --filter @ai-chat/db create-superadmin
 ```
 
 The CLI tool will:
+
 1. Prompt for email address (validates format and uniqueness)
 2. Prompt for name (optional, defaults to "Superadmin User")
 3. Prompt for password (minimum 8 characters, with confirmation)
 4. Optionally add the user to an existing organization
 
 **Features:**
+
 - Validates email format
 - Checks for existing users (offers to upgrade existing users to superadmin)
 - Validates password strength
@@ -70,6 +72,7 @@ The CLI tool will:
 ### Upgrading Existing Users
 
 If you run the CLI tool with an email that already exists:
+
 - If the user is already a superadmin, it will inform you
 - If the user is not a superadmin, it will offer to upgrade them
 
@@ -133,6 +136,7 @@ Superadmin users have the following capabilities:
 ### 4. Audit Logging
 
 All superadmin actions are logged in the audit system. Regularly review:
+
 - Login attempts
 - Permission changes
 - Organization modifications
@@ -186,6 +190,7 @@ The response includes the `isSuperadmin` flag:
 ### Cannot Login as Superadmin
 
 1. **Verify User Exists**: Check the database to confirm the user exists and `isSuperadmin` is `true`:
+
    ```sql
    SELECT id, email, "isSuperadmin" FROM "User" WHERE email = 'admin@example.com';
    ```
@@ -197,6 +202,7 @@ The response includes the `isSuperadmin` flag:
 ### User Not Recognized as Superadmin
 
 1. **Check Database**: Verify `isSuperadmin` flag is set to `true`:
+
    ```sql
    UPDATE "User" SET "isSuperadmin" = true WHERE email = 'admin@example.com';
    ```
@@ -206,6 +212,7 @@ The response includes the `isSuperadmin` flag:
 ### CLI Tool Not Working
 
 1. **Check Dependencies**: Ensure all dependencies are installed:
+
    ```bash
    cd packages/db
    npm install
@@ -226,4 +233,3 @@ The response includes the `isSuperadmin` flag:
 ## Support
 
 For issues or questions regarding superadmin access, please contact your system administrator or refer to the main project documentation.
-

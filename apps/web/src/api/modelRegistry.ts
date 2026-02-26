@@ -22,12 +22,12 @@ export interface ModelRegistryEntryDto {
 
 export async function fetchOrgModels(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ models: ModelRegistryEntryDto[] }> {
   return apiRequest<{ models: ModelRegistryEntryDto[] }>(
     `/orgs/${orgId}/models`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
@@ -47,14 +47,14 @@ export async function upsertOrgModel(
     inputPriceMicros?: number;
     outputPriceMicros?: number;
     metadata?: Record<string, any>;
-  }
+  },
 ): Promise<{ model: ModelRegistryEntryDto }> {
   return apiRequest<{ model: ModelRegistryEntryDto }>(
     `/orgs/${orgId}/models`,
     {
       method: 'PUT',
-      body: JSON.stringify(model)
+      body: JSON.stringify(model),
     },
-    token
+    token,
   );
 }

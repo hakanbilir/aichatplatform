@@ -18,13 +18,10 @@ const playgroundSchema = z.object({
   systemPrompt: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
-  maxTokens: z.number().int().min(1).max(32768).nullable().optional()
+  maxTokens: z.number().int().min(1).max(32768).nullable().optional(),
 });
 
-export default async function playgroundRoutes(
-  app: FastifyInstance,
-  _opts: FastifyPluginOptions
-) {
+export default async function playgroundRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   app.post(
     '/orgs/:orgId/playground/complete',
     { preHandler: [app.authenticate] },
@@ -35,7 +32,7 @@ export default async function playgroundRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:chat:write'
+        'org:chat:write',
       );
 
       const parsed = playgroundSchema.safeParse(req.body);
@@ -54,7 +51,7 @@ export default async function playgroundRoutes(
 
       if (d.chatProfileId) {
         const profile = await prisma.chatProfile.findFirst({
-          where: { id: d.chatProfileId, orgId }
+          where: { id: d.chatProfileId, orgId },
         });
         if (!profile) {
           return reply.code(404).send({ error: 'CHAT_PROFILE_NOT_FOUND' });
@@ -82,16 +79,16 @@ export default async function playgroundRoutes(
           modelName,
           temperature,
           topP,
-          maxTokens
-        }
+          maxTokens,
+        },
       });
 
       const userMessage = await prisma.playgroundMessage.create({
         data: {
           sessionId: session.id,
           role: 'user',
-          content: d.prompt
-        }
+          content: d.prompt,
+        },
       });
 
       // Construct messages
@@ -115,8 +112,8 @@ export default async function playgroundRoutes(
           orgId,
           chatProfileId: d.chatProfileId ?? undefined,
           conversationId: undefined,
-          messageId: userMessage.id
-        }
+          messageId: userMessage.id,
+        },
       });
 
       const latency = Date.now() - startedAt;
@@ -125,8 +122,8 @@ export default async function playgroundRoutes(
         data: {
           sessionId: session.id,
           role: 'assistant',
-          content: completion.content
-        }
+          content: completion.content,
+        },
       });
 
       // Record usage for analytics (45.md)
@@ -138,7 +135,7 @@ export default async function playgroundRoutes(
         modelName,
         feature: 'playground',
         inputTokens: completion.usage?.promptTokens ?? 0,
-        outputTokens: completion.usage?.completionTokens ?? 0
+        outputTokens: completion.usage?.completionTokens ?? 0,
       }).catch((err) => {
         console.error('Failed to record playground usage:', err);
       });
@@ -148,8 +145,8 @@ export default async function playgroundRoutes(
       return reply.send({
         sessionId: session.id,
         output: completion.content,
-        latencyMs: latency
+        latencyMs: latency,
       });
-    }
+    },
   );
 }

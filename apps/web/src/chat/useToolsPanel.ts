@@ -21,7 +21,11 @@ export interface ToolRunRecord {
   createdAt: Date;
 }
 
-export function useToolsPanel(conversationId: string | null, orgId: string | null, enabled: boolean = true) {
+export function useToolsPanel(
+  conversationId: string | null,
+  orgId: string | null,
+  enabled: boolean = true,
+) {
   const { token } = useAuth();
 
   const [tools, setTools] = useState<ToolDescription[]>([]);
@@ -90,7 +94,7 @@ export function useToolsPanel(conversationId: string | null, orgId: string | nul
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         tool: res.tool,
         argsJson: argsJson || '{}',
-        resultJson: JSON.stringify(res.ok ? res.result ?? {} : { error: res.error }, null, 2),
+        resultJson: JSON.stringify(res.ok ? (res.result ?? {}) : { error: res.error }, null, 2),
         ok: res.ok,
         error: res.error,
         createdAt: new Date(),
@@ -116,6 +120,6 @@ export function useToolsPanel(conversationId: string | null, orgId: string | nul
     executing,
     executeError,
     runTool,
-    refetchTools: loadTools
+    refetchTools: loadTools,
   };
 }

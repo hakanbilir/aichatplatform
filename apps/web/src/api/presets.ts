@@ -33,12 +33,12 @@ export interface ConversationPreset {
 
 export async function fetchConversationPresets(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<ConversationPreset[]> {
   const res = await apiRequest<{ presets: ConversationPreset[] }>(
     `/orgs/${orgId}/presets`,
     { method: 'GET' },
-    token
+    token,
   );
   return res.presets;
 }
@@ -58,18 +58,18 @@ export interface CreateConversationPresetInput {
 export async function createConversationPresetApi(
   token: string,
   orgId: string,
-  input: CreateConversationPresetInput
+  input: CreateConversationPresetInput,
 ): Promise<ConversationPreset> {
   const res = await apiRequest<{ preset: ConversationPreset }>(
     `/orgs/${orgId}/presets`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
   return res.preset;
 }
@@ -78,30 +78,29 @@ export async function updateConversationPresetApi(
   token: string,
   orgId: string,
   presetId: string,
-  data: Partial<CreateConversationPresetInput>
+  data: Partial<CreateConversationPresetInput>,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/presets/${presetId}`,
     {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     },
-    token
+    token,
   );
 }
 
 export async function deleteConversationPresetApi(
   token: string,
   orgId: string,
-  presetId: string
+  presetId: string,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/presets/${presetId}`,
     { method: 'DELETE' },
-    token
+    token,
   );
 }
-

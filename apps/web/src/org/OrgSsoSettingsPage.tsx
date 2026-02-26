@@ -12,7 +12,7 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
@@ -43,7 +43,7 @@ export const OrgSsoSettingsPage: React.FC = () => {
       setConnections(res.connections);
     } catch (err) {
       console.error(err);
-      setError("Failed to load SSO connections.");
+      setError('Failed to load SSO connections.');
     }
   };
 
@@ -61,14 +61,14 @@ export const OrgSsoSettingsPage: React.FC = () => {
       await createSsoConnection(token, orgId, {
         type: newType,
         name: newName,
-        config: {}
+        config: {},
       });
       setDialogOpen(false);
       setNewName('');
       await load();
     } catch (err) {
       console.error(err);
-      setError("Failed to create SSO connection.");
+      setError('Failed to create SSO connection.');
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export const OrgSsoSettingsPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -127,7 +127,7 @@ export const OrgSsoSettingsPage: React.FC = () => {
                 borderColor: c.isEnabled ? 'success.main' : 'divider',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
               <Box>
@@ -165,7 +165,9 @@ export const OrgSsoSettingsPage: React.FC = () => {
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
           <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
             Create
           </Button>

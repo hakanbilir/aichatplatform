@@ -12,7 +12,7 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
@@ -23,7 +23,7 @@ import {
   fetchExperiments,
   createExperiment,
   runExperiment,
-  ExperimentDto
+  ExperimentDto,
 } from '../api/experiments';
 
 export const ExperimentsPage: React.FC = () => {
@@ -48,7 +48,7 @@ export const ExperimentsPage: React.FC = () => {
       setExperiments(res.experiments);
     } catch (err) {
       console.error(err);
-      setError("Failed to load experiments.");
+      setError('Failed to load experiments.');
     }
   };
 
@@ -70,7 +70,7 @@ export const ExperimentsPage: React.FC = () => {
       await load();
     } catch (err) {
       console.error(err);
-      setError("Failed to create experiment.");
+      setError('Failed to create experiment.');
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export const ExperimentsPage: React.FC = () => {
       await load();
     } catch (err) {
       console.error(err);
-      setError("Failed to run experiment.");
+      setError('Failed to run experiment.');
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export const ExperimentsPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -147,7 +147,7 @@ export const ExperimentsPage: React.FC = () => {
                 borderColor: 'divider',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
               <Box>
@@ -191,7 +191,9 @@ export const ExperimentsPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
           <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
             Create
           </Button>

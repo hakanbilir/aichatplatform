@@ -29,4 +29,3 @@ export function chunkText(text: string, options: ChunkOptions = {}): string[] {
 
   return chunks;
 }
-

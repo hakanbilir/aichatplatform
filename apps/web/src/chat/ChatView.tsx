@@ -8,7 +8,15 @@ import { StreamStore } from './StreamStore';
 import { StreamedMessage } from './StreamedMessage';
 
 interface ChatViewProps {
-  messages: Array<{ id: string; role: string; content: string; images?: string[]; meta?: unknown; thinkingText?: string; isThinking?: boolean }>;
+  messages: Array<{
+    id: string;
+    role: string;
+    content: string;
+    images?: string[];
+    meta?: unknown;
+    thinkingText?: string;
+    isThinking?: boolean;
+  }>;
   streamingAssistantText: string;
   toolStatus?: string | null;
   thinkingText?: string;
@@ -18,13 +26,23 @@ interface ChatViewProps {
 }
 
 // Optimized component to prevent re-rendering the entire list during streaming
-const MessageList = React.memo(function MessageList({ messages }: { messages: ChatViewProps['messages'] }) {
+const MessageList = React.memo(function MessageList({
+  messages,
+}: {
+  messages: ChatViewProps['messages'];
+}) {
   return (
     <>
       {messages.map((m) => (
         <MessageBubble
           key={m.id}
-          role={m.role === 'USER' || m.role === 'user' ? 'user' : (m.role === 'TOOL' || m.role === 'tool' ? 'tool' : 'assistant')}
+          role={
+            m.role === 'USER' || m.role === 'user'
+              ? 'user'
+              : m.role === 'TOOL' || m.role === 'tool'
+                ? 'tool'
+                : 'assistant'
+          }
           content={m.content}
           images={m.images}
           meta={m.meta}
@@ -43,7 +61,7 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({
   thinkingText,
   isThinking,
   streamStore,
-  isStreaming
+  isStreaming,
 }) => {
   const hasStreaming = isStreaming || isThinking || !!streamingAssistantText;
   const isEmpty = messages.length === 0 && !hasStreaming;
@@ -55,8 +73,8 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({
   return (
     <Box flex={1} overflow="auto" px={3} py={2}>
       <MessageList messages={messages} />
-      {hasStreaming && (
-        streamStore ? (
+      {hasStreaming &&
+        (streamStore ? (
           <StreamedMessage
             key="streaming"
             // eslint-disable-next-line jsx-a11y/aria-role
@@ -73,13 +91,12 @@ const ChatViewComponent: React.FC<ChatViewProps> = ({
             thinkingText={thinkingText}
             isThinking={isThinking}
           />
-        )
-      )}
+        ))}
       {toolStatus && (
         <Box display="flex" justifyContent="flex-start" mb={2} pl={2}>
-           <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-             {toolStatus}
-           </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+            {toolStatus}
+          </Typography>
         </Box>
       )}
     </Box>

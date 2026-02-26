@@ -27,13 +27,15 @@ const ThinkingBubbleComponent = ({ text, isThinking }: ThinkingBubbleProps) => {
   };
 
   return (
-    <GlassPanel sx={{
-      mb: 1,
-      overflow: 'hidden',
-      maxWidth: '100%',
-      alignSelf: 'flex-start',
-      borderRadius: 2
-    }}>
+    <GlassPanel
+      sx={{
+        mb: 1,
+        overflow: 'hidden',
+        maxWidth: '100%',
+        alignSelf: 'flex-start',
+        borderRadius: 2,
+      }}
+    >
       <Box
         role="button"
         tabIndex={0}
@@ -52,9 +54,9 @@ const ThinkingBubbleComponent = ({ text, isThinking }: ThinkingBubbleProps) => {
           '&:focus-visible': {
             outline: '2px solid',
             outlineColor: 'primary.main',
-            outlineOffset: '-2px'
+            outlineOffset: '-2px',
           },
-          transition: 'background-color 0.2s'
+          transition: 'background-color 0.2s',
         }}
       >
         <Psychology
@@ -67,20 +69,43 @@ const ThinkingBubbleComponent = ({ text, isThinking }: ThinkingBubbleProps) => {
               '0%': { opacity: 0.6 },
               '50%': { opacity: 1 },
               '100%': { opacity: 0.6 },
-            }
+            },
           }}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1, fontWeight: 600, letterSpacing: 0.5 }}>
-          {isThinking ? t('thinking.thinking', 'THINKING...') : t('thinking.process', 'THOUGHT PROCESS')}
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ flexGrow: 1, fontWeight: 600, letterSpacing: 0.5 }}
+        >
+          {isThinking
+            ? t('thinking.thinking', 'THINKING...')
+            : t('thinking.process', 'THOUGHT PROCESS')}
         </Typography>
-        {expanded ? <ExpandLess fontSize="small" color="action" /> : <ExpandMore fontSize="small" color="action" />}
+        {expanded ? (
+          <ExpandLess fontSize="small" color="action" />
+        ) : (
+          <ExpandMore fontSize="small" color="action" />
+        )}
       </Box>
       <Collapse in={expanded}>
         <Box
           id="thought-content"
-          sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', borderTop: '1px solid', borderColor: 'rgba(255, 255, 255, 0.1)' }}
+          sx={{
+            p: 2,
+            bgcolor: 'rgba(0, 0, 0, 0.2)',
+            borderTop: '1px solid',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          }}
         >
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.8rem', color: 'text.secondary' }}>
+          <Typography
+            variant="body2"
+            sx={{
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'monospace',
+              fontSize: '0.8rem',
+              color: 'text.secondary',
+            }}
+          >
             {text}
           </Typography>
         </Box>

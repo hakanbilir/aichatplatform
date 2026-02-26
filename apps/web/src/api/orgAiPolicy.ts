@@ -19,14 +19,11 @@ export interface OrgAiPolicy {
   config: OrgAiPolicyConfig;
 }
 
-export async function fetchOrgAiPolicy(
-  token: string,
-  orgId: string
-): Promise<OrgAiPolicy | null> {
+export async function fetchOrgAiPolicy(token: string, orgId: string): Promise<OrgAiPolicy | null> {
   const res = await apiRequest<{ policy: OrgAiPolicy | null }>(
     `/orgs/${orgId}/ai-policy`,
     { method: 'GET' },
-    token
+    token,
   );
   return res.policy;
 }
@@ -39,19 +36,18 @@ export async function saveOrgAiPolicy(
     description?: string;
     systemPrompt: string;
     config?: OrgAiPolicyConfig;
-  }
+  },
 ): Promise<OrgAiPolicy> {
   const res = await apiRequest<{ policy: OrgAiPolicy }>(
     `/orgs/${orgId}/ai-policy`,
     {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     },
-    token
+    token,
   );
   return res.policy;
 }
-

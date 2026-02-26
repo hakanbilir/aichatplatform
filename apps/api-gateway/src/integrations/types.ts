@@ -13,4 +13,3 @@ export interface IntegrationProviderDefinition {
   // Whether this provider supports external tools (HTTP-backed tools)
   supportsExternalTools: boolean;
 }
-

@@ -21,9 +21,9 @@ export async function writeAuditLog(params: {
         metadata: {
           ...(params.metadata || {}),
           ...(params.ipAddress ? { ipAddress: params.ipAddress } : {}),
-          ...(params.userAgent ? { userAgent: params.userAgent } : {})
-        }
-      }
+          ...(params.userAgent ? { userAgent: params.userAgent } : {}),
+        },
+      },
     });
   } catch (err) {
     // Don't fail the request if audit logging fails
@@ -31,8 +31,3 @@ export async function writeAuditLog(params: {
     console.error('Failed to write audit log:', err);
   }
 }
-
-
-
-
-

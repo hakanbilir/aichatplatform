@@ -5,7 +5,7 @@ import { prisma } from '@ai-chat/db';
 export async function listSpaces(orgId: string) {
   return prisma.knowledgeSpace.findMany({
     where: { orgId },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { createdAt: 'asc' },
   });
 }
 
@@ -20,10 +20,9 @@ export async function createSpace(orgId: string, name: string): Promise<{ id: st
     data: {
       orgId,
       name,
-      slug
-    }
+      slug,
+    },
   });
 
   return { id: space.id };
 }
-

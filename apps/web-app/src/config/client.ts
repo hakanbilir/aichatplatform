@@ -10,4 +10,3 @@ export function loadClientConfig(): ClientConfig {
     apiBaseUrl,
   };
 }
-

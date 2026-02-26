@@ -36,7 +36,7 @@ export function useOrgAnalytics(orgId: string | null, initialWindowDays = 30) {
           (err) => {
             if (isMounted) setError(err.message || 'Failed to stream analytics');
           },
-          controller.signal
+          controller.signal,
         );
       } catch (err) {
         if (isMounted) {
@@ -62,11 +62,6 @@ export function useOrgAnalytics(orgId: string | null, initialWindowDays = 30) {
     loading,
     error,
     windowDays,
-    setWindowDays
+    setWindowDays,
   };
 }
-
-
-
-
-

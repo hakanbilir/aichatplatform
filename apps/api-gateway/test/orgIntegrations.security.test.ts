@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock } from 'bun:test';
 import fastify from 'fastify';
 
@@ -7,39 +6,43 @@ mock.module('@ai-chat/db', () => {
   return {
     prisma: {
       orgIntegration: {
-        findMany: mock(() => Promise.resolve([
-          {
-            id: 'int_1',
-            orgId: 'org_1',
-            providerId: 'prov_1',
-            name: 'Test Integration',
-            isEnabled: true,
-            credentials: { apiKey: 'sensitive_secret_value' },
-            config: {},
+        findMany: mock(() =>
+          Promise.resolve([
+            {
+              id: 'int_1',
+              orgId: 'org_1',
+              providerId: 'prov_1',
+              name: 'Test Integration',
+              isEnabled: true,
+              credentials: { apiKey: 'sensitive_secret_value' },
+              config: {},
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              provider: {
+                id: 'prov_1',
+                key: 'generic-webhook',
+                name: 'Webhook',
+                description: 'Generic webhook',
+              },
+            },
+          ]),
+        ),
+        create: mock((args: any) =>
+          Promise.resolve({
+            id: 'int_2',
+            ...args.data,
             createdAt: new Date(),
             updatedAt: new Date(),
-            provider: {
-              id: 'prov_1',
-              key: 'generic-webhook',
-              name: 'Webhook',
-              description: 'Generic webhook'
-            }
-          }
-        ])),
-        create: mock((args: any) => Promise.resolve({
-          id: 'int_2',
-          ...args.data,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })),
+          }),
+        ),
         updateMany: mock(() => Promise.resolve({ count: 1 })),
         deleteMany: mock(() => Promise.resolve({ count: 1 })),
       },
       integrationProvider: {
         upsert: mock(() => Promise.resolve({ id: 'prov_1', key: 'generic-webhook' })),
-        findFirst: mock(() => Promise.resolve({ id: 'prov_1', key: 'generic-webhook' }))
-      }
-    }
+        findFirst: mock(() => Promise.resolve({ id: 'prov_1', key: 'generic-webhook' })),
+      },
+    },
   };
 });
 
@@ -56,8 +59,8 @@ mock.module('../src/integrations/registry', () => {
     getIntegrationProvider: mock(() => ({
       key: 'generic-webhook',
       name: 'Webhook',
-      description: 'Generic webhook'
-    }))
+      description: 'Generic webhook',
+    })),
   };
 });
 
@@ -74,16 +77,16 @@ describe('Org Integrations Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgIntegrationsRoutes);
 
     const response = await app.inject({
       method: 'GET',
-      url: '/orgs/org_1/integrations'
+      url: '/orgs/org_1/integrations',
     });
 
     expect(response.statusCode).toBe(200);
@@ -105,9 +108,9 @@ describe('Org Integrations Security', () => {
     });
 
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgIntegrationsRoutes);
@@ -116,10 +119,10 @@ describe('Org Integrations Security', () => {
       method: 'POST',
       url: '/orgs/org_1/integrations',
       payload: {
-          providerKey: 'generic-webhook',
-          name: 'New Integration',
-          credentials: { secretKey: 'very_secret' }
-      }
+        providerKey: 'generic-webhook',
+        name: 'New Integration',
+        credentials: { secretKey: 'very_secret' },
+      },
     });
 
     expect(response.statusCode).toBe(201);

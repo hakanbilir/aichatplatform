@@ -11,7 +11,7 @@ import {
   Alert,
   Dialog,
   DialogContent,
-  IconButton
+  IconButton,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -24,7 +24,7 @@ import {
   fetchOrgSubscription,
   requestPlanChange,
   BillingPlanDto,
-  OrgSubscriptionDto
+  OrgSubscriptionDto,
 } from '../api/billing';
 
 export const OrgBillingPage: React.FC = () => {
@@ -46,7 +46,7 @@ export const OrgBillingPage: React.FC = () => {
     try {
       const [p, s] = await Promise.all([
         fetchBillingPlans(token),
-        fetchOrgSubscription(token, orgId)
+        fetchOrgSubscription(token, orgId),
       ]);
       setPlans(p.plans);
       setSubscription(s.subscription);
@@ -68,7 +68,7 @@ export const OrgBillingPage: React.FC = () => {
         try {
           (window as any).iFrameResize({}, '#paytriframe');
         } catch (e) {
-          console.error("Failed to init iframe resizer", e);
+          console.error('Failed to init iframe resizer', e);
         }
       }, 500);
     }
@@ -105,7 +105,7 @@ export const OrgBillingPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" gap={1}>
@@ -156,7 +156,7 @@ export const OrgBillingPage: React.FC = () => {
                   borderColor: subscription?.planId === p.id ? 'primary.main' : 'divider',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
                 }}
               >
                 <Box>
@@ -175,7 +175,9 @@ export const OrgBillingPage: React.FC = () => {
                   disabled={subscription?.planId === p.id}
                   onClick={() => void handleChangePlan(p.id)}
                 >
-                  {subscription?.planId === p.id ? t('billing.currentPlan') : t('billing.selectPlan')}
+                  {subscription?.planId === p.id
+                    ? t('billing.currentPlan')
+                    : t('billing.selectPlan')}
                 </Button>
               </Box>
             ))}
@@ -189,7 +191,7 @@ export const OrgBillingPage: React.FC = () => {
         maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: { minHeight: 600 }
+          sx: { minHeight: 600 },
         }}
       >
         <Box display="flex" justifyContent="flex-end" p={1}>

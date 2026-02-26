@@ -19,7 +19,7 @@ import {
   Select,
   Switch,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddIcon from '@mui/icons-material/Add';
@@ -30,7 +30,7 @@ import {
   ChatProfileDto,
   fetchChatProfiles,
   createChatProfile,
-  deleteChatProfile
+  deleteChatProfile,
 } from '../api/chatProfiles';
 import { fetchPromptTemplates, PromptTemplate } from '../api/prompts';
 
@@ -61,13 +61,13 @@ export const ChatProfilesPage: React.FC = () => {
     try {
       const [p, t] = await Promise.all([
         fetchChatProfiles(token, orgId),
-        fetchPromptTemplates(token, orgId)
+        fetchPromptTemplates(token, orgId),
       ]);
       setProfiles(p.profiles);
       setTemplates(t);
     } catch (err) {
       console.error(err);
-      setError("Failed to load profiles.");
+      setError('Failed to load profiles.');
     }
   };
 
@@ -89,7 +89,7 @@ export const ChatProfilesPage: React.FC = () => {
         modelName,
         isShared,
         isDefault,
-        systemTemplateId: systemTemplateId || null
+        systemTemplateId: systemTemplateId || null,
       });
 
       setDialogOpen(false);
@@ -100,7 +100,7 @@ export const ChatProfilesPage: React.FC = () => {
       await load();
     } catch (err) {
       console.error(err);
-      setError("Failed to create chat profile.");
+      setError('Failed to create chat profile.');
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ export const ChatProfilesPage: React.FC = () => {
       await load();
     } catch (err) {
       console.error(err);
-      setError("Failed to delete profile.");
+      setError('Failed to delete profile.');
     }
   };
 
@@ -136,7 +136,7 @@ export const ChatProfilesPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -180,7 +180,7 @@ export const ChatProfilesPage: React.FC = () => {
                 borderColor: p.isDefault ? 'primary.main' : 'divider',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 0.5
+                gap: 0.5,
               }}
             >
               <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -273,20 +273,33 @@ export const ChatProfilesPage: React.FC = () => {
 
           <FormControlLabel
             control={
-              <Switch checked={isShared} onChange={(e) => setIsShared(e.target.checked)} disabled={loading} />
+              <Switch
+                checked={isShared}
+                onChange={(e) => setIsShared(e.target.checked)}
+                disabled={loading}
+              />
             }
             label="Shared with org"
           />
           <FormControlLabel
             control={
-              <Switch checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} disabled={loading} />
+              <Switch
+                checked={isDefault}
+                onChange={(e) => setIsDefault(e.target.checked)}
+                disabled={loading}
+              />
             }
             label="Use as default profile for new conversations"
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={!name.trim() || !modelProvider || !modelName || loading}>
+          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreate}
+            disabled={!name.trim() || !modelProvider || !modelName || loading}
+          >
             Create
           </Button>
         </DialogActions>

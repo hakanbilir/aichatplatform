@@ -29,18 +29,18 @@ export async function createShareLink(
   token: string,
   orgId: string,
   conversationId: string,
-  input: CreateShareLinkInput
+  input: CreateShareLinkInput,
 ): Promise<ShareLink> {
   return apiRequest<ShareLink>(
     `/orgs/${orgId}/conversations/${conversationId}/share`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
@@ -48,30 +48,30 @@ export async function updateShareLink(
   token: string,
   orgId: string,
   shareId: string,
-  input: UpdateShareLinkInput
+  input: UpdateShareLinkInput,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/share-links/${shareId}`,
     {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
 export async function deleteShareLink(
   token: string,
   orgId: string,
-  shareId: string
+  shareId: string,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/share-links/${shareId}`,
     { method: 'DELETE' },
-    token
+    token,
   );
 }
 
@@ -85,18 +85,17 @@ export interface PublicSharedConversation {
 
 export async function fetchPublicSharedConversation(
   slug: string,
-  passphrase?: string
+  passphrase?: string,
 ): Promise<PublicSharedConversation> {
   return apiRequest<PublicSharedConversation>(
     `/public/conversations/${slug}`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ passphrase })
+      body: JSON.stringify({ passphrase }),
     },
-    undefined // no auth token for public route
+    undefined, // no auth token for public route
   );
 }
-

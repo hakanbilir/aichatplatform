@@ -67,8 +67,11 @@
   transition: font-variation-settings 0.3s ease-out;
 }
 
-h1, h2 {
-  transition: font-variation-settings 0.3s ease, font-weight 0.3s ease;
+h1,
+h2 {
+  transition:
+    font-variation-settings 0.3s ease,
+    font-weight 0.3s ease;
 
   /* Make all headers react to scroll progress */
   --scroll-weight: calc(400 + (300 * var(--scroll-progress, 0)));
@@ -79,30 +82,32 @@ h1, h2 {
   font-variation-settings: 'wght' var(--target-weight);
 }
 
-h1.kinetic-typography, h2.kinetic-typography {
+h1.kinetic-typography,
+h2.kinetic-typography {
   /* No change needed, but kept for specificity if needed */
   font-variation-settings: 'wght' var(--target-weight);
 }
 
-h1:hover, h2:hover {
+h1:hover,
+h2:hover {
   font-variation-settings: 'wght' 700;
   font-weight: 700;
 }
 
 /* Eco Mode override */
-[data-eco-mode="true"] {
+[data-eco-mode='true'] {
   --glass-blur: 0px;
   --glass-saturation: 100%;
   --glass-bg: rgba(30, 30, 30, 0.95);
 }
 
-[data-eco-mode="true"] .kinetic-glass-panel {
+[data-eco-mode='true'] .kinetic-glass-panel {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-[data-eco-mode="true"] * {
+[data-eco-mode='true'] * {
   transition: none !important;
   animation: none !important;
 }

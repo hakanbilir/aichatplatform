@@ -20,12 +20,12 @@ const upsertModelSchema = z.object({
   maxOutputTokens: z.number().int().min(1).optional(),
   inputPriceMicros: z.number().int().min(0).optional(),
   outputPriceMicros: z.number().int().min(0).optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 });
 
 export default async function modelRegistryRoutes(
   app: FastifyInstance,
-  _opts: FastifyPluginOptions
+  _opts: FastifyPluginOptions,
 ) {
   // List models for org (merged global + org, computed enabled flag)
   app.get('/orgs/:orgId/models', { preHandler: [app.authenticate] }, async (req, reply) => {
@@ -35,12 +35,12 @@ export default async function modelRegistryRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:models:read'
+      'org:models:read',
     );
 
     const [globalEntries, orgEntries] = await Promise.all([
       prisma.modelRegistryEntry.findMany({ where: { orgId: null } }),
-      prisma.modelRegistryEntry.findMany({ where: { orgId } })
+      prisma.modelRegistryEntry.findMany({ where: { orgId } }),
     ]);
 
     const merged = new Map<string, any>();
@@ -62,7 +62,7 @@ export default async function modelRegistryRoutes(
         // Defaults if not specified
         contextWindow: 8192,
         maxOutputTokens: 4096,
-        scope: 'system'
+        scope: 'system',
       });
     }
 
@@ -93,7 +93,7 @@ export default async function modelRegistryRoutes(
       inputPriceMicros: e.inputPriceMicros,
       outputPriceMicros: e.outputPriceMicros,
       metadata: e.metadata,
-      scope: e.scope
+      scope: e.scope,
     }));
 
     return reply.send({ models });
@@ -107,7 +107,7 @@ export default async function modelRegistryRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:models:write'
+      'org:models:write',
     );
 
     const parsed = upsertModelSchema.safeParse(req.body);
@@ -120,7 +120,7 @@ export default async function modelRegistryRoutes(
     if (d.isDefault) {
       await prisma.modelRegistryEntry.updateMany({
         where: { orgId, provider: d.provider },
-        data: { isDefault: false }
+        data: { isDefault: false },
       });
     }
 
@@ -129,8 +129,8 @@ export default async function modelRegistryRoutes(
         org_provider_model_unique: {
           orgId,
           provider: d.provider,
-          modelName: d.modelName
-        }
+          modelName: d.modelName,
+        },
       },
       update: {
         displayName: d.displayName,
@@ -142,7 +142,7 @@ export default async function modelRegistryRoutes(
         maxOutputTokens: d.maxOutputTokens ?? undefined,
         inputPriceMicros: d.inputPriceMicros ?? undefined,
         outputPriceMicros: d.outputPriceMicros ?? undefined,
-        metadata: d.metadata ?? undefined
+        metadata: d.metadata ?? undefined,
       },
       create: {
         orgId,
@@ -157,8 +157,8 @@ export default async function modelRegistryRoutes(
         maxOutputTokens: d.maxOutputTokens,
         inputPriceMicros: d.inputPriceMicros,
         outputPriceMicros: d.outputPriceMicros,
-        metadata: d.metadata ?? {}
-      }
+        metadata: d.metadata ?? {},
+      },
     });
 
     // Optional: emitEvent('model_registry.upserted', ...)

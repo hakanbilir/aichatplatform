@@ -31,7 +31,7 @@ export const SignupPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     // Client-side validation / İstemci tarafı doğrulama
     if (!name.trim()) {
       setError(tValidation('nameRequired') || tValidation('required') || 'Name is required');
@@ -48,15 +48,15 @@ export const SignupPage: React.FC = () => {
       setLoading(false);
       return;
     }
-    
+
     try {
       // Convert empty orgName to undefined to match backend schema
       // Boş orgName'i undefined'a çevirerek backend şemasına uygun hale getir
-      const resp = await signup({ 
-        email: email.trim(), 
-        password, 
-        name: name.trim(), 
-        orgName: orgName.trim() || undefined 
+      const resp = await signup({
+        email: email.trim(),
+        password,
+        name: name.trim(),
+        orgName: orgName.trim() || undefined,
       });
       setAuthFromResponse(resp);
       navigate('/app');
@@ -64,7 +64,7 @@ export const SignupPage: React.FC = () => {
       // Extract error message from ApiError structure
       // ApiError yapısından hata mesajını çıkar
       let errorMessage = t('signup.signupFailed');
-      
+
       if (err?.message) {
         const message = err.message;
         // Check if message is a translation key (e.g., "errors.invalidSignupData")
@@ -84,24 +84,24 @@ export const SignupPage: React.FC = () => {
           errorMessage = error;
         }
       }
-      
+
       // If there are validation details, format them nicely
       // Doğrulama detayları varsa, güzel bir şekilde formatla
       if (err?.details) {
         const details = err.details as Record<string, any>;
         const fieldErrors: string[] = [];
-        
+
         Object.keys(details).forEach((field) => {
           if (details[field]?._errors) {
             fieldErrors.push(`${field}: ${details[field]._errors.join(', ')}`);
           }
         });
-        
+
         if (fieldErrors.length > 0) {
           errorMessage = `${errorMessage}\n${fieldErrors.join('\n')}`;
         }
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -166,16 +166,18 @@ export const SignupPage: React.FC = () => {
             onChange={(e) => setOrgName(e.target.value)}
           />
           {error && (
-            <Typography 
-              color="error" 
-              variant="body2" 
-              mt={1}
-              sx={{ whiteSpace: 'pre-line' }}
-            >
+            <Typography color="error" variant="body2" mt={1} sx={{ whiteSpace: 'pre-line' }}>
               {error}
             </Typography>
           )}
-          <SpecularButton type="submit" fullWidth variant="contained" sx={{ mt: 3 }} disabled={loading} data-ai-action="signup">
+          <SpecularButton
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3 }}
+            disabled={loading}
+            data-ai-action="signup"
+          >
             {loading ? t('signup.creating') : t('signup.signUp')}
           </SpecularButton>
         </Box>
@@ -191,4 +193,3 @@ export const SignupPage: React.FC = () => {
     </PublicBentoGrid>
   );
 };
-

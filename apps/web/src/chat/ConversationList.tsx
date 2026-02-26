@@ -62,91 +62,94 @@ const ConversationListComponent: React.FC = () => {
     }
   }, [conversationId]);
 
-  const load = useCallback(async (opts: { append: boolean; cursor?: string; search?: string }) => {
-    if (!token) return;
+  const load = useCallback(
+    async (opts: { append: boolean; cursor?: string; search?: string }) => {
+      if (!token) return;
 
-    if (opts.append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-      setError(null);
-    }
-
-    try {
-      let newItems: ConversationListItem[] = [];
-      let next: string | null = null;
-
-      if (orgId) {
-        // Org-scoped (paginated, searchable)
-        const res: ConversationListResponse = await listOrgConversations(token, orgId, {
-          search: opts.search ?? search,
-          limit: 30,
-          cursor: opts.cursor,
-        });
-        newItems = res.items;
-        next = res.nextCursor;
-
-        if (opts.append) {
-          setItems((prev) => [...prev, ...newItems]);
-        } else {
-          setItems(newItems);
-        }
+      if (opts.append) {
+        setLoadingMore(true);
       } else {
-        // Personal / Global (flat list, no search/pagination params in API definition yet)
-        // Optimization: Use cached items if available
-        let sourceItems = allPersonalItemsRef.current;
+        setLoading(true);
+        setError(null);
+      }
 
-        // If not cached, fetch from API
-        if (!sourceItems) {
+      try {
+        let newItems: ConversationListItem[] = [];
+        let next: string | null = null;
+
+        if (orgId) {
+          // Org-scoped (paginated, searchable)
+          const res: ConversationListResponse = await listOrgConversations(token, orgId, {
+            search: opts.search ?? search,
+            limit: 30,
+            cursor: opts.cursor,
+          });
+          newItems = res.items;
+          next = res.nextCursor;
+
+          if (opts.append) {
+            setItems((prev) => [...prev, ...newItems]);
+          } else {
+            setItems(newItems);
+          }
+        } else {
+          // Personal / Global (flat list, no search/pagination params in API definition yet)
+          // Optimization: Use cached items if available
+          let sourceItems = allPersonalItemsRef.current;
+
+          // If not cached, fetch from API
+          if (!sourceItems) {
             const res = await listConversations(token);
             sourceItems = res.conversations;
             allPersonalItemsRef.current = sourceItems;
-        }
+          }
 
-        let filteredItems = sourceItems || [];
+          let filteredItems = sourceItems || [];
 
-        // Client-side search for personal list
-        if (opts.search || search) {
+          // Client-side search for personal list
+          if (opts.search || search) {
             const q = (opts.search ?? search).toLowerCase();
-            filteredItems = filteredItems.filter(c => (c.title || '').toLowerCase().includes(q));
+            filteredItems = filteredItems.filter((c) => (c.title || '').toLowerCase().includes(q));
+          }
+
+          // Optimization: Client-side pagination for personal items to improve performance
+          // Separate pinned and unpinned items
+          const allPinned = filteredItems.filter((i) => i.pinned);
+          const allUnpinned = filteredItems.filter((i) => !i.pinned);
+
+          // Pagination for unpinned items
+          const LIMIT = 50;
+          const offset = opts.cursor ? parseInt(opts.cursor, 10) : 0;
+          const pageUnpinned = allUnpinned.slice(offset, offset + LIMIT);
+
+          const hasMore = offset + LIMIT < allUnpinned.length;
+          next = hasMore ? (offset + LIMIT).toString() : null;
+
+          if (opts.append) {
+            setItems((prev) => {
+              const newPageIds = new Set(pageUnpinned.map((i) => i.id));
+              const uniquePrev = prev.filter((i) => !newPageIds.has(i.id));
+              return [...uniquePrev, ...pageUnpinned];
+            });
+          } else {
+            // Initial load or search reset: pinned + first page of unpinned
+            setItems([...allPinned, ...pageUnpinned]);
+          }
         }
 
-        // Optimization: Client-side pagination for personal items to improve performance
-        // Separate pinned and unpinned items
-        const allPinned = filteredItems.filter((i) => i.pinned);
-        const allUnpinned = filteredItems.filter((i) => !i.pinned);
-
-        // Pagination for unpinned items
-        const LIMIT = 50;
-        const offset = opts.cursor ? parseInt(opts.cursor, 10) : 0;
-        const pageUnpinned = allUnpinned.slice(offset, offset + LIMIT);
-
-        const hasMore = offset + LIMIT < allUnpinned.length;
-        next = hasMore ? (offset + LIMIT).toString() : null;
-
+        setNextCursor(next);
+      } catch (err) {
+        setError((err as Error).message || 'Failed to load conversations');
+      } finally {
         if (opts.append) {
-          setItems((prev) => {
-            const newPageIds = new Set(pageUnpinned.map((i) => i.id));
-            const uniquePrev = prev.filter((i) => !newPageIds.has(i.id));
-            return [...uniquePrev, ...pageUnpinned];
-          });
+          setLoadingMore(false);
         } else {
-          // Initial load or search reset: pinned + first page of unpinned
-          setItems([...allPinned, ...pageUnpinned]);
+          setLoading(false);
         }
       }
-
-      setNextCursor(next);
-    } catch (err) {
-      setError((err as Error).message || 'Failed to load conversations');
-    } finally {
-      if (opts.append) {
-        setLoadingMore(false);
-      } else {
-        setLoading(false);
-      }
-    }
-  }, [token, orgId, search]); // search dependency for client-side filtering logic if needed
+    },
+    [token, orgId, search],
+  ); // search dependency for client-side filtering logic if needed
 
   const handleClearSearch = useCallback(() => {
     setSearch('');
@@ -155,7 +158,7 @@ const ConversationListComponent: React.FC = () => {
   // Debounced search effect
   useEffect(() => {
     const timeout = setTimeout(() => {
-        void load({ append: false });
+      void load({ append: false });
     }, 500);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,33 +175,33 @@ const ConversationListComponent: React.FC = () => {
 
     // Also listen for selection events from other components
     const handleSelectListener = (e: Event) => {
-        const id = (e as CustomEvent<string>).detail;
-        if (id) setSelectedId(id);
+      const id = (e as CustomEvent<string>).detail;
+      if (id) setSelectedId(id);
     };
 
     const handleCreate = async () => {
-         // Create new conversation
-         if (!token) return;
-         try {
-             let convo: ConversationListItem;
-             if (orgId) {
-                 convo = await createOrgConversation(token, orgId, { title: t('conversation.new') });
-                 navigate(`/app/orgs/${orgId}/chat/${convo.id}`);
-             } else {
-                 convo = await createConversation(token, { title: t('conversation.new') });
-                 navigate(`/app/chat/${convo.id}`);
-             }
-             // Optimistically prepend
-             setItems(prev => [convo, ...prev]);
-             if (!orgId) {
-               if (allPersonalItemsRef.current) {
-                 allPersonalItemsRef.current = [convo, ...allPersonalItemsRef.current];
-               }
-             }
-             setSelectedId(convo.id);
-         } catch (err) {
-             console.error(err);
-         }
+      // Create new conversation
+      if (!token) return;
+      try {
+        let convo: ConversationListItem;
+        if (orgId) {
+          convo = await createOrgConversation(token, orgId, { title: t('conversation.new') });
+          navigate(`/app/orgs/${orgId}/chat/${convo.id}`);
+        } else {
+          convo = await createConversation(token, { title: t('conversation.new') });
+          navigate(`/app/chat/${convo.id}`);
+        }
+        // Optimistically prepend
+        setItems((prev) => [convo, ...prev]);
+        if (!orgId) {
+          if (allPersonalItemsRef.current) {
+            allPersonalItemsRef.current = [convo, ...allPersonalItemsRef.current];
+          }
+        }
+        setSelectedId(convo.id);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
     window.addEventListener('conversation-created', handleCreated);
@@ -212,16 +215,19 @@ const ConversationListComponent: React.FC = () => {
     };
   }, [token, orgId, navigate, t, load]);
 
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId(id);
-    if (orgId) {
+  const handleSelect = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      if (orgId) {
         navigate(`/app/orgs/${orgId}/chat/${id}`);
-    } else {
+      } else {
         navigate(`/app/chat/${id}`);
-    }
-    // Dispatch global event for other components listening (e.g. mobile drawer)
-    window.dispatchEvent(new CustomEvent('select-conversation', { detail: id }));
-  }, [orgId, navigate]);
+      }
+      // Dispatch global event for other components listening (e.g. mobile drawer)
+      window.dispatchEvent(new CustomEvent('select-conversation', { detail: id }));
+    },
+    [orgId, navigate],
+  );
 
   const handleMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>, id: string) => {
     event.stopPropagation();
@@ -239,28 +245,32 @@ const ConversationListComponent: React.FC = () => {
     handleMenuClose();
   };
 
-  const handleSaveTitle = useCallback(async (id: string, title: string) => {
-    if (!token) return;
-    const trimmed = title.trim();
-    const newTitle = trimmed || t('sidebar.untitledChat');
+  const handleSaveTitle = useCallback(
+    async (id: string, title: string) => {
+      if (!token) return;
+      const trimmed = title.trim();
+      const newTitle = trimmed || t('sidebar.untitledChat');
 
-    try {
-      const response = await updateConversation(token, id, { title: newTitle });
-      const updated = response.conversation;
-      const updater = (c: ConversationListItem) => c.id === id ? { ...c, title: updated.title } : c;
+      try {
+        const response = await updateConversation(token, id, { title: newTitle });
+        const updated = response.conversation;
+        const updater = (c: ConversationListItem) =>
+          c.id === id ? { ...c, title: updated.title } : c;
 
-      setItems((prev) => prev.map(updater));
-      if (!orgId) {
-        if (allPersonalItemsRef.current) {
-          allPersonalItemsRef.current = allPersonalItemsRef.current.map(updater);
+        setItems((prev) => prev.map(updater));
+        if (!orgId) {
+          if (allPersonalItemsRef.current) {
+            allPersonalItemsRef.current = allPersonalItemsRef.current.map(updater);
+          }
         }
+      } catch (err) {
+        setError((err as Error).message || 'Failed to rename conversation');
+      } finally {
+        setEditingConversationId(null);
       }
-    } catch (err) {
-      setError((err as Error).message || 'Failed to rename conversation');
-    } finally {
-      setEditingConversationId(null);
-    }
-  }, [token, t, orgId]);
+    },
+    [token, t, orgId],
+  );
 
   const handleCancelEdit = useCallback(() => {
     setEditingConversationId(null);
@@ -271,14 +281,15 @@ const ConversationListComponent: React.FC = () => {
     try {
       const response = await updateConversation(token, item.id, { pinned: !item.pinned });
       const updated = response.conversation;
-      const updater = (c: ConversationListItem) => c.id === item.id
-        ? {
-            ...c,
-            pinned: updated.pinned ?? false,
-            archivedAt: updated.archivedAt ?? c.archivedAt,
-            lastActivityAt: updated.lastActivityAt ?? c.lastActivityAt,
-          }
-        : c;
+      const updater = (c: ConversationListItem) =>
+        c.id === item.id
+          ? {
+              ...c,
+              pinned: updated.pinned ?? false,
+              archivedAt: updated.archivedAt ?? c.archivedAt,
+              lastActivityAt: updated.lastActivityAt ?? c.lastActivityAt,
+            }
+          : c;
 
       setItems((prev) => prev.map(updater));
       if (!orgId) {
@@ -367,7 +378,10 @@ const ConversationListComponent: React.FC = () => {
               backgroundColor: 'rgba(255,255,255,0.05)',
               '& fieldset': { border: 'none' },
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.08)' },
-              '&.Mui-focused': { backgroundColor: 'rgba(255,255,255,0.1)', boxShadow: '0 0 0 1px rgba(255,255,255,0.2)' },
+              '&.Mui-focused': {
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                boxShadow: '0 0 0 1px rgba(255,255,255,0.2)',
+              },
             },
             '& .MuiInputBase-input': { color: 'white' },
           }}
@@ -376,9 +390,9 @@ const ConversationListComponent: React.FC = () => {
 
       {error && (
         <Box px={2} pb={1}>
-            <Typography variant="caption" color="error">
-                {error}
-            </Typography>
+          <Typography variant="caption" color="error">
+            {error}
+          </Typography>
         </Box>
       )}
 
@@ -388,16 +402,16 @@ const ConversationListComponent: React.FC = () => {
             <CircularProgress size={24} sx={{ color: 'rgba(255,255,255,0.3)' }} />
           </Box>
         ) : items.length === 0 ? (
-            <Box mt={2} px={1}>
-                <Typography variant="body2" color="rgba(255,255,255,0.5)">
-                {t('sidebar.noConversations')}
-                </Typography>
-            </Box>
+          <Box mt={2} px={1}>
+            <Typography variant="body2" color="rgba(255,255,255,0.5)">
+              {t('sidebar.noConversations')}
+            </Typography>
+          </Box>
         ) : (
           <List dense disablePadding>
             {pinned.length > 0 && (
               <>
-                 <Typography
+                <Typography
                   variant="caption"
                   sx={{
                     px: 1.5,
@@ -406,12 +420,12 @@ const ConversationListComponent: React.FC = () => {
                     textTransform: 'uppercase',
                     letterSpacing: 0.08,
                     opacity: 0.5,
-                    fontSize: '0.7rem'
+                    fontSize: '0.7rem',
                   }}
                 >
                   {t('sidebar.pinned')}
                 </Typography>
-                {pinned.map(item => (
+                {pinned.map((item) => (
                   <ConversationListItemView
                     key={item.id}
                     item={item}
@@ -428,24 +442,24 @@ const ConversationListComponent: React.FC = () => {
             )}
 
             {others.length > 0 && pinned.length > 0 && (
-                 <Typography
-                  variant="caption"
-                  sx={{
-                    px: 1.5,
-                    mb: 0.5,
-                    mt: 1,
-                    display: 'block',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.08,
-                    opacity: 0.5,
-                    fontSize: '0.7rem'
-                  }}
-                >
-                  {t('sidebar.recent')}
-                </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  px: 1.5,
+                  mb: 0.5,
+                  mt: 1,
+                  display: 'block',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.08,
+                  opacity: 0.5,
+                  fontSize: '0.7rem',
+                }}
+              >
+                {t('sidebar.recent')}
+              </Typography>
             )}
 
-            {others.map(item => (
+            {others.map((item) => (
               <ConversationListItemView
                 key={item.id}
                 item={item}
@@ -465,9 +479,12 @@ const ConversationListComponent: React.FC = () => {
                   onClick={() => load({ append: true, cursor: nextCursor })}
                   disabled={loadingMore}
                   sx={{
-                      color: 'rgba(255,255,255,0.6)',
-                      borderColor: 'rgba(255,255,255,0.2)',
-                      '&:hover': { borderColor: 'rgba(255,255,255,0.4)', bgcolor: 'rgba(255,255,255,0.05)' }
+                    color: 'rgba(255,255,255,0.6)',
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    '&:hover': {
+                      borderColor: 'rgba(255,255,255,0.4)',
+                      bgcolor: 'rgba(255,255,255,0.05)',
+                    },
                   }}
                   variant="outlined"
                 >
@@ -499,7 +516,9 @@ const ConversationListComponent: React.FC = () => {
           <MenuItem
             key="export"
             onClick={() => {
-              window.dispatchEvent(new CustomEvent('conversation-export', { detail: menuConversation.id }));
+              window.dispatchEvent(
+                new CustomEvent('conversation-export', { detail: menuConversation.id }),
+              );
               handleMenuClose();
             }}
           >
@@ -508,7 +527,9 @@ const ConversationListComponent: React.FC = () => {
           <MenuItem
             key="share"
             onClick={() => {
-              window.dispatchEvent(new CustomEvent('conversation-share', { detail: menuConversation.id }));
+              window.dispatchEvent(
+                new CustomEvent('conversation-share', { detail: menuConversation.id }),
+              );
               handleMenuClose();
             }}
           >

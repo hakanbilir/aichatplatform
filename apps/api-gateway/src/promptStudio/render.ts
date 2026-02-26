@@ -11,7 +11,7 @@ interface RenderContext {
 
 export async function renderSystemPromptFromProfile(
   chatProfileId: string,
-  ctx: RenderContext
+  ctx: RenderContext,
 ): Promise<string | null> {
   const profile = await prisma.chatProfile.findUnique({ where: { id: chatProfileId } });
   if (!profile || !profile.systemTemplateId || !profile.systemTemplateVersion) return null;
@@ -19,8 +19,8 @@ export async function renderSystemPromptFromProfile(
   const version = await prisma.promptTemplateVersion.findFirst({
     where: {
       templateId: profile.systemTemplateId,
-      version: profile.systemTemplateVersion
-    }
+      version: profile.systemTemplateVersion,
+    },
   });
 
   if (!version) return null;

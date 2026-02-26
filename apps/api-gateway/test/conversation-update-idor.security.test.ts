@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test';
 
 // Mock the db module
@@ -18,19 +17,21 @@ mock.module('@ai-chat/db', () => {
             id: 'conv_1',
             orgId: 'org_1',
             userId: 'user_owner', // Conversation Creator is NOT the attacker
-            title: 'Original Title'
+            title: 'Original Title',
           });
         }),
-        update: mock(() => Promise.resolve({
+        update: mock(() =>
+          Promise.resolve({
             id: 'conv_1',
             title: 'Hacked Title',
-            orgId: 'org_1'
-        })),
+            orgId: 'org_1',
+          }),
+        ),
       },
       chatProfile: {
-          findFirst: mock(() => Promise.resolve(null))
-      }
-    }
+        findFirst: mock(() => Promise.resolve(null)),
+      },
+    },
   };
 });
 
@@ -44,23 +45,22 @@ mock.module('../src/rbac/guards', () => {
 
 // Mock emitter
 mock.module('../src/events/emitter', () => {
-    return {
-        emitEvent: mock(() => Promise.resolve()),
-    };
+  return {
+    emitEvent: mock(() => Promise.resolve()),
+  };
 });
 // Mock llm service
 mock.module('../src/llm/modelRegistryService', () => {
-    return {
-        resolveModelForOrg: mock(() => Promise.resolve()),
-    };
+  return {
+    resolveModelForOrg: mock(() => Promise.resolve()),
+  };
 });
 // Mock prompt render
 mock.module('../src/promptStudio/render', () => {
-    return {
-        renderSystemPromptFromProfile: mock(() => Promise.resolve('')),
-    };
+  return {
+    renderSystemPromptFromProfile: mock(() => Promise.resolve('')),
+  };
 });
-
 
 import fastify from 'fastify';
 import conversationsRoutes from '../src/routes/conversations';
@@ -76,9 +76,9 @@ describe('Conversation Update IDOR Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(conversationsRoutes);
@@ -92,8 +92,8 @@ describe('Conversation Update IDOR Security', () => {
       method: 'PATCH',
       url: '/conversations/conv_1',
       payload: {
-          title: 'Hacked Title'
-      }
+        title: 'Hacked Title',
+      },
     });
 
     // Currently this returns 200 (VULNERABILITY), we want 403

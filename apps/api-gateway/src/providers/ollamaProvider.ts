@@ -20,9 +20,7 @@ const toOllamaContent = (content: ProviderMessage['content']): string => {
     return content;
   }
 
-  return content
-    .map((part) => (part.type === 'text' ? part.text : '[image]'))
-    .join('\n');
+  return content.map((part) => (part.type === 'text' ? part.text : '[image]')).join('\n');
 };
 
 interface OllamaChatRequestBody {
@@ -47,7 +45,10 @@ interface OllamaChatResponse {
 }
 
 export class OllamaProvider implements ModelProvider {
-  async chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult> {
+  async chat(
+    messages: ProviderMessage[],
+    options: ProviderChatOptions,
+  ): Promise<ProviderChatResult> {
     const baseUrl = getOllamaBaseUrl();
     const body: OllamaChatRequestBody = {
       model: options.model,
@@ -71,22 +72,29 @@ export class OllamaProvider implements ModelProvider {
 
     if (!response.ok) {
       const text = await response.text().catch(() => '');
-      throw new Error(`Ollama chat failed with status ${response.status}: ${text || response.statusText}`);
+      throw new Error(
+        `Ollama chat failed with status ${response.status}: ${text || response.statusText}`,
+      );
     }
 
     const json = (await response.json()) as OllamaChatResponse;
 
     return {
       content: json.message?.content ?? '',
-      usage: json.eval_count ? {
-        completionTokens: json.eval_count,
-        promptTokens: json.prompt_eval_count || 0,
-        totalTokens: (json.eval_count || 0) + (json.prompt_eval_count || 0)
-      } : undefined
+      usage: json.eval_count
+        ? {
+            completionTokens: json.eval_count,
+            promptTokens: json.prompt_eval_count || 0,
+            totalTokens: (json.eval_count || 0) + (json.prompt_eval_count || 0),
+          }
+        : undefined,
     };
   }
 
-  async *chatStream(messages: ProviderMessage[], options: ProviderChatOptions): AsyncGenerator<ChatStreamEvent, void, unknown> {
+  async *chatStream(
+    messages: ProviderMessage[],
+    options: ProviderChatOptions,
+  ): AsyncGenerator<ChatStreamEvent, void, unknown> {
     const baseUrl = getOllamaBaseUrl();
     const body: OllamaChatRequestBody = {
       model: options.model,
@@ -110,7 +118,9 @@ export class OllamaProvider implements ModelProvider {
 
     if (!response.ok) {
       const text = await response.text().catch(() => '');
-      throw new Error(`Ollama stream failed with status ${response.status}: ${text || response.statusText}`);
+      throw new Error(
+        `Ollama stream failed with status ${response.status}: ${text || response.statusText}`,
+      );
     }
 
     if (!response.body) {
@@ -148,32 +158,34 @@ export class OllamaProvider implements ModelProvider {
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
+          const trimmed = line.trim();
+          if (!trimmed) continue;
 
-            try {
-                const chunk = JSON.parse(trimmed) as OllamaChatResponse;
+          try {
+            const chunk = JSON.parse(trimmed) as OllamaChatResponse;
 
-                if (chunk.message?.content) {
-                    yield {
-                        type: 'token',
-                        token: chunk.message.content
-                    };
-                }
-
-                if (chunk.done) {
-                    yield {
-                        type: 'end',
-                        usage: chunk.eval_count ? {
-                             completionTokens: chunk.eval_count,
-                             promptTokens: chunk.prompt_eval_count || 0,
-                             totalTokens: (chunk.eval_count || 0) + (chunk.prompt_eval_count || 0)
-                        } : undefined
-                    };
-                }
-            } catch {
-                // Ignore parse errors for partial lines (though we try to handle that with buffer)
+            if (chunk.message?.content) {
+              yield {
+                type: 'token',
+                token: chunk.message.content,
+              };
             }
+
+            if (chunk.done) {
+              yield {
+                type: 'end',
+                usage: chunk.eval_count
+                  ? {
+                      completionTokens: chunk.eval_count,
+                      promptTokens: chunk.prompt_eval_count || 0,
+                      totalTokens: (chunk.eval_count || 0) + (chunk.prompt_eval_count || 0),
+                    }
+                  : undefined,
+              };
+            }
+          } catch {
+            // Ignore parse errors for partial lines (though we try to handle that with buffer)
+          }
         }
       }
     } catch (err) {

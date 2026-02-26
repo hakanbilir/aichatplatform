@@ -87,7 +87,9 @@ function mapMessagesToOllama(messages: ChatMessage[]): { role: string; content: 
   }));
 }
 
-function buildUsageFromChunk(chunk: OllamaChatResponse | OllamaChatStreamChunk): TokenUsage | undefined {
+function buildUsageFromChunk(
+  chunk: OllamaChatResponse | OllamaChatStreamChunk,
+): TokenUsage | undefined {
   if (chunk.eval_count == null || chunk.prompt_eval_count == null) {
     return undefined;
   }

@@ -46,4 +46,3 @@ export default async function healthRoutes(app: FastifyInstance, _opts: FastifyP
     return reply.send({ status: 'ok' });
   });
 }
-

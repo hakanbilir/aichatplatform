@@ -23,7 +23,10 @@ export interface OrgQuotaWindowUsage {
  * Bir org için yuvarlanan pencere içindeki toplam token kullanımını hesapla,
  * ASSISTANT mesajlarının `meta.usage`'ına (promptTokens + completionTokens) dayalı olarak.
  */
-export async function getOrgQuotaWindowUsage(orgId: string, windowDays: number = 30): Promise<OrgQuotaWindowUsage> {
+export async function getOrgQuotaWindowUsage(
+  orgId: string,
+  windowDays: number = 30,
+): Promise<OrgQuotaWindowUsage> {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
     select: {
@@ -67,7 +70,8 @@ export async function getOrgQuotaWindowUsage(orgId: string, windowDays: number =
     }
 
     const promptTokens = typeof usage.promptTokens === 'number' ? usage.promptTokens : 0;
-    const completionTokens = typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
+    const completionTokens =
+      typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
 
     usageTokens += promptTokens + completionTokens;
   }
@@ -98,4 +102,3 @@ export async function getOrgQuotaWindowUsage(orgId: string, windowDays: number =
     hardLimitExceeded,
   };
 }
-

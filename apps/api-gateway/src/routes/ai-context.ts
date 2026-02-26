@@ -14,7 +14,7 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true, name: true }
+      select: { id: true, email: true, name: true },
     });
 
     // Get recent conversations as a proxy for history/intent
@@ -22,14 +22,15 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
       where: { userId: payload.userId },
       take: 5,
       orderBy: { updatedAt: 'desc' },
-      select: { id: true, title: true, model: true, updatedAt: true, orgId: true }
+      select: { id: true, title: true, model: true, updatedAt: true, orgId: true },
     });
 
     // Derive intent from recent activity
     let primaryIntent = 'Starting a new task';
     if (recentConversations.length > 0) {
       const lastConv = recentConversations[0];
-      const hoursSinceLast = (Date.now() - new Date(lastConv.updatedAt).getTime()) / (1000 * 60 * 60);
+      const hoursSinceLast =
+        (Date.now() - new Date(lastConv.updatedAt).getTime()) / (1000 * 60 * 60);
 
       if (hoursSinceLast < 1) {
         primaryIntent = `Resuming active conversation: ${lastConv.title}`;
@@ -51,32 +52,36 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
           kinetic_ui: true,
           bento_grid: true,
           agentic_middleware: true,
-          eco_mode_available: true
+          eco_mode_available: true,
         },
         capabilities: [
           'markdown_rendering',
           'code_execution',
           'file_upload',
           'voice_input',
-          'image_generation'
-        ]
+          'image_generation',
+        ],
       },
       navigation_history: recentConversations.map((c: any) => ({
         type: 'conversation',
         id: c.id,
         title: c.title,
         last_active: c.updatedAt,
-        model: c.model
+        model: c.model,
       })),
       primary_intent: primaryIntent,
       suggested_actions: [
-        ...(recentConversations.length > 0 ? [{
-          label: 'Resume Chat',
-          action: 'resume',
-          target_id: recentConversations[0].id
-        }] : []),
-        { label: 'New Task', action: 'create_conversation' }
-      ]
+        ...(recentConversations.length > 0
+          ? [
+              {
+                label: 'Resume Chat',
+                action: 'resume',
+                target_id: recentConversations[0].id,
+              },
+            ]
+          : []),
+        { label: 'New Task', action: 'create_conversation' },
+      ],
     });
   });
 }

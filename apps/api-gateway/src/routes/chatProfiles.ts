@@ -23,14 +23,14 @@ const createProfileSchema = z.object({
   enableTools: z.boolean().optional(),
   enableRag: z.boolean().optional(),
   safetyLevel: z.string().optional(),
-  providerConfig: z.record(z.any()).optional()
+  providerConfig: z.record(z.any()).optional(),
 });
 
 const updateProfileSchema = createProfileSchema.partial();
 
 export default async function chatProfilesRoutes(
   app: FastifyInstance,
-  _opts: FastifyPluginOptions
+  _opts: FastifyPluginOptions,
 ) {
   // List profiles for org (optionally only shared)
   app.get('/orgs/:orgId/chat-profiles', { preHandler: [app.authenticate] }, async (req, reply) => {
@@ -40,37 +40,58 @@ export default async function chatProfilesRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:chat-profiles:read'
+      'org:chat-profiles:read',
     );
 
     const onlyShared = (req.query as any).onlyShared === 'true';
 
     const profiles = await prisma.chatProfile.findMany({
       where: { orgId, ...(onlyShared ? { isShared: true } : {}) },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     return reply.send({
-      profiles: profiles.map((p: { id: string; orgId: string; name: string; slug: string; description: string | null; isShared: boolean; isDefault: boolean; modelProvider: string; modelName: string; temperature: number | null; topP: number | null; maxTokens: number | null; systemTemplateId: string | null; systemTemplateVersion: number | null; enableTools: boolean; enableRag: boolean; safetyLevel: string | null; createdAt: Date }) => ({
-        id: p.id,
-        orgId: p.orgId,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        isShared: p.isShared,
-        isDefault: p.isDefault,
-        modelProvider: p.modelProvider,
-        modelName: p.modelName,
-        temperature: p.temperature,
-        topP: p.topP,
-        maxTokens: p.maxTokens,
-        systemTemplateId: p.systemTemplateId,
-        systemTemplateVersion: p.systemTemplateVersion,
-        enableTools: p.enableTools,
-        enableRag: p.enableRag,
-        safetyLevel: p.safetyLevel,
-        createdAt: p.createdAt.toISOString()
-      }))
+      profiles: profiles.map(
+        (p: {
+          id: string;
+          orgId: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          isShared: boolean;
+          isDefault: boolean;
+          modelProvider: string;
+          modelName: string;
+          temperature: number | null;
+          topP: number | null;
+          maxTokens: number | null;
+          systemTemplateId: string | null;
+          systemTemplateVersion: number | null;
+          enableTools: boolean;
+          enableRag: boolean;
+          safetyLevel: string | null;
+          createdAt: Date;
+        }) => ({
+          id: p.id,
+          orgId: p.orgId,
+          name: p.name,
+          slug: p.slug,
+          description: p.description,
+          isShared: p.isShared,
+          isDefault: p.isDefault,
+          modelProvider: p.modelProvider,
+          modelName: p.modelName,
+          temperature: p.temperature,
+          topP: p.topP,
+          maxTokens: p.maxTokens,
+          systemTemplateId: p.systemTemplateId,
+          systemTemplateVersion: p.systemTemplateVersion,
+          enableTools: p.enableTools,
+          enableRag: p.enableRag,
+          safetyLevel: p.safetyLevel,
+          createdAt: p.createdAt.toISOString(),
+        }),
+      ),
     });
   });
 
@@ -82,7 +103,7 @@ export default async function chatProfilesRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:chat-profiles:write'
+      'org:chat-profiles:write',
     );
 
     const parsed = createProfileSchema.safeParse(req.body);
@@ -112,7 +133,7 @@ export default async function chatProfilesRoutes(
       // unset previous defaults
       await prisma.chatProfile.updateMany({
         where: { orgId, isDefault: true },
-        data: { isDefault: false }
+        data: { isDefault: false },
       });
     }
 
@@ -135,8 +156,8 @@ export default async function chatProfilesRoutes(
         enableRag: data.enableRag ?? false,
         safetyLevel: data.safetyLevel ?? 'standard',
         providerConfig: data.providerConfig ?? {},
-        createdById: payload.userId
-      }
+        createdById: payload.userId,
+      },
     });
 
     // Optional: emitEvent('chat_profile.created', ...)
@@ -160,8 +181,8 @@ export default async function chatProfilesRoutes(
         enableTools: profile.enableTools,
         enableRag: profile.enableRag,
         safetyLevel: profile.safetyLevel,
-        createdAt: profile.createdAt.toISOString()
-      }
+        createdAt: profile.createdAt.toISOString(),
+      },
     });
   });
 
@@ -176,7 +197,7 @@ export default async function chatProfilesRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:chat-profiles:write'
+        'org:chat-profiles:write',
       );
 
       const parsed = updateProfileSchema.safeParse(req.body);
@@ -189,7 +210,7 @@ export default async function chatProfilesRoutes(
       if (data.isDefault === true) {
         await prisma.chatProfile.updateMany({
           where: { orgId, isDefault: true },
-          data: { isDefault: false }
+          data: { isDefault: false },
         });
       }
 
@@ -205,19 +226,23 @@ export default async function chatProfilesRoutes(
           temperature: typeof data.temperature === 'number' ? data.temperature : undefined,
           topP: typeof data.topP === 'number' ? data.topP : undefined,
           maxTokens:
-            typeof data.maxTokens === 'number' ? data.maxTokens : data.maxTokens === null ? null : undefined,
+            typeof data.maxTokens === 'number'
+              ? data.maxTokens
+              : data.maxTokens === null
+                ? null
+                : undefined,
           systemTemplateId: data.systemTemplateId !== undefined ? data.systemTemplateId : undefined,
           systemTemplateVersion:
             data.systemTemplateVersion !== undefined ? data.systemTemplateVersion : undefined,
           enableTools: typeof data.enableTools === 'boolean' ? data.enableTools : undefined,
           enableRag: typeof data.enableRag === 'boolean' ? data.enableRag : undefined,
           safetyLevel: data.safetyLevel ?? undefined,
-          providerConfig: data.providerConfig ?? undefined
-        }
+          providerConfig: data.providerConfig ?? undefined,
+        },
       });
 
       return reply.send({ ok: true });
-    }
+    },
   );
 
   // Delete
@@ -231,12 +256,12 @@ export default async function chatProfilesRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:chat-profiles:write'
+        'org:chat-profiles:write',
       );
 
       await prisma.chatProfile.deleteMany({ where: { id: profileId, orgId } });
 
       return reply.send({ ok: true });
-    }
+    },
   );
 }

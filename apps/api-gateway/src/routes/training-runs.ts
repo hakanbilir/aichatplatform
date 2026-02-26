@@ -66,11 +66,15 @@ async function getContext(request: any): Promise<{ orgId: string; projectId: str
     return { orgId: membership.orgId, projectId };
   }
 
-  const projectId = (request.headers['x-project-id'] as string) || await getOrCreateDefaultProject(orgId);
+  const projectId =
+    (request.headers['x-project-id'] as string) || (await getOrCreateDefaultProject(orgId));
   return { orgId, projectId };
 }
 
-export default async function trainingRunsRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
+export default async function trainingRunsRoutes(
+  app: FastifyInstance,
+  _opts: FastifyPluginOptions,
+) {
   // List training runs
   app.get('/api/v1/training-runs', { preHandler: [app.authenticate] }, async (request, reply) => {
     const payload = request.user as JwtPayload;
@@ -112,53 +116,57 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
   });
 
   // Get training run by ID
-  app.get('/api/v1/training-runs/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.get(
+    '/api/v1/training-runs/:id',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({ id: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid training run ID' });
-    }
+      const paramsSchema = z.object({ id: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid training run ID' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:read',
-    );
-
-    const trainingRun = await prisma.trainingRun.findFirst({
-      where: {
-        id: parsedParams.data.id,
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        projectId,
-      },
-      include: {
-        baseModel: true,
-        datasetVersion: {
-          include: {
-            dataset: true,
+        'org:read',
+      );
+
+      const trainingRun = await prisma.trainingRun.findFirst({
+        where: {
+          id: parsedParams.data.id,
+          orgId,
+          projectId,
+        },
+        include: {
+          baseModel: true,
+          datasetVersion: {
+            include: {
+              dataset: true,
+            },
+          },
+          auxDatasetVersion: {
+            include: {
+              dataset: true,
+            },
+          },
+          trainingMetrics: {
+            orderBy: { step: 'asc' },
+            take: 1000, // Limit for performance
           },
         },
-        auxDatasetVersion: {
-          include: {
-            dataset: true,
-          },
-        },
-        trainingMetrics: {
-          orderBy: { step: 'asc' },
-          take: 1000, // Limit for performance
-        },
-      },
-    });
+      });
 
-    if (!trainingRun) {
-      return reply.code(404).send({ error: 'Training run not found' });
-    }
+      if (!trainingRun) {
+        return reply.code(404).send({ error: 'Training run not found' });
+      }
 
-    return reply.send(trainingRun);
-  });
+      return reply.send(trainingRun);
+    },
+  );
 
   // Create training run
   app.post('/api/v1/training-runs', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -173,7 +181,9 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
 
     const parseBody = createTrainingRunBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: 'Invalid training run data', details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({ error: 'Invalid training run data', details: parseBody.error.format() });
     }
 
     // Use provided projectId or context projectId
@@ -227,12 +237,17 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
         return reply.code(404).send({ error: 'Auxiliary dataset version not found' });
       }
 
-      if (auxDatasetVersion.dataset.orgId !== orgId || auxDatasetVersion.dataset.projectId !== projectId) {
+      if (
+        auxDatasetVersion.dataset.orgId !== orgId ||
+        auxDatasetVersion.dataset.projectId !== projectId
+      ) {
         return reply.code(400).send({ error: 'Auxiliary dataset does not belong to this project' });
       }
 
       if (auxDatasetVersion.status !== 'READY') {
-        return reply.code(400).send({ error: 'Auxiliary dataset version is not ready for training' });
+        return reply
+          .code(400)
+          .send({ error: 'Auxiliary dataset version is not ready for training' });
       }
     }
 
@@ -271,129 +286,143 @@ export default async function trainingRunsRoutes(app: FastifyInstance, _opts: Fa
   });
 
   // Update training run
-  app.patch('/api/v1/training-runs/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.patch(
+    '/api/v1/training-runs/:id',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({ id: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid training run ID' });
-    }
+      const paramsSchema = z.object({ id: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid training run ID' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:settings:write',
-    );
-
-    const parseBody = updateTrainingRunBodySchema.safeParse(request.body);
-    if (!parseBody.success) {
-      return reply.code(400).send({ error: 'Invalid update data', details: parseBody.error.format() });
-    }
-
-    // Verify training run exists
-    const existing = await prisma.trainingRun.findFirst({
-      where: {
-        id: parsedParams.data.id,
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        projectId,
-      },
-    });
+        'org:settings:write',
+      );
 
-    if (!existing) {
-      return reply.code(404).send({ error: 'Training run not found' });
-    }
+      const parseBody = updateTrainingRunBodySchema.safeParse(request.body);
+      if (!parseBody.success) {
+        return reply
+          .code(400)
+          .send({ error: 'Invalid update data', details: parseBody.error.format() });
+      }
 
-    const updated = await prisma.trainingRun.update({
-      where: { id: parsedParams.data.id },
-      data: parseBody.data,
-    });
+      // Verify training run exists
+      const existing = await prisma.trainingRun.findFirst({
+        where: {
+          id: parsedParams.data.id,
+          orgId,
+          projectId,
+        },
+      });
 
-    return reply.send(updated);
-  });
+      if (!existing) {
+        return reply.code(404).send({ error: 'Training run not found' });
+      }
+
+      const updated = await prisma.trainingRun.update({
+        where: { id: parsedParams.data.id },
+        data: parseBody.data,
+      });
+
+      return reply.send(updated);
+    },
+  );
 
   // Cancel training run
-  app.post('/api/v1/training-runs/:id/cancel', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.post(
+    '/api/v1/training-runs/:id/cancel',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({ id: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid training run ID' });
-    }
+      const paramsSchema = z.object({ id: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid training run ID' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:settings:write',
-    );
-
-    const trainingRun = await prisma.trainingRun.findFirst({
-      where: {
-        id: parsedParams.data.id,
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        projectId,
-      },
-    });
+        'org:settings:write',
+      );
 
-    if (!trainingRun) {
-      return reply.code(404).send({ error: 'Training run not found' });
-    }
+      const trainingRun = await prisma.trainingRun.findFirst({
+        where: {
+          id: parsedParams.data.id,
+          orgId,
+          projectId,
+        },
+      });
 
-    if (trainingRun.status !== 'QUEUED' && trainingRun.status !== 'RUNNING') {
-      return reply.code(400).send({ error: 'Training run cannot be cancelled' });
-    }
+      if (!trainingRun) {
+        return reply.code(404).send({ error: 'Training run not found' });
+      }
 
-    const updated = await prisma.trainingRun.update({
-      where: { id: parsedParams.data.id },
-      data: {
-        status: 'CANCELLED',
-      },
-    });
+      if (trainingRun.status !== 'QUEUED' && trainingRun.status !== 'RUNNING') {
+        return reply.code(400).send({ error: 'Training run cannot be cancelled' });
+      }
 
-    return reply.send(updated);
-  });
+      const updated = await prisma.trainingRun.update({
+        where: { id: parsedParams.data.id },
+        data: {
+          status: 'CANCELLED',
+        },
+      });
+
+      return reply.send(updated);
+    },
+  );
 
   // Get training run metrics
-  app.get('/api/v1/training-runs/:id/metrics', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.get(
+    '/api/v1/training-runs/:id/metrics',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({ id: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid training run ID' });
-    }
+      const paramsSchema = z.object({ id: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid training run ID' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:read',
-    );
-
-    const trainingRun = await prisma.trainingRun.findFirst({
-      where: {
-        id: parsedParams.data.id,
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        projectId,
-      },
-    });
+        'org:read',
+      );
 
-    if (!trainingRun) {
-      return reply.code(404).send({ error: 'Training run not found' });
-    }
+      const trainingRun = await prisma.trainingRun.findFirst({
+        where: {
+          id: parsedParams.data.id,
+          orgId,
+          projectId,
+        },
+      });
 
-    const metrics = await prisma.trainingRunMetric.findMany({
-      where: {
-        trainingRunId: parsedParams.data.id,
-      },
-      orderBy: {
-        step: 'asc',
-      },
-    });
+      if (!trainingRun) {
+        return reply.code(404).send({ error: 'Training run not found' });
+      }
 
-    return reply.send(metrics);
-  });
+      const metrics = await prisma.trainingRunMetric.findMany({
+        where: {
+          trainingRunId: parsedParams.data.id,
+        },
+        orderBy: {
+          step: 'asc',
+        },
+      });
+
+      return reply.send(metrics);
+    },
+  );
 }

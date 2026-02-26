@@ -12,12 +12,12 @@ import { recordUsage } from '../usage/usageTracker';
 
 const runExperimentSchema = z.object({
   inputIds: z.array(z.string()).optional(),
-  variantIds: z.array(z.string()).optional()
+  variantIds: z.array(z.string()).optional(),
 });
 
 export default async function experimentRunRoutes(
   app: FastifyInstance,
-  _opts: FastifyPluginOptions
+  _opts: FastifyPluginOptions,
 ) {
   app.post(
     '/orgs/:orgId/experiments/:experimentId/run',
@@ -29,7 +29,7 @@ export default async function experimentRunRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:experiments:write'
+        'org:experiments:write',
       );
 
       const parsed = runExperimentSchema.safeParse(req.body ?? {});
@@ -39,7 +39,7 @@ export default async function experimentRunRoutes(
 
       const experiment = await prisma.experiment.findFirst({
         where: { id: experimentId, orgId },
-        include: { variants: true, inputs: true }
+        include: { variants: true, inputs: true },
       });
 
       if (!experiment) {
@@ -47,10 +47,10 @@ export default async function experimentRunRoutes(
       }
 
       const variants = experiment.variants.filter((v: { id: string }) =>
-        parsed.data.variantIds ? parsed.data.variantIds.includes(v.id) : true
+        parsed.data.variantIds ? parsed.data.variantIds.includes(v.id) : true,
       );
       const inputs = experiment.inputs.filter((i: { id: string }) =>
-        parsed.data.inputIds ? parsed.data.inputIds.includes(i.id) : true
+        parsed.data.inputIds ? parsed.data.inputIds.includes(i.id) : true,
       );
 
       const results: any[] = [];
@@ -64,7 +64,9 @@ export default async function experimentRunRoutes(
         let maxTokens: number | null = null;
 
         if (variant.chatProfileId) {
-          const profile = await prisma.chatProfile.findFirst({ where: { id: variant.chatProfileId } });
+          const profile = await prisma.chatProfile.findFirst({
+            where: { id: variant.chatProfileId },
+          });
           if (profile) {
             modelProvider = profile.modelProvider;
             modelName = profile.modelName;
@@ -92,7 +94,7 @@ export default async function experimentRunRoutes(
             messages,
             temperature,
             topP,
-            maxTokens
+            maxTokens,
           });
 
           const latency = Date.now() - startedAt;
@@ -110,8 +112,8 @@ export default async function experimentRunRoutes(
               output: completion.content,
               latencyMs: latency,
               inputTokens: completion.usage?.promptTokens ?? null,
-              outputTokens: completion.usage?.completionTokens ?? null
-            }
+              outputTokens: completion.usage?.completionTokens ?? null,
+            },
           });
 
           // Record usage for analytics (45.md)
@@ -123,7 +125,7 @@ export default async function experimentRunRoutes(
             modelName,
             feature: 'experiment',
             inputTokens: completion.usage?.promptTokens ?? 0,
-            outputTokens: completion.usage?.completionTokens ?? 0
+            outputTokens: completion.usage?.completionTokens ?? 0,
           }).catch((err) => {
             console.error('Failed to record experiment usage:', err);
           });
@@ -135,6 +137,6 @@ export default async function experimentRunRoutes(
       }
 
       return reply.send({ ok: true, runs: results });
-    }
+    },
   );
 }

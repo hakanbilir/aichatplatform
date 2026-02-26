@@ -23,9 +23,9 @@ const searchBodySchema = z.object({
       createdBefore: z.string().optional(),
       hasTools: z.boolean().optional(),
       hasRag: z.boolean().optional(),
-      hasFiles: z.boolean().optional()
+      hasFiles: z.boolean().optional(),
     })
-    .optional()
+    .optional(),
 });
 
 export default async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
@@ -36,12 +36,14 @@ export default async function searchRoutes(app: FastifyInstance, _opts: FastifyP
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:chat:read'
+      'org:chat:read',
     );
 
     const parsed = searchBodySchema.safeParse(request.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
+      return reply
+        .code(400)
+        .send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
     }
 
     const body = parsed.data;
@@ -52,7 +54,7 @@ export default async function searchRoutes(app: FastifyInstance, _opts: FastifyP
       page: body.page,
       pageSize: body.pageSize,
       sort: body.sort,
-      filters: body.filters
+      filters: body.filters,
     };
 
     const result = await searchConversations(reqDto);
@@ -61,14 +63,18 @@ export default async function searchRoutes(app: FastifyInstance, _opts: FastifyP
       setSSEHeaders(reply);
 
       // Send metadata
-      sendSSEEvent(reply, { total: result.total, page: result.page, pageSize: result.pageSize }, 'meta');
+      sendSSEEvent(
+        reply,
+        { total: result.total, page: result.page, pageSize: result.pageSize },
+        'meta',
+      );
 
       // Send hits one by one to simulate streaming flow
       for (const hit of result.hits) {
         sendSSEEvent(reply, hit, 'hit');
         // Small delay to make the UI "feel" streamed (optional, but requested by "Kinetic" theme)
         // In a real implementation, this would happen naturally as data is fetched.
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
       sendSSEEvent(reply, {}, 'done');

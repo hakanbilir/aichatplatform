@@ -31,13 +31,12 @@ export const loggerConfig = {
       'apiKey',
       'bearerToken',
       'credentials',
-      'apiKeyEncrypted'
+      'apiKeyEncrypted',
     ],
-    remove: true
-  }
+    remove: true,
+  },
 };
 
 // Logger instance for use elsewhere in the codebase
 // Kod tabanının diğer yerlerinde kullanım için logger örneği
 export const logger = pino(loggerConfig);
-

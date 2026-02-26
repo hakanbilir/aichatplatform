@@ -1,25 +1,25 @@
 // apps/api-gateway/src/safety/heuristicProvider.ts
 
 import { ModerationProvider } from './provider';
-import { ModerationResult , ModerationCategoryScore, ModerationCategory } from './types';
+import { ModerationResult, ModerationCategoryScore, ModerationCategory } from './types';
 
 const BLOCKLIST: { category: ModerationCategory; patterns: RegExp[] }[] = [
   {
     category: 'self_harm',
-    patterns: [/kill myself/i, /suicide/i, /end my life/i]
+    patterns: [/kill myself/i, /suicide/i, /end my life/i],
   },
   {
     category: 'prompt_injection',
-    patterns: [/ignore previous instructions/i, /you must forget the rules/i, /system: override/i]
+    patterns: [/ignore previous instructions/i, /you must forget the rules/i, /system: override/i],
   },
   {
     category: 'hate',
-    patterns: [/hate speech/i, /discriminatory/i]
+    patterns: [/hate speech/i, /discriminatory/i],
   },
   {
     category: 'violence',
-    patterns: [/kill you/i, /harm/i, /violence/i]
-  }
+    patterns: [/kill you/i, /harm/i, /violence/i],
+  },
   // Extend as needed
 ];
 
@@ -39,7 +39,7 @@ export class HeuristicModerationProvider implements ModerationProvider {
     return {
       categories: scores,
       flagged,
-      raw: { heuristic: true }
+      raw: { heuristic: true },
     };
   }
 }

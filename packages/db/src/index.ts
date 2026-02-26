@@ -21,7 +21,7 @@ function createUnavailableClient(error: unknown): PrismaClient {
       get() {
         return fail;
       },
-    }
+    },
   ) as PrismaClient;
 }
 

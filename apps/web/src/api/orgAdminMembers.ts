@@ -26,11 +26,7 @@ export interface OrgMembersResponse {
 }
 
 export async function fetchOrgMembers(token: string, orgId: string): Promise<OrgMembersResponse> {
-  return apiRequest<OrgMembersResponse>(
-    `/orgs/${orgId}/admin/members`,
-    { method: 'GET' },
-    token
-  );
+  return apiRequest<OrgMembersResponse>(`/orgs/${orgId}/admin/members`, { method: 'GET' }, token);
 }
 
 export async function inviteOrgMember(
@@ -38,18 +34,18 @@ export async function inviteOrgMember(
   orgId: string,
   email: string,
   role: string,
-  expiresInDays = 7
+  expiresInDays = 7,
 ): Promise<{ id: string }> {
   return apiRequest<{ id: string }>(
     `/orgs/${orgId}/admin/members/invite`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, role, expiresInDays })
+      body: JSON.stringify({ email, role, expiresInDays }),
     },
-    token
+    token,
   );
 }
 
@@ -57,18 +53,18 @@ export async function updateMemberRole(
   token: string,
   orgId: string,
   userId: string,
-  role: string
+  role: string,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/admin/members/${userId}/role`,
     {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ role })
+      body: JSON.stringify({ role }),
     },
-    token
+    token,
   );
 }
 
@@ -76,18 +72,17 @@ export async function updateMemberStatus(
   token: string,
   orgId: string,
   userId: string,
-  disabled: boolean
+  disabled: boolean,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/admin/members/${userId}/status`,
     {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ disabled })
+      body: JSON.stringify({ disabled }),
     },
-    token
+    token,
   );
 }
-

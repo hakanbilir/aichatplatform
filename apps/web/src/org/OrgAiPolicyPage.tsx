@@ -10,7 +10,7 @@ import {
   MenuItem,
   Select,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -53,7 +53,7 @@ export const OrgAiPolicyPage: React.FC = () => {
         .split(',')
         .map((s) => s.trim())
         .filter((s) => s.length > 0),
-      extra: {}
+      extra: {},
     };
 
     setSaving(true);
@@ -62,7 +62,7 @@ export const OrgAiPolicyPage: React.FC = () => {
         name: name.trim() || t('policy.defaultName', { ns: 'org' }),
         description: description.trim() || undefined,
         systemPrompt,
-        config
+        config,
       });
     } finally {
       setSaving(false);
@@ -78,7 +78,7 @@ export const OrgAiPolicyPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -91,11 +91,7 @@ export const OrgAiPolicyPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={saving}
-        >
+        <Button variant="contained" onClick={handleSave} disabled={saving}>
           {saving ? t('saving', { ns: 'common' }) : t('saveChanges', { ns: 'common' })}
         </Button>
       </Box>
@@ -156,7 +152,9 @@ export const OrgAiPolicyPage: React.FC = () => {
                           <em>{t('policy.notSpecified', { ns: 'org' })}</em>
                         </MenuItem>
                         <MenuItem value="formal">{t('policy.toneFormal', { ns: 'org' })}</MenuItem>
-                        <MenuItem value="neutral">{t('policy.toneNeutral', { ns: 'org' })}</MenuItem>
+                        <MenuItem value="neutral">
+                          {t('policy.toneNeutral', { ns: 'org' })}
+                        </MenuItem>
                         <MenuItem value="casual">{t('policy.toneCasual', { ns: 'org' })}</MenuItem>
                       </Select>
                     </Box>
@@ -190,16 +188,13 @@ export const OrgAiPolicyPage: React.FC = () => {
                   borderRadius: 2,
                   bgcolor: 'background.paper',
                   border: '1px solid',
-                  borderColor: 'divider'
+                  borderColor: 'divider',
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
                   {t('policy.systemPromptLabel', { ns: 'org' })}
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}
-                >
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>
                   {systemPrompt || t('policy.noSystemPrompt', { ns: 'org' })}
                 </Typography>
               </Box>
@@ -228,4 +223,3 @@ export const OrgAiPolicyPage: React.FC = () => {
     </Box>
   );
 };
-

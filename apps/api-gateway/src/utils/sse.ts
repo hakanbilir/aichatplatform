@@ -1,4 +1,3 @@
-
 import { FastifyReply } from 'fastify';
 
 /**
@@ -8,8 +7,8 @@ export function setSSEHeaders(reply: FastifyReply) {
   reply.raw.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no' // Disable buffering for Nginx/proxies
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no', // Disable buffering for Nginx/proxies
   });
 }
 

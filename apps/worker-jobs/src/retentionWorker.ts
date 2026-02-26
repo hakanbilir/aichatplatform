@@ -5,8 +5,8 @@ import { prisma } from '@ai-chat/db';
 export async function enforceRetentionPolicies() {
   const orgs = await prisma.orgDataRetentionConfig.findMany({
     where: {
-      autoDeleteEnabled: true
-    }
+      autoDeleteEnabled: true,
+    },
   });
 
   const now = new Date();
@@ -15,19 +15,17 @@ export async function enforceRetentionPolicies() {
     // Soft delete based on conversationRetentionDays
     // conversationRetentionDays'e göre yumuşak silme
     if (cfg.conversationRetentionDays) {
-      const cutoff = new Date(
-        now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000
-      );
+      const cutoff = new Date(now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000);
 
       await prisma.conversation.updateMany({
         where: {
           orgId: cfg.orgId,
           deletedAt: null,
-          createdAt: { lt: cutoff }
+          createdAt: { lt: cutoff },
         },
         data: {
-          deletedAt: now
-        }
+          deletedAt: now,
+        },
       });
     }
 
@@ -35,16 +33,15 @@ export async function enforceRetentionPolicies() {
     // Saklama süresinden daha uzun süre yumuşak silinmiş konuşmaları kalıcı olarak sil
     if (cfg.conversationRetentionDays) {
       const hardDeleteCutoff = new Date(
-        now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000
+        now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000,
       );
 
       await prisma.conversation.deleteMany({
         where: {
           orgId: cfg.orgId,
-          deletedAt: { not: null, lt: hardDeleteCutoff }
-        }
+          deletedAt: { not: null, lt: hardDeleteCutoff },
+        },
       });
     }
   }
 }
-

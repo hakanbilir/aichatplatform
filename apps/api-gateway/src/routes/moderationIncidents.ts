@@ -11,12 +11,12 @@ const incidentsQuerySchema = z.object({
   page: z.string().optional(),
   pageSize: z.string().optional(),
   source: z.enum(['user', 'assistant', 'tool']).optional(),
-  severeOnly: z.string().optional()
+  severeOnly: z.string().optional(),
 });
 
 export default async function moderationIncidentsRoutes(
   app: FastifyInstance,
-  _opts: FastifyPluginOptions
+  _opts: FastifyPluginOptions,
 ) {
   app.get(
     '/orgs/:orgId/safety/incidents',
@@ -28,7 +28,7 @@ export default async function moderationIncidentsRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:safety:read'
+        'org:safety:read',
       );
 
       const parsed = incidentsQuerySchema.safeParse(request.query);
@@ -54,17 +54,17 @@ export default async function moderationIncidentsRoutes(
           where,
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * pageSize,
-          take: pageSize
+          take: pageSize,
         }),
-        prisma.moderationIncident.count({ where })
+        prisma.moderationIncident.count({ where }),
       ]);
 
       return reply.send({
         items,
         page,
         pageSize,
-        total
+        total,
       });
-    }
+    },
   );
 }

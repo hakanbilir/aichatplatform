@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock, beforeAll } from 'bun:test';
 import fastify from 'fastify';
 
@@ -11,8 +10,8 @@ mock.module('@ai-chat/db', () => {
         create: mock((args: any) => Promise.resolve({ id: 'key_escalation', ...args.data })),
         updateMany: mock(() => Promise.resolve({ count: 1 })),
         deleteMany: mock(() => Promise.resolve({ count: 1 })),
-      }
-    }
+      },
+    },
   };
 });
 
@@ -25,16 +24,16 @@ mock.module('../src/rbac/guards', () => {
 
 // Mock audit log
 mock.module('../src/services/audit', () => {
-    return {
-        writeAuditLog: mock(() => Promise.resolve()),
-    };
+  return {
+    writeAuditLog: mock(() => Promise.resolve()),
+  };
 });
 
 // Mock apiKeys utils
 mock.module('../src/apiKeys/utils', () => {
-    return {
-        generateOrgApiKey: mock(() => ({ raw: 'sk-test-123', hash: 'hash-123' })),
-    };
+  return {
+    generateOrgApiKey: mock(() => ({ raw: 'sk-test-123', hash: 'hash-123' })),
+  };
 });
 
 import orgApiKeysRoutes from '../src/routes/orgApiKeys';
@@ -52,9 +51,9 @@ describe('Org API Keys Privilege Escalation Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgApiKeysRoutes);
@@ -65,10 +64,10 @@ describe('Org API Keys Privilege Escalation Security', () => {
       method: 'POST',
       url: '/orgs/org_id/admin/api-keys',
       payload: {
-          name: 'Escalation Key',
-          // 'org:billing:write' is an OWNER-only permission. ADMIN does not have it.
-          scopes: ['org:read', 'org:billing:write']
-      }
+        name: 'Escalation Key',
+        // 'org:billing:write' is an OWNER-only permission. ADMIN does not have it.
+        scopes: ['org:read', 'org:billing:write'],
+      },
     });
 
     // Currently this passes (201), but we want it to fail (403)
@@ -83,8 +82,8 @@ describe('Org API Keys Privilege Escalation Security', () => {
       method: 'PATCH',
       url: '/orgs/org_id/admin/api-keys/key_escalation',
       payload: {
-          scopes: ['org:billing:write']
-      }
+        scopes: ['org:billing:write'],
+      },
     });
 
     expect(response.statusCode).toBe(403);

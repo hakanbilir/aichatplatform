@@ -16,7 +16,7 @@ import {
   TextField,
   Typography,
   Divider,
-  Chip
+  Chip,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
@@ -37,7 +37,7 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
   onClose,
   orgId,
   initialPreset,
-  onSave
+  onSave,
 }) => {
   const { t } = useTranslation(['presets', 'common']);
   const { spaces } = useKnowledgeSpaces(orgId);
@@ -117,7 +117,7 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
       uiConfig: {
         color: uiColor,
         emoji: uiEmoji,
-        ...(uiIcon && { icon: uiIcon })
+        ...(uiIcon && { icon: uiIcon }),
       },
       config: {
         ...(modelId && { modelId }),
@@ -128,10 +128,10 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
           ? {
               enabled: true,
               spaceId: ragSpaceId,
-              maxChunks: ragMaxChunks
+              maxChunks: ragMaxChunks,
             }
-          : undefined
-      }
+          : undefined,
+      },
     };
 
     setSaving(true);
@@ -157,9 +157,7 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6">
-          {initialPreset ? t('editPreset') : t('newPreset')}
-        </Typography>
+        <Typography variant="h6">{initialPreset ? t('editPreset') : t('newPreset')}</Typography>
         <IconButton onClick={onClose} size="small" disabled={saving}>
           <CloseIcon fontSize="small" />
         </IconButton>
@@ -204,7 +202,9 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             required
-            helperText={t('systemPromptHelper') || 'Define the AI assistant\'s behavior and instructions'}
+            helperText={
+              t('systemPromptHelper') || "Define the AI assistant's behavior and instructions"
+            }
           />
         </Box>
 
@@ -275,7 +275,9 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
               label={t('maxOutputTokens') || 'Max Output Tokens'}
               type="number"
               value={maxOutputTokens || ''}
-              onChange={(e) => setMaxOutputTokens(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+              onChange={(e) =>
+                setMaxOutputTokens(e.target.value ? parseInt(e.target.value, 10) : undefined)
+              }
               margin="dense"
               inputProps={{ min: 1 }}
               sx={{ flex: 1 }}
@@ -293,10 +295,7 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
           </Typography>
           <FormControlLabel
             control={
-              <Switch
-                checked={ragEnabled}
-                onChange={(e) => setRagEnabled(e.target.checked)}
-              />
+              <Switch checked={ragEnabled} onChange={(e) => setRagEnabled(e.target.checked)} />
             }
             label={t('enableRag') || 'Enable RAG (Retrieval Augmented Generation)'}
           />
@@ -325,7 +324,9 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
                 onChange={(e) => setRagMaxChunks(parseInt(e.target.value, 10) || 8)}
                 margin="dense"
                 inputProps={{ min: 1, max: 50 }}
-                helperText={t('maxChunksHelper') || 'Maximum number of knowledge chunks to retrieve'}
+                helperText={
+                  t('maxChunksHelper') || 'Maximum number of knowledge chunks to retrieve'
+                }
               />
             </Box>
           )}
@@ -340,12 +341,7 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
           </Typography>
           <Box display="flex" flexWrap="wrap" gap={1} mb={1}>
             {tools.map((tool) => (
-              <Chip
-                key={tool}
-                label={tool}
-                onDelete={() => handleRemoveTool(tool)}
-                size="small"
-              />
+              <Chip key={tool} label={tool} onDelete={() => handleRemoveTool(tool)} size="small" />
             ))}
           </Box>
           <Button variant="outlined" size="small" onClick={handleAddTool}>

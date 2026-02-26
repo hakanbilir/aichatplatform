@@ -54,7 +54,7 @@ export async function retrieveRelevantChunks(params: {
       embeddingStr,
       params.orgId,
       params.spaceId,
-      limit
+      limit,
     )) as Array<{ id: string; documentId: string; text: string; score: number }>;
   } else {
     rows = (await prisma.$queryRawUnsafe(
@@ -69,7 +69,7 @@ export async function retrieveRelevantChunks(params: {
       `,
       embeddingStr,
       params.orgId,
-      limit
+      limit,
     )) as Array<{ id: string; documentId: string; text: string; score: number }>;
   }
 
@@ -77,7 +77,6 @@ export async function retrieveRelevantChunks(params: {
     chunkId: row.id,
     documentId: row.documentId,
     text: row.text,
-    score: Number(row.score)
+    score: Number(row.score),
   }));
 }
-

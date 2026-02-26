@@ -9,18 +9,18 @@ import { assertOrgPermission } from '../rbac/guards';
 
 const feedbackSchema = z.object({
   thumbsUp: z.boolean().optional(),
-  note: z.string().optional()
+  note: z.string().optional(),
 });
 
 const scoreSchema = z.object({
   metricKey: z.string().min(1),
   value: z.number(),
-  note: z.string().optional()
+  note: z.string().optional(),
 });
 
 export default async function experimentFeedbackRoutes(
   app: FastifyInstance,
-  _opts: FastifyPluginOptions
+  _opts: FastifyPluginOptions,
 ) {
   // Manual thumbs + note
   app.post(
@@ -33,7 +33,7 @@ export default async function experimentFeedbackRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:experiments:write'
+        'org:experiments:write',
       );
 
       const parsed = feedbackSchema.safeParse(req.body);
@@ -43,7 +43,7 @@ export default async function experimentFeedbackRoutes(
 
       const run = await prisma.experimentRun.findFirst({
         where: { id: runId, experiment: { orgId } },
-        include: { experiment: true }
+        include: { experiment: true },
       });
 
       if (!run) {
@@ -54,12 +54,12 @@ export default async function experimentFeedbackRoutes(
         where: { id: runId },
         data: {
           thumbsUp: parsed.data.thumbsUp ?? run.thumbsUp,
-          feedbackNote: parsed.data.note ?? run.feedbackNote
-        }
+          feedbackNote: parsed.data.note ?? run.feedbackNote,
+        },
       });
 
       return reply.send({ ok: true });
-    }
+    },
   );
 
   // Add numeric score (will create metric definition if not exists)
@@ -73,7 +73,7 @@ export default async function experimentFeedbackRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:experiments:write'
+        'org:experiments:write',
       );
 
       const parsed = scoreSchema.safeParse(req.body);
@@ -83,7 +83,7 @@ export default async function experimentFeedbackRoutes(
 
       const run = await prisma.experimentRun.findFirst({
         where: { id: runId, experiment: { orgId } },
-        include: { experiment: true }
+        include: { experiment: true },
       });
 
       if (!run) {
@@ -91,7 +91,7 @@ export default async function experimentFeedbackRoutes(
       }
 
       let metric = await prisma.evalMetricDefinition.findFirst({
-        where: { orgId, key: parsed.data.metricKey }
+        where: { orgId, key: parsed.data.metricKey },
       });
 
       if (!metric) {
@@ -101,8 +101,8 @@ export default async function experimentFeedbackRoutes(
             key: parsed.data.metricKey,
             name: parsed.data.metricKey,
             scale: 'custom',
-            createdById: payload.userId
-          }
+            createdById: payload.userId,
+          },
         });
       }
 
@@ -111,11 +111,11 @@ export default async function experimentFeedbackRoutes(
           runId: run.id,
           metricId: metric.id,
           value: parsed.data.value,
-          note: parsed.data.note ?? null
-        }
+          note: parsed.data.note ?? null,
+        },
       });
 
       return reply.code(201).send({ score });
-    }
+    },
   );
 }

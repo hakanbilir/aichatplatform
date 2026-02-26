@@ -6,10 +6,7 @@ import { prisma } from '@ai-chat/db';
 import { validateScimBearerToken } from '../scim/scimAuth';
 import { createUserFromScim, updateUserFromScim, deleteUserFromScim } from '../scim/scimService';
 
-export default async function scimUsersRoutes(
-  app: FastifyInstance,
-  _opts: FastifyPluginOptions
-) {
+export default async function scimUsersRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   // SCIM 2.0 /Users endpoint
   app.get('/scim/:orgSlug/v2/Users', async (req, reply) => {
     const { orgSlug } = req.params as any;
@@ -34,24 +31,30 @@ export default async function scimUsersRoutes(
       where: { orgId: auth.orgId },
       include: { user: true },
       skip: startIndex - 1,
-      take: count
+      take: count,
     });
 
-    const resources = members.map((m: { user: { id: string; email: string; name: string | null }; role: string; isDisabled: boolean }) => ({
-      id: m.user.id,
-      userName: m.user.email,
-      name: {
-        formatted: m.user.name || m.user.email
-      },
-      emails: [{ value: m.user.email, primary: true }],
-      active: !m.isDisabled
-    }));
+    const resources = members.map(
+      (m: {
+        user: { id: string; email: string; name: string | null };
+        role: string;
+        isDisabled: boolean;
+      }) => ({
+        id: m.user.id,
+        userName: m.user.email,
+        name: {
+          formatted: m.user.name || m.user.email,
+        },
+        emails: [{ value: m.user.email, primary: true }],
+        active: !m.isDisabled,
+      }),
+    );
 
     return reply.send({
       totalResults: members.length,
       startIndex,
       itemsPerPage: count,
-      Resources: resources
+      Resources: resources,
     });
   });
 
@@ -76,10 +79,10 @@ export default async function scimUsersRoutes(
         id: user.id,
         userName: user.email,
         name: {
-          formatted: user.name || user.email
+          formatted: user.name || user.email,
         },
         emails: [{ value: user.email, primary: true }],
-        active: true
+        active: true,
       });
     } catch (err) {
       return reply.code(400).send({ error: (err as Error).message });

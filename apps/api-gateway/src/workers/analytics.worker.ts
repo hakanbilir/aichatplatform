@@ -13,7 +13,7 @@ async function run() {
     parentPort.postMessage(result);
   } catch (error) {
     if (parentPort) {
-        parentPort.postMessage({ error: error instanceof Error ? error.message : String(error) });
+      parentPort.postMessage({ error: error instanceof Error ? error.message : String(error) });
     }
   }
 }

@@ -188,7 +188,16 @@ export interface ChatCompletionResponse {
 // Streaming Types
 // =========================
 
-export type ChatStreamEventType = 'start' | 'token' | 'tool_start' | 'tool_end' | 'end' | 'error' | 'thought_start' | 'thought_token' | 'thought_end';
+export type ChatStreamEventType =
+  | 'start'
+  | 'token'
+  | 'tool_start'
+  | 'tool_end'
+  | 'end'
+  | 'error'
+  | 'thought_start'
+  | 'thought_token'
+  | 'thought_end';
 
 /**
  * A single streaming event emitted during a chat completion.

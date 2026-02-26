@@ -9,17 +9,16 @@ import { prisma } from '@ai-chat/db';
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 
-
 const webhookBodySchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().max(512).optional(),
   url: z.string().url(),
   eventTypes: z.array(z.string()).optional(),
-  integrationId: z.string().optional() // Optional: link to existing integration
+  integrationId: z.string().optional(), // Optional: link to existing integration
 });
 
 const updateWebhookBodySchema = webhookBodySchema.partial().extend({
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 });
 
 export default async function webhooksRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
@@ -31,7 +30,7 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:integrations:read'
+      'org:integrations:read',
     );
 
     // Get webhooks via org integrations
@@ -39,24 +38,45 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
       where: { orgId, isEnabled: true },
       include: {
         webhookSubscriptions: {
-          orderBy: { createdAt: 'asc' }
-        }
-      }
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
 
-    const webhooks = integrations.flatMap((int: { webhookSubscriptions: Array<{ id: string; url: string; eventTypes: unknown; isActive: boolean; createdAt: Date; updatedAt: Date }>; config: unknown }) => {
-      return int.webhookSubscriptions.map((wh: { id: string; url: string; eventTypes: unknown; isActive: boolean; createdAt: Date; updatedAt: Date }) => ({
-        id: wh.id,
-        orgId,
-        name: (int.config as any)?.name || wh.url, // Use name from integration config or fallback to URL
-        description: (int.config as any)?.description || null,
-        url: wh.url,
-        eventTypes: wh.eventTypes as string[],
-        isEnabled: wh.isActive,
-        createdAt: wh.createdAt.toISOString(),
-        updatedAt: wh.updatedAt.toISOString()
-      }));
-    });
+    const webhooks = integrations.flatMap(
+      (int: {
+        webhookSubscriptions: Array<{
+          id: string;
+          url: string;
+          eventTypes: unknown;
+          isActive: boolean;
+          createdAt: Date;
+          updatedAt: Date;
+        }>;
+        config: unknown;
+      }) => {
+        return int.webhookSubscriptions.map(
+          (wh: {
+            id: string;
+            url: string;
+            eventTypes: unknown;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+          }) => ({
+            id: wh.id,
+            orgId,
+            name: (int.config as any)?.name || wh.url, // Use name from integration config or fallback to URL
+            description: (int.config as any)?.description || null,
+            url: wh.url,
+            eventTypes: wh.eventTypes as string[],
+            isEnabled: wh.isActive,
+            createdAt: wh.createdAt.toISOString(),
+            updatedAt: wh.updatedAt.toISOString(),
+          }),
+        );
+      },
+    );
 
     return reply.send({ webhooks });
   });
@@ -69,12 +89,14 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:integrations:write'
+      'org:integrations:write',
     );
 
     const parsed = webhookBodySchema.safeParse(request.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
+      return reply
+        .code(400)
+        .send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
     }
 
     const secret = crypto.randomBytes(32).toString('hex');
@@ -82,25 +104,25 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
     // Find or create integration
     let integration = parsed.data.integrationId
       ? await prisma.orgIntegration.findFirst({
-          where: { id: parsed.data.integrationId, orgId }
+          where: { id: parsed.data.integrationId, orgId },
         })
       : null;
 
     if (!integration) {
       // First find or create the webhook provider
       let provider = await prisma.integrationProvider.findFirst({
-        where: { key: 'webhook' }
+        where: { key: 'webhook' },
       });
       if (!provider) {
         provider = await prisma.integrationProvider.create({
           data: {
             key: 'webhook',
             name: 'Webhook',
-            description: 'Generic webhook integration'
-          }
+            description: 'Generic webhook integration',
+          },
         });
       }
-      
+
       // Create a default webhook integration with name/description in config
       integration = await prisma.orgIntegration.create({
         data: {
@@ -110,10 +132,10 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
           credentials: {} as any,
           config: {
             name: parsed.data.name,
-            description: parsed.data.description ?? null
+            description: parsed.data.description ?? null,
           } as any,
-          isEnabled: true
-        }
+          isEnabled: true,
+        },
       });
     } else {
       // Update integration config with name/description
@@ -123,9 +145,9 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
           config: {
             ...((integration.config as any) || {}),
             name: parsed.data.name,
-            description: parsed.data.description ?? null
-          }
-        }
+            description: parsed.data.description ?? null,
+          },
+        },
       });
     }
 
@@ -135,8 +157,8 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
         url: parsed.data.url,
         eventTypes: parsed.data.eventTypes ?? [],
         secret,
-        isActive: true
-      }
+        isActive: true,
+      },
     });
 
     // Return webhook with name/description from request (stored in integration config or metadata)
@@ -150,119 +172,128 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
         eventTypes: webhook.eventTypes as string[],
         isEnabled: webhook.isActive,
         createdAt: webhook.createdAt.toISOString(),
-        updatedAt: webhook.updatedAt.toISOString()
-      }
+        updatedAt: webhook.updatedAt.toISOString(),
+      },
     });
   });
 
   // Update webhook
-  app.patch('/orgs/:orgId/webhooks/:webhookId', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const orgId = (request.params as any).orgId as string;
-    const webhookId = (request.params as any).webhookId as string;
+  app.patch(
+    '/orgs/:orgId/webhooks/:webhookId',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const orgId = (request.params as any).orgId as string;
+      const webhookId = (request.params as any).webhookId as string;
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:integrations:write'
-    );
-
-    const parsed = updateWebhookBodySchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
-    }
-
-    // Verify webhook belongs to org
-    const webhook = await prisma.webhookSubscription.findFirst({
-      where: {
-        id: webhookId,
-        orgIntegration: { orgId }
-      }
-    });
-
-    if (!webhook) {
-      return reply.code(404).send({ error: request.i18n.t('errors.webhookNotFound') });
-    }
-
-    const updated = await prisma.webhookSubscription.update({
-      where: { id: webhookId },
-      data: {
-        url: parsed.data.url,
-        eventTypes: parsed.data.eventTypes,
-        isActive: parsed.data.isActive ?? webhook.isActive
-      },
-      include: {
-        orgIntegration: true
-      }
-    });
-
-    // Update integration config if name/description provided
-    if (parsed.data.name || parsed.data.description !== undefined) {
-      const integration = await prisma.orgIntegration.findUnique({
-        where: { id: webhook.orgIntegrationId }
-      });
-      if (integration) {
-      await prisma.orgIntegration.update({
-        where: { id: webhook.orgIntegrationId },
-        data: {
-          config: {
-              ...((integration.config as any) || {}),
-            name: parsed.data.name,
-            description: parsed.data.description
-          }
-        }
-      });
-      }
-    }
-
-    const integration = await prisma.orgIntegration.findUnique({
-      where: { id: webhook.orgIntegrationId }
-    });
-
-    return reply.send({
-      webhook: {
-        id: updated.id,
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        name: (integration?.config as any)?.name || updated.url,
-        description: (integration?.config as any)?.description || null,
-        url: updated.url,
-        eventTypes: updated.eventTypes as string[],
-        isEnabled: updated.isActive,
-        createdAt: updated.createdAt.toISOString(),
-        updatedAt: updated.updatedAt.toISOString()
+        'org:integrations:write',
+      );
+
+      const parsed = updateWebhookBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(400)
+          .send({ error: request.i18n.t('errors.invalidBody'), details: parsed.error.format() });
       }
-    });
-  });
+
+      // Verify webhook belongs to org
+      const webhook = await prisma.webhookSubscription.findFirst({
+        where: {
+          id: webhookId,
+          orgIntegration: { orgId },
+        },
+      });
+
+      if (!webhook) {
+        return reply.code(404).send({ error: request.i18n.t('errors.webhookNotFound') });
+      }
+
+      const updated = await prisma.webhookSubscription.update({
+        where: { id: webhookId },
+        data: {
+          url: parsed.data.url,
+          eventTypes: parsed.data.eventTypes,
+          isActive: parsed.data.isActive ?? webhook.isActive,
+        },
+        include: {
+          orgIntegration: true,
+        },
+      });
+
+      // Update integration config if name/description provided
+      if (parsed.data.name || parsed.data.description !== undefined) {
+        const integration = await prisma.orgIntegration.findUnique({
+          where: { id: webhook.orgIntegrationId },
+        });
+        if (integration) {
+          await prisma.orgIntegration.update({
+            where: { id: webhook.orgIntegrationId },
+            data: {
+              config: {
+                ...((integration.config as any) || {}),
+                name: parsed.data.name,
+                description: parsed.data.description,
+              },
+            },
+          });
+        }
+      }
+
+      const integration = await prisma.orgIntegration.findUnique({
+        where: { id: webhook.orgIntegrationId },
+      });
+
+      return reply.send({
+        webhook: {
+          id: updated.id,
+          orgId,
+          name: (integration?.config as any)?.name || updated.url,
+          description: (integration?.config as any)?.description || null,
+          url: updated.url,
+          eventTypes: updated.eventTypes as string[],
+          isEnabled: updated.isActive,
+          createdAt: updated.createdAt.toISOString(),
+          updatedAt: updated.updatedAt.toISOString(),
+        },
+      });
+    },
+  );
 
   // Delete webhook
-  app.delete('/orgs/:orgId/webhooks/:webhookId', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const orgId = (request.params as any).orgId as string;
-    const webhookId = (request.params as any).webhookId as string;
+  app.delete(
+    '/orgs/:orgId/webhooks/:webhookId',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const orgId = (request.params as any).orgId as string;
+      const webhookId = (request.params as any).webhookId as string;
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:integrations:write'
-    );
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'org:integrations:write',
+      );
 
-    // Verify webhook belongs to org
-    const webhook = await prisma.webhookSubscription.findFirst({
-      where: {
-        id: webhookId,
-        orgIntegration: { orgId }
+      // Verify webhook belongs to org
+      const webhook = await prisma.webhookSubscription.findFirst({
+        where: {
+          id: webhookId,
+          orgIntegration: { orgId },
+        },
+      });
+
+      if (!webhook) {
+        return reply.code(404).send({ error: request.i18n.t('errors.webhookNotFound') });
       }
-    });
 
-    if (!webhook) {
-      return reply.code(404).send({ error: request.i18n.t('errors.webhookNotFound') });
-    }
+      await prisma.webhookSubscription.delete({
+        where: { id: webhookId },
+      });
 
-    await prisma.webhookSubscription.delete({
-      where: { id: webhookId }
-    });
-
-    return reply.send({ ok: true });
-  });
+      return reply.send({ ok: true });
+    },
+  );
 }
-

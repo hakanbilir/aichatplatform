@@ -11,7 +11,7 @@ import {
   LinearProgress,
   MenuItem,
   Select,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -30,7 +30,7 @@ export const ConversationExportDialog: React.FC<ConversationExportDialogProps> =
   open,
   onClose,
   orgId,
-  conversationId
+  conversationId,
 }) => {
   const { t } = useTranslation(['conversations', 'common']);
   const { token } = useAuth();
@@ -127,9 +127,7 @@ export const ConversationExportDialog: React.FC<ConversationExportDialogProps> =
             <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
               {t('common:status')}: {status && t(`export.status.${status}`)}
             </Typography>
-            {(status === 'pending' || status === 'processing') && (
-              <LinearProgress sx={{ mt: 1 }} />
-            )}
+            {(status === 'pending' || status === 'processing') && <LinearProgress sx={{ mt: 1 }} />}
             {fileUrl && status === 'completed' && (
               <Box mt={1}>
                 <Button
@@ -157,4 +155,3 @@ export const ConversationExportDialog: React.FC<ConversationExportDialogProps> =
     </Dialog>
   );
 };
-

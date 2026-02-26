@@ -1,4 +1,5 @@
 # PM2 Process Management Guide - AI Chat Platform
+
 # PM2 Süreç Yönetimi Kılavuzu - AI Chat Platform
 
 ## Overview / Genel Bakış
@@ -15,6 +16,7 @@ Bu proje tüm servislerin süreç yönetimi için PM2 kullanır.
 ## Installation / Kurulum
 
 ### Install PM2 globally
+
 ### PM2'yi global olarak kurun
 
 ```bash
@@ -22,6 +24,7 @@ npm install -g pm2
 ```
 
 ### Install PM2 modules (recommended)
+
 ### PM2 modüllerini kurun (önerilir)
 
 ```bash
@@ -41,6 +44,7 @@ pm2 set pm2-logrotate:dateFormat YYYY-MM-DD_HH-mm-ss
 ## Quick Start / Hızlı Başlangıç
 
 ### Start all services
+
 ### Tüm servisleri başlat
 
 ```bash
@@ -55,6 +59,7 @@ pm2 start ecosystem.config.js --env development
 ```
 
 ### Stop all services
+
 ### Tüm servisleri durdur
 
 ```bash
@@ -69,6 +74,7 @@ pm2 stop all
 ```
 
 ### Restart all services
+
 ### Tüm servisleri yeniden başlat
 
 ```bash
@@ -83,6 +89,7 @@ pm2 restart all
 ```
 
 ### View status
+
 ### Durumu görüntüle
 
 ```bash
@@ -97,6 +104,7 @@ pm2 status
 ```
 
 ### View logs
+
 ### Günlükleri görüntüle
 
 ```bash
@@ -229,6 +237,7 @@ If conflicts occur:
 ## Production Deployment / Üretim Dağıtımı
 
 ### Save PM2 process list
+
 ### PM2 süreç listesini kaydet
 
 ```bash
@@ -236,6 +245,7 @@ pm2 save
 ```
 
 ### Setup PM2 to start on system boot
+
 ### PM2'yi sistem açılışında başlatmak için ayarla
 
 ```bash
@@ -245,6 +255,7 @@ pm2 save
 ```
 
 ### Production startup
+
 ### Üretim başlatma
 
 ```bash
@@ -256,4 +267,3 @@ pm2 save
 
 - PM2 Documentation: https://pm2.keymetrics.io/docs/
 - PM2 GitHub: https://github.com/Unitech/pm2
-

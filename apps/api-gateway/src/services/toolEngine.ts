@@ -55,16 +55,21 @@ function validateArgs(schema: any, args: unknown): any {
     return args ?? {};
   } catch (err) {
     if (err instanceof z.ZodError) {
-      throw new Error(`Tool argument validation failed: ${err.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
+      throw new Error(
+        `Tool argument validation failed: ${err.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+      );
     }
     throw err;
   }
 }
 
-export async function executeToolCall(call: ToolCall, ctx: ToolContext): Promise<ToolExecutionResult> {
+export async function executeToolCall(
+  call: ToolCall,
+  ctx: ToolContext,
+): Promise<ToolExecutionResult> {
   // Check both built-in and external tools
   let tool = getToolByName(call.tool);
-  
+
   if (!tool && ctx.orgId) {
     const externalTools = await buildExternalToolsForOrg(ctx.orgId);
     tool = externalTools.find((t) => t.name === call.tool);
@@ -115,38 +120,38 @@ export async function executeToolCall(call: ToolCall, ctx: ToolContext): Promise
       .labels(tool.name, ctx.orgId || 'none', 'true')
       .observe(durationSec);
 
-      logger.info(
-        {
-          event: 'tool.exec.success',
+    logger.info(
+      {
+        event: 'tool.exec.success',
+        tool: tool.name,
+        userId: ctx.userId,
+        orgId: ctx.orgId,
+        conversationId: ctx.conversationId,
+        durationMs: Math.round(durationSec * 1000),
+      },
+      'Tool execution success',
+    );
+
+    // Dispatch webhook event if org context exists
+    if (ctx.orgId) {
+      await dispatchWebhookEvent({
+        type: 'tool.exec.success',
+        orgId: ctx.orgId,
+        conversationId: ctx.conversationId || undefined,
+        data: {
           tool: tool.name,
-          userId: ctx.userId,
-          orgId: ctx.orgId,
-          conversationId: ctx.conversationId,
           durationMs: Math.round(durationSec * 1000),
         },
-        'Tool execution success',
-      );
+      }).catch((err) => {
+        logger.error({ err }, 'Failed to dispatch webhook event');
+      });
+    }
 
-      // Dispatch webhook event if org context exists
-      if (ctx.orgId) {
-        await dispatchWebhookEvent({
-          type: 'tool.exec.success',
-          orgId: ctx.orgId,
-          conversationId: ctx.conversationId || undefined,
-          data: {
-            tool: tool.name,
-            durationMs: Math.round(durationSec * 1000),
-          },
-        }).catch((err) => {
-          logger.error({ err }, 'Failed to dispatch webhook event');
-        });
-      }
-
-      return {
-        tool: tool.name,
-        ok: true,
-        result,
-      };
+    return {
+      tool: tool.name,
+      ok: true,
+      result,
+    };
   } catch (err) {
     const diffNs = Number(process.hrtime.bigint() - startedAt);
     const durationSec = diffNs / 1e9;
@@ -155,40 +160,40 @@ export async function executeToolCall(call: ToolCall, ctx: ToolContext): Promise
       .labels(tool.name, ctx.orgId || 'none', 'false')
       .observe(durationSec);
 
-      logger.error(
-        {
-          event: 'tool.exec.error',
-          tool: tool.name,
-          userId: ctx.userId,
-          orgId: ctx.orgId,
-          conversationId: ctx.conversationId,
-          durationMs: Math.round(durationSec * 1000),
-          error: (err as Error).message,
-        },
-        'Tool execution failed',
-      );
-
-      // Dispatch webhook event if org context exists
-      if (ctx.orgId) {
-        await dispatchWebhookEvent({
-          type: 'tool.exec.error',
-          orgId: ctx.orgId,
-          conversationId: ctx.conversationId || undefined,
-          data: {
-            tool: tool.name,
-            error: (err as Error).message,
-            durationMs: Math.round(durationSec * 1000),
-          },
-        }).catch((err2) => {
-          logger.error({ err: err2 }, 'Failed to dispatch webhook event');
-        });
-      }
-
-      return {
+    logger.error(
+      {
+        event: 'tool.exec.error',
         tool: tool.name,
-        ok: false,
-        error: (err as Error).message || 'Tool execution failed',
-      };
+        userId: ctx.userId,
+        orgId: ctx.orgId,
+        conversationId: ctx.conversationId,
+        durationMs: Math.round(durationSec * 1000),
+        error: (err as Error).message,
+      },
+      'Tool execution failed',
+    );
+
+    // Dispatch webhook event if org context exists
+    if (ctx.orgId) {
+      await dispatchWebhookEvent({
+        type: 'tool.exec.error',
+        orgId: ctx.orgId,
+        conversationId: ctx.conversationId || undefined,
+        data: {
+          tool: tool.name,
+          error: (err as Error).message,
+          durationMs: Math.round(durationSec * 1000),
+        },
+      }).catch((err2) => {
+        logger.error({ err: err2 }, 'Failed to dispatch webhook event');
+      });
+    }
+
+    return {
+      tool: tool.name,
+      ok: false,
+      error: (err as Error).message || 'Tool execution failed',
+    };
   }
 }
 
@@ -206,7 +211,9 @@ export async function executeToolEnvelope(
   return results;
 }
 
-export async function listToolsForContext(ctx: ToolContext): Promise<import('../tools/types').ToolDefinition[]> {
+export async function listToolsForContext(
+  ctx: ToolContext,
+): Promise<import('../tools/types').ToolDefinition[]> {
   const base = listAllTools();
 
   if (ctx.orgId) {
@@ -216,4 +223,3 @@ export async function listToolsForContext(ctx: ToolContext): Promise<import('../
 
   return base;
 }
-

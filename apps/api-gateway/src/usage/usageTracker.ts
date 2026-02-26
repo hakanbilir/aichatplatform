@@ -10,10 +10,10 @@ export async function recordUsage(event: UsageEvent) {
     where: {
       OR: [
         { orgId: event.orgId, provider: event.provider, modelName: event.modelName },
-        { orgId: null, provider: event.provider, modelName: event.modelName }
+        { orgId: null, provider: event.provider, modelName: event.modelName },
       ],
-      isEnabled: true
-    }
+      isEnabled: true,
+    },
   });
 
   const inputPriceMicros = modelEntry?.inputPriceMicros ?? 0;
@@ -36,14 +36,14 @@ export async function recordUsage(event: UsageEvent) {
           date: today,
           provider: event.provider,
           modelName: event.modelName,
-          feature: event.feature
-        }
+          feature: event.feature,
+        },
       },
       update: {
         requestCount: { increment: 1 },
         inputTokens: { increment: event.inputTokens },
         outputTokens: { increment: event.outputTokens },
-        estimatedCostMicros: { increment: estimatedCostMicros }
+        estimatedCostMicros: { increment: estimatedCostMicros },
       },
       create: {
         orgId: event.orgId,
@@ -54,8 +54,8 @@ export async function recordUsage(event: UsageEvent) {
         requestCount: 1,
         inputTokens: event.inputTokens,
         outputTokens: event.outputTokens,
-        estimatedCostMicros
-      }
+        estimatedCostMicros,
+      },
     }),
 
     // User-level aggregate (if userId provided)
@@ -68,14 +68,14 @@ export async function recordUsage(event: UsageEvent) {
               date: today,
               provider: event.provider,
               modelName: event.modelName,
-              feature: event.feature
-            }
+              feature: event.feature,
+            },
           },
           update: {
             requestCount: { increment: 1 },
             inputTokens: { increment: event.inputTokens },
             outputTokens: { increment: event.outputTokens },
-            estimatedCostMicros: { increment: estimatedCostMicros }
+            estimatedCostMicros: { increment: estimatedCostMicros },
           },
           create: {
             orgId: event.orgId,
@@ -87,10 +87,10 @@ export async function recordUsage(event: UsageEvent) {
             requestCount: 1,
             inputTokens: event.inputTokens,
             outputTokens: event.outputTokens,
-            estimatedCostMicros
-          }
+            estimatedCostMicros,
+          },
         })
-      : Promise.resolve()
+      : Promise.resolve(),
   ]);
 
   // Optional: emitEvent('usage.recorded', { orgId: event.orgId, ... })

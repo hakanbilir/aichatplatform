@@ -1,27 +1,30 @@
 **Note:** This project has been migrated from Docker to PM2 process management. See `/root/PM2_MIGRATION_GUIDE.md` for details.
 
 ---
+
 name: Start Docker and Application
 overview: Verify Docker is running, then build and start all application services using Docker Compose, including database migrations.
 todos:
-  - id: verify-docker
-    content: Check if Docker daemon is running using `docker info` or `docker ps
-    status: completed
-  - id: check-env
-    content: Verify .env file exists or inform about default values
-    status: completed
-  - id: build-start
-    content: Run `docker compose up --build -d` to build and start all services
-    status: completed
-  - id: wait-healthy
-    content: Wait for services to pass health checks (monitor with `docker compose ps`)
-    status: completed
-  - id: run-migrations
-    content: "Execute database migrations: `docker compose exec api-gateway pnpm --filter @ai-chat/db prisma:migrate:deploy`"
-    status: completed
-  - id: verify-services
-    content: Verify all services are running with `docker compose ps`
-    status: completed
+
+- id: verify-docker
+  content: Check if Docker daemon is running using `docker info` or `docker ps
+  status: completed
+- id: check-env
+  content: Verify .env file exists or inform about default values
+  status: completed
+- id: build-start
+  content: Run `docker compose up --build -d` to build and start all services
+  status: completed
+- id: wait-healthy
+  content: Wait for services to pass health checks (monitor with `docker compose ps`)
+  status: completed
+- id: run-migrations
+  content: "Execute database migrations: `docker compose exec api-gateway pnpm --filter @ai-chat/db prisma:migrate:deploy`"
+  status: completed
+- id: verify-services
+  content: Verify all services are running with `docker compose ps`
+  status: completed
+
 ---
 
 # Start Docker and Application Stack

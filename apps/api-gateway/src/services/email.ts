@@ -44,8 +44,8 @@ function initializeTransporter(): nodemailer.Transporter | null {
       secure: false, // Use TLS / TLS kullan
       auth: {
         user: secrets.smtpUser,
-        pass: secrets.smtpPassword
-      }
+        pass: secrets.smtpPassword,
+      },
     });
 
     logger.info('Email transporter initialized successfully');
@@ -76,7 +76,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       to: options.to,
       subject: options.subject,
       html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, '') // Strip HTML for text version / HTML'i temizle
+      text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML for text version / HTML'i temizle
     });
 
     logger.info({ to: options.to, subject: options.subject }, 'Email sent successfully');
@@ -104,13 +104,13 @@ export async function sendInvitationEmail(
   inviterName: string,
   token: string,
   expiresAt: Date,
-  baseUrl: string = process.env.APP_BASE_URL || 'http://localhost:3000'
+  baseUrl: string = process.env.APP_BASE_URL || 'http://localhost:3000',
 ): Promise<boolean> {
   const invitationUrl = `${baseUrl}/auth/accept-invitation?token=${token}`;
   const expiresDate = expiresAt.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   });
 
   const html = `
@@ -200,6 +200,6 @@ This is an automated message from the AI Chat Platform.
     to: email,
     subject: `Invitation to join ${orgName}`,
     html,
-    text
+    text,
   });
 }

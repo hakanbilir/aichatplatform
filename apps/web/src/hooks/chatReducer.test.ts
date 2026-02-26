@@ -30,9 +30,9 @@ describe('chatReducer', () => {
 
   it('should return same state object on THOUGHT_TOKEN action', () => {
     const initialState: ChatState = {
-        ...initialChatState,
-        status: 'streaming',
-        isThinking: true
+      ...initialChatState,
+      status: 'streaming',
+      isThinking: true,
     };
 
     const newState = chatReducer(initialState, { type: 'THOUGHT_TOKEN', token: 'thinking...' });

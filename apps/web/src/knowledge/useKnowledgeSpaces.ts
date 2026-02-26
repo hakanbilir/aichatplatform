@@ -51,7 +51,6 @@ export function useKnowledgeSpaces(orgId: string | null) {
     spaces,
     loading,
     error,
-    createSpace
+    createSpace,
   };
 }
-

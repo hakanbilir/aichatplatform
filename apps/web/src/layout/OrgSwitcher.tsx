@@ -66,4 +66,3 @@ export const OrgSwitcher: React.FC = () => {
     </Box>
   );
 };
-

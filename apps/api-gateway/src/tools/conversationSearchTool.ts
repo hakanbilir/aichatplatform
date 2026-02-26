@@ -21,7 +21,10 @@ interface ConversationSearchResult {
   matches: ConversationSearchResultItem[];
 }
 
-export const conversationSearchTool: ToolDefinition<ConversationSearchArgs, ConversationSearchResult> = {
+export const conversationSearchTool: ToolDefinition<
+  ConversationSearchArgs,
+  ConversationSearchResult
+> = {
   name: 'conversation.searchMessages',
   description:
     'Searches recent messages in this conversation for the given query string and returns the best matches.',
@@ -60,11 +63,13 @@ export const conversationSearchTool: ToolDefinition<ConversationSearchArgs, Conv
       },
     });
 
-    const matches: ConversationSearchResultItem[] = messages.map((m: { role: string; content: string; createdAt: Date }) => ({
-      role: m.role as ConversationSearchResultItem['role'],
-      content: m.content,
-      createdAt: m.createdAt.toISOString(),
-    }));
+    const matches: ConversationSearchResultItem[] = messages.map(
+      (m: { role: string; content: string; createdAt: Date }) => ({
+        role: m.role as ConversationSearchResultItem['role'],
+        content: m.content,
+        createdAt: m.createdAt.toISOString(),
+      }),
+    );
 
     return {
       conversationId: ctx.conversationId,
@@ -73,4 +78,3 @@ export const conversationSearchTool: ToolDefinition<ConversationSearchArgs, Conv
     };
   },
 };
-

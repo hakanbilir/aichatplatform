@@ -22,7 +22,10 @@ function run() {
   let lastMessageAt: Date | null = null;
 
   // Per-day buckets
-  const dayBuckets = new Map<string, { promptTokens: number; completionTokens: number; totalTokens: number }>();
+  const dayBuckets = new Map<
+    string,
+    { promptTokens: number; completionTokens: number; totalTokens: number }
+  >();
 
   // Per-model buckets
   const modelBuckets = new Map<
@@ -45,7 +48,8 @@ function run() {
     }
 
     const promptTokens = typeof usage.promptTokens === 'number' ? usage.promptTokens : 0;
-    const completionTokens = typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
+    const completionTokens =
+      typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
     const totalTokens = promptTokens + completionTokens;
 
     totalPromptTokens += promptTokens;
@@ -158,7 +162,7 @@ function run() {
       firstMessageAt,
       lastMessageAt,
       byDay,
-      byModel
+      byModel,
     });
   }
 }

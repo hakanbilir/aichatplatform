@@ -18,7 +18,7 @@ import {
   Tab,
   Tabs,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
@@ -69,7 +69,7 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
   currentUserId,
   onApplyPrompt,
   onNewTemplate,
-  onEditTemplate
+  onEditTemplate,
 }) => {
   const { t } = useTranslation(['prompts', 'common']);
   const { templates, loading } = usePromptTemplates(orgId);
@@ -116,11 +116,11 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
   };
 
   const templateVars = useMemo(() => {
-      if (!selectedTemplate?.latestVersion?.variables) return [];
-      return Object.entries(selectedTemplate.latestVersion.variables).map(([key, val]) => ({
-          name: key,
-          ...val
-      }));
+    if (!selectedTemplate?.latestVersion?.variables) return [];
+    return Object.entries(selectedTemplate.latestVersion.variables).map(([key, val]) => ({
+      name: key,
+      ...val,
+    }));
   }, [selectedTemplate]);
 
   return (
@@ -135,11 +135,13 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
             borderRadius: 3,
             overflow: 'hidden',
             backgroundImage: gradientBg,
-            backgroundColor: 'background.default'
-          }
+            backgroundColor: 'background.default',
+          },
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <DialogTitle
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        >
           <Box display="flex" alignItems="center" gap={1}>
             <AutoAwesomeIcon fontSize="small" />
             <Typography variant="subtitle1">{t('library.title')}</Typography>
@@ -198,10 +200,17 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
                   const canEdit = tpl.createdById === currentUserId && onEditTemplate;
 
                   return (
-                    <ListItem key={tpl.id} disablePadding
+                    <ListItem
+                      key={tpl.id}
+                      disablePadding
                       secondaryAction={
                         canEdit ? (
-                          <IconButton edge="end" aria-label="edit" size="small" onClick={() => onEditTemplate(tpl)}>
+                          <IconButton
+                            edge="end"
+                            aria-label="edit"
+                            size="small"
+                            onClick={() => onEditTemplate(tpl)}
+                          >
                             <EditIcon fontSize="small" />
                           </IconButton>
                         ) : null
@@ -214,9 +223,9 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
                           mb: 0.5,
                           pr: canEdit ? 6 : 2, // make space for edit button
                           '&:hover': {
-                            backgroundColor: 'action.hover'
+                            backgroundColor: 'action.hover',
                           },
-                          transition: 'background-color 120ms ease-out'
+                          transition: 'background-color 120ms ease-out',
                         }}
                       >
                         <ListItemText
@@ -224,16 +233,16 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
                             <Box display="flex" alignItems="center" gap={1}>
                               <Typography variant="body2">{tpl.name}</Typography>
                               {isOrg && (
-                                <Chip size="small" label={t('library.orgChip')} variant="outlined" />
+                                <Chip
+                                  size="small"
+                                  label={t('library.orgChip')}
+                                  variant="outlined"
+                                />
                               )}
                             </Box>
                           }
                           secondary={
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              noWrap
-                            >
+                            <Typography variant="caption" color="text.secondary" noWrap>
                               {tpl.description || version.systemPrompt.slice(0, 80)}
                             </Typography>
                           }
@@ -267,17 +276,17 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
             </Typography>
           )}
           {templateVars.map((v) => (
-              <TextField
-                key={v.name}
-                label={v.description || v.name}
-                fullWidth
-                multiline={false}
-                type="text"
-                value={variables[v.name] || ''}
-                onChange={(e) => handleVariableChange(v.name, e.target.value)}
-                required={v.required}
-              />
-            ))}
+            <TextField
+              key={v.name}
+              label={v.description || v.name}
+              fullWidth
+              multiline={false}
+              type="text"
+              value={variables[v.name] || ''}
+              onChange={(e) => handleVariableChange(v.name, e.target.value)}
+              required={v.required}
+            />
+          ))}
         </DialogContent>
         <DialogActions>
           <Button

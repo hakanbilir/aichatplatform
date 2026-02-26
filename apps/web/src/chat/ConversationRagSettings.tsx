@@ -1,15 +1,7 @@
 // apps/web/src/chat/ConversationRagSettings.tsx
 
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  FormControlLabel,
-  MenuItem,
-  Select,
-  Slider,
-  Switch,
-  Typography
-} from '@mui/material';
+import { Box, FormControlLabel, MenuItem, Select, Slider, Switch, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
@@ -34,14 +26,14 @@ export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps
   conversationId,
   orgId,
   value,
-  onChange
+  onChange,
 }) => {
   const { t } = useTranslation('rag');
   const { token } = useAuth();
   const { spaces } = useKnowledgeSpaces(orgId || null);
 
-  const [local, setLocal] = useState<ConversationRagSettings>(() =>
-    value ?? { enabled: false, spaceId: null, maxChunks: 4 }
+  const [local, setLocal] = useState<ConversationRagSettings>(
+    () => value ?? { enabled: false, spaceId: null, maxChunks: 4 },
   );
 
   useEffect(() => {
@@ -56,14 +48,14 @@ export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps
     if (!token) return;
     setLocal(next);
     onChange(next);
-    
+
     // Update conversation's kbConfig via settings endpoint
     const kbConfig = {
-      rag: next
+      rag: next,
     };
-    
+
     await updateConversationSettings(token, conversationId, {
-      kbConfig
+      kbConfig,
     });
   };
 
@@ -142,4 +134,3 @@ export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps
     </Box>
   );
 };
-

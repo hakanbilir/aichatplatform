@@ -51,18 +51,18 @@ export interface ConversationSearchPayload {
 export async function searchConversationsApi(
   token: string,
   orgId: string,
-  payload: ConversationSearchPayload
+  payload: ConversationSearchPayload,
 ): Promise<ConversationSearchResponse> {
   return apiRequest<ConversationSearchResponse>(
     `/orgs/${orgId}/search`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     },
-    token
+    token,
   );
 }
 
@@ -70,7 +70,7 @@ export async function searchConversationsStream(
   token: string,
   orgId: string,
   payload: ConversationSearchPayload,
-  onData: (event: string, data: any) => void
+  onData: (event: string, data: any) => void,
 ): Promise<void> {
   const url = `${API_BASE_URL}/orgs/${orgId}/search`;
 
@@ -78,9 +78,9 @@ export async function searchConversationsStream(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ ...payload, stream: true })
+    body: JSON.stringify({ ...payload, stream: true }),
   });
 
   if (!response.body) return;

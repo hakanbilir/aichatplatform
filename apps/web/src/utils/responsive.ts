@@ -18,10 +18,9 @@ export const breakpoints = {
 // Mevcut görünüm alanının bir kırılma noktasıyla eşleşip eşleşmediğini kontrol etmek için hook
 export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
-  
-  const query = breakpoint === 'xxl'
-    ? `(min-width:${breakpoints.xxl}px)`
-    : theme.breakpoints.up(breakpoint);
+
+  const query =
+    breakpoint === 'xxl' ? `(min-width:${breakpoints.xxl}px)` : theme.breakpoints.up(breakpoint);
 
   return useMediaQuery(query);
 };
@@ -30,26 +29,24 @@ export const useBreakpoint = (breakpoint: Breakpoint | 'xxl') => {
 // Mevcut görünüm alanının bir kırılma noktasının altında olup olmadığını kontrol etmek için hook
 export const useBreakpointDown = (breakpoint: Breakpoint | 'xxl') => {
   const theme = useTheme();
-  
-  const query = breakpoint === 'xxl'
-    ? `(max-width:${breakpoints.xxl - 1}px)`
-    : theme.breakpoints.down(breakpoint);
+
+  const query =
+    breakpoint === 'xxl'
+      ? `(max-width:${breakpoints.xxl - 1}px)`
+      : theme.breakpoints.down(breakpoint);
 
   return useMediaQuery(query);
 };
 
 // Hook to check if current viewport is between two breakpoints
 // Mevcut görünüm alanının iki kırılma noktası arasında olup olmadığını kontrol etmek için hook
-export const useBreakpointBetween = (
-  start: Breakpoint | 'xxl',
-  end: Breakpoint | 'xxl'
-) => {
+export const useBreakpointBetween = (start: Breakpoint | 'xxl', end: Breakpoint | 'xxl') => {
   const theme = useTheme();
   // Ensure we don't access theme.breakpoints.values with 'xxl'
   // 'xxl' ile theme.breakpoints.values'e erişmediğimizden emin olun
   const startValue = start === 'xxl' ? breakpoints.xxl : theme.breakpoints.values[start];
   const endValue = end === 'xxl' ? breakpoints.xxl : theme.breakpoints.values[end];
-  
+
   const query = `(min-width:${startValue}px) and (max-width:${endValue - 1}px)`;
 
   return useMediaQuery(query);
@@ -78,12 +75,12 @@ export const useIsDesktop = () => {
 export const responsiveValue = (
   min: number | string,
   preferred: number | string,
-  max: number | string
+  max: number | string,
 ): string => {
   const minValue = typeof min === 'number' ? `${min}px` : min;
   const preferredValue = typeof preferred === 'number' ? `${preferred}px` : preferred;
   const maxValue = typeof max === 'number' ? `${max}px` : max;
-  
+
   return `clamp(${minValue}, ${preferredValue}, ${maxValue})`;
 };
 
@@ -92,22 +89,16 @@ export const responsiveValue = (
 export const responsiveFontSize = (
   min: number,
   preferred: number | string,
-  max: number
+  max: number,
 ): string => {
-  const preferredValue = typeof preferred === 'number' 
-    ? `${preferred}px` 
-    : preferred;
-  
+  const preferredValue = typeof preferred === 'number' ? `${preferred}px` : preferred;
+
   return responsiveValue(min, preferredValue, max);
 };
 
 // Generate responsive spacing
 // Duyarlı boşluk oluştur
-export const responsiveSpacing = (
-  min: number,
-  preferred: number | string,
-  max: number
-): string => {
+export const responsiveSpacing = (min: number, preferred: number | string, max: number): string => {
   return responsiveValue(min, preferred, max);
 };
 
@@ -122,7 +113,7 @@ export const getResponsiveColumns = (
     lg?: number;
     xl?: number;
     xxl?: number;
-  }
+  },
 ): number => {
   switch (breakpoint) {
     case 'xs':
@@ -144,16 +135,14 @@ export const getResponsiveColumns = (
 
 // Generate responsive grid template columns
 // Duyarlı ızgara şablon sütunları oluştur
-export const responsiveGridColumns = (
-  columns: {
-    xs?: number;
-    sm?: number;
-    md?: number;
-    lg?: number;
-    xl?: number;
-    xxl?: number;
-  }
-): Record<string, string> => {
+export const responsiveGridColumns = (columns: {
+  xs?: number;
+  sm?: number;
+  md?: number;
+  lg?: number;
+  xl?: number;
+  xxl?: number;
+}): Record<string, string> => {
   return {
     xs: `repeat(${columns.xs || 1}, 1fr)`,
     sm: `repeat(${columns.sm || columns.xs || 2}, 1fr)`,

@@ -43,4 +43,3 @@ export interface ToolExecutionResult {
 export interface ToolCallEnvelope {
   toolCalls: ToolCall[];
 }
-

@@ -28,7 +28,7 @@ export const EcoModeProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.setItem('eco-mode', String(isEcoMode));
   }, [isEcoMode]);
 
-  const toggleEcoMode = () => setIsEcoMode(prev => !prev);
+  const toggleEcoMode = () => setIsEcoMode((prev) => !prev);
 
   return (
     <EcoModeContext.Provider value={{ isEcoMode, toggleEcoMode }}>

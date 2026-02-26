@@ -9,7 +9,7 @@ import {
   fetchWebhooks,
   createWebhookApi,
   updateWebhookApi,
-  deleteWebhookApi
+  deleteWebhookApi,
 } from '../api/webhooks';
 
 export function useWebhooks(orgId: string | null) {
@@ -70,7 +70,6 @@ export function useWebhooks(orgId: string | null) {
     error,
     create,
     update,
-    remove
+    remove,
   };
 }
-

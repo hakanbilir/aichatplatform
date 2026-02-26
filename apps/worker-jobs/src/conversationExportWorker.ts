@@ -16,7 +16,7 @@ async function ensureExportDir() {
 async function buildExportContent(
   format: ConversationExportFormat,
   conversation: { title: string | null },
-  messages: Array<{ id: string; createdAt: Date; role: string; content: string }>
+  messages: Array<{ id: string; createdAt: Date; role: string; content: string }>,
 ): Promise<string> {
   if (format === 'jsonl') {
     const lines = messages.map((m) =>
@@ -24,8 +24,8 @@ async function buildExportContent(
         id: m.id,
         createdAt: m.createdAt,
         role: m.role,
-        content: m.content
-      })
+        content: m.content,
+      }),
     );
     return lines.join('\n');
   }
@@ -44,11 +44,8 @@ async function buildExportContent(
         (m) =>
           `<div class="message"><div class="meta">${m.role.toUpperCase()} · ${m.createdAt.toISOString()}</div><pre>${
             // basic escaping
-            String(m.content)
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-          }</pre></div>`
+            String(m.content).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          }</pre></div>`,
       )
       .join('\n');
 
@@ -63,14 +60,14 @@ export async function processConversationExportBatch(limit = 10) {
 
   const jobs = await prisma.conversationExport.findMany({
     where: { status: 'pending' },
-    take: limit
+    take: limit,
   });
 
   for (const job of jobs) {
     try {
       await prisma.conversationExport.update({
         where: { id: job.id },
-        data: { status: 'processing' }
+        data: { status: 'processing' },
       });
 
       if (!job.conversationId) {
@@ -79,7 +76,7 @@ export async function processConversationExportBatch(limit = 10) {
 
       const conversation = await prisma.conversation.findUnique({
         where: { id: job.conversationId },
-        include: { messages: { orderBy: { createdAt: 'asc' } } }
+        include: { messages: { orderBy: { createdAt: 'asc' } } },
       });
 
       if (!conversation) {
@@ -89,7 +86,7 @@ export async function processConversationExportBatch(limit = 10) {
       const content = await buildExportContent(
         job.format as ConversationExportFormat,
         conversation,
-        conversation.messages
+        conversation.messages,
       );
 
       const filename = `${job.id}.${job.format}`;
@@ -101,16 +98,16 @@ export async function processConversationExportBatch(limit = 10) {
         where: { id: job.id },
         data: {
           status: 'completed',
-          storageKey: fullPath
-        }
+          storageKey: fullPath,
+        },
       });
     } catch (err) {
       await prisma.conversationExport.update({
         where: { id: job.id },
         data: {
           status: 'failed',
-          errorMessage: (err as Error).message
-        }
+          errorMessage: (err as Error).message,
+        },
       });
     }
   }

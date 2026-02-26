@@ -13,7 +13,7 @@ import {
   DialogTitle,
   IconButton,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
@@ -51,7 +51,7 @@ export const WebhooksPage: React.FC = () => {
       name: name.trim(),
       description: description.trim() || undefined,
       url: url.trim(),
-      eventTypes: types.length > 0 ? types : undefined
+      eventTypes: types.length > 0 ? types : undefined,
     });
 
     setDialogOpen(false);
@@ -70,7 +70,7 @@ export const WebhooksPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -125,9 +125,9 @@ export const WebhooksPage: React.FC = () => {
                     flexDirection: 'column',
                     gap: 0.5,
                     '&:hover': {
-                      borderColor: 'primary.main'
+                      borderColor: 'primary.main',
                     },
-                    transition: 'border-color 120ms ease-out'
+                    transition: 'border-color 120ms ease-out',
                   }}
                 >
                   <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -145,11 +145,7 @@ export const WebhooksPage: React.FC = () => {
                         variant={wh.isEnabled ? 'filled' : 'outlined'}
                         onClick={() => update(wh.id, { isEnabled: !wh.isEnabled })}
                       />
-                      <IconButton
-                        size="small"
-                        onClick={() => remove(wh.id)}
-                        title={t('delete')}
-                      >
+                      <IconButton size="small" onClick={() => remove(wh.id)} title={t('delete')}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Box>
@@ -215,11 +211,7 @@ export const WebhooksPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>{t('cancel', { ns: 'common' })}</Button>
-          <Button
-            variant="contained"
-            onClick={handleCreate}
-            disabled={!name.trim() || !url.trim()}
-          >
+          <Button variant="contained" onClick={handleCreate} disabled={!name.trim() || !url.trim()}>
             {t('create')}
           </Button>
         </DialogActions>
@@ -227,4 +219,3 @@ export const WebhooksPage: React.FC = () => {
     </Box>
   );
 };
-

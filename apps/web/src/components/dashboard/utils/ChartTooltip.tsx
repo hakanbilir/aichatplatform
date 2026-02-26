@@ -109,4 +109,3 @@ export const ChartTooltip: React.FC<ChartTooltipProps> = ({
     </Paper>
   );
 };
-

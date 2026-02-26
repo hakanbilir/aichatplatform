@@ -9,12 +9,22 @@ import { assertOrgPermission, getUserOrgRole } from '../rbac/guards';
 
 const createOrgBodySchema = z.object({
   name: z.string().min(1).max(200),
-  slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/).optional(),
+  slug: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
 });
 
 const updateOrgBodySchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/).optional(),
+  slug: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
 });
 
 export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
@@ -30,12 +40,14 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
       },
     });
 
-    const orgs = memberships.map((m: { org: { id: string; name: string; slug: string | null }; role: string }) => ({
-      id: m.org.id,
-      name: m.org.name,
-      slug: m.org.slug,
-      role: m.role,
-    }));
+    const orgs = memberships.map(
+      (m: { org: { id: string; name: string; slug: string | null }; role: string }) => ({
+        id: m.org.id,
+        name: m.org.name,
+        slug: m.org.slug,
+        role: m.role,
+      }),
+    );
 
     return reply.send({ organizations: orgs });
   });
@@ -47,12 +59,22 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
     const parseBody = createOrgBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgData'), details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({
+          error: request.i18n.t('errors.invalidOrgData'),
+          details: parseBody.error.format(),
+        });
     }
 
     const { name, slug: providedSlug } = parseBody.data;
 
-    const orgSlugBase = providedSlug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const orgSlugBase =
+      providedSlug ||
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 
     let slug = orgSlugBase || 'workspace';
     let suffix = 1;
@@ -138,7 +160,12 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
     const parseBody = updateOrgBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidOrgUpdate'), details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({
+          error: request.i18n.t('errors.invalidOrgUpdate'),
+          details: parseBody.error.format(),
+        });
     }
 
     await assertOrgPermission(
@@ -152,7 +179,9 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
     if (parseBody.data.slug !== undefined) {
       // Check slug uniqueness
       // Slug benzersizliğini kontrol et
-      const existing = await prisma.organization.findUnique({ where: { slug: parseBody.data.slug } });
+      const existing = await prisma.organization.findUnique({
+        where: { slug: parseBody.data.slug },
+      });
       if (existing && existing.id !== orgId) {
         return reply.code(409).send({ error: request.i18n.t('errors.slugTaken') });
       }
@@ -228,13 +257,20 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
     });
 
     return reply.send({
-      members: members.map((m: { id: string; userId: string; user: { email: string; name: string | null }; role: string }) => ({
-        id: m.id,
-        userId: m.userId,
-        email: m.user.email,
-        name: m.user.name,
-        role: m.role,
-      })),
+      members: members.map(
+        (m: {
+          id: string;
+          userId: string;
+          user: { email: string; name: string | null };
+          role: string;
+        }) => ({
+          id: m.id,
+          userId: m.userId,
+          email: m.user.email,
+          name: m.user.name,
+          role: m.role,
+        }),
+      ),
     });
   });
 
@@ -258,7 +294,12 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
     const parseBody = bodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidMemberData'), details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({
+          error: request.i18n.t('errors.invalidMemberData'),
+          details: parseBody.error.format(),
+        });
     }
 
     const requesterRole = await assertOrgPermission(
@@ -312,104 +353,117 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
   // Update member role (member:update)
   // Üye rolünü güncelle (member:update)
-  app.patch('/orgs/:id/members/:memberId', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.patch(
+    '/orgs/:id/members/:memberId',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    const paramsSchema = z.object({
-      id: z.string().min(1),
-      memberId: z.string().min(1),
-    });
-    const parseParams = paramsSchema.safeParse(request.params);
-    if (!parseParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidParams') });
-    }
-
-    const orgId = parseParams.data.id;
-    const memberId = parseParams.data.memberId;
-
-    const bodySchema = z.object({
-      role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']),
-    });
-
-    const parseBody = bodySchema.safeParse(request.body);
-    if (!parseBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidMemberUpdate'), details: parseBody.error.format() });
-    }
-
-    const requesterRole = await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'member:update',
-    );
-
-    // Verify member belongs to org (IDOR check)
-    const member = await prisma.orgMember.findUnique({ where: { id: memberId } });
-    if (!member || member.orgId !== orgId) {
-      return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
-    }
-
-    if (!payload.isSuperadmin) {
-      // Optimized: requesterRole is already fetched by assertOrgPermission
-      if (parseBody.data.role === 'OWNER' && requesterRole !== 'OWNER') {
-        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
+      const paramsSchema = z.object({
+        id: z.string().min(1),
+        memberId: z.string().min(1),
+      });
+      const parseParams = paramsSchema.safeParse(request.params);
+      if (!parseParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidParams') });
       }
-      if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
-        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanUpdateOwner') });
+
+      const orgId = parseParams.data.id;
+      const memberId = parseParams.data.memberId;
+
+      const bodySchema = z.object({
+        role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']),
+      });
+
+      const parseBody = bodySchema.safeParse(request.body);
+      if (!parseBody.success) {
+        return reply
+          .code(400)
+          .send({
+            error: request.i18n.t('errors.invalidMemberUpdate'),
+            details: parseBody.error.format(),
+          });
       }
-    }
 
-    const updated = await prisma.orgMember.update({
-      where: { id: memberId },
-      data: {
-        role: parseBody.data.role as any,
-      },
-    });
+      const requesterRole = await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'member:update',
+      );
 
-    return reply.send({
-      id: updated.id,
-      userId: updated.userId,
-      role: updated.role,
-    });
-  });
+      // Verify member belongs to org (IDOR check)
+      const member = await prisma.orgMember.findUnique({ where: { id: memberId } });
+      if (!member || member.orgId !== orgId) {
+        return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
+      }
+
+      if (!payload.isSuperadmin) {
+        // Optimized: requesterRole is already fetched by assertOrgPermission
+        if (parseBody.data.role === 'OWNER' && requesterRole !== 'OWNER') {
+          return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanAssignOwner') });
+        }
+        if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
+          return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanUpdateOwner') });
+        }
+      }
+
+      const updated = await prisma.orgMember.update({
+        where: { id: memberId },
+        data: {
+          role: parseBody.data.role as any,
+        },
+      });
+
+      return reply.send({
+        id: updated.id,
+        userId: updated.userId,
+        role: updated.role,
+      });
+    },
+  );
 
   // Remove member (member:remove)
   // Üyeyi kaldır (member:remove)
-  app.delete('/orgs/:id/members/:memberId', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.delete(
+    '/orgs/:id/members/:memberId',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    const paramsSchema = z.object({
-      id: z.string().min(1),
-      memberId: z.string().min(1),
-    });
-    const parseParams = paramsSchema.safeParse(request.params);
-    if (!parseParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidParams') });
-    }
-
-    const orgId = parseParams.data.id;
-    const memberId = parseParams.data.memberId;
-
-    const requesterRole = await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'member:remove',
-    );
-
-    // Verify member belongs to org (IDOR check)
-    const member = await prisma.orgMember.findUnique({ where: { id: memberId } });
-    if (!member || member.orgId !== orgId) {
-      return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
-    }
-
-    if (!payload.isSuperadmin) {
-      // Optimized: requesterRole is already fetched by assertOrgPermission
-      if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
-        return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanRemoveOwner') });
+      const paramsSchema = z.object({
+        id: z.string().min(1),
+        memberId: z.string().min(1),
+      });
+      const parseParams = paramsSchema.safeParse(request.params);
+      if (!parseParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidParams') });
       }
-    }
 
-    await prisma.orgMember.delete({ where: { id: memberId } });
+      const orgId = parseParams.data.id;
+      const memberId = parseParams.data.memberId;
 
-    return reply.code(204).send();
-  });
+      const requesterRole = await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'member:remove',
+      );
+
+      // Verify member belongs to org (IDOR check)
+      const member = await prisma.orgMember.findUnique({ where: { id: memberId } });
+      if (!member || member.orgId !== orgId) {
+        return reply.code(404).send({ error: request.i18n.t('errors.notFound') });
+      }
+
+      if (!payload.isSuperadmin) {
+        // Optimized: requesterRole is already fetched by assertOrgPermission
+        if (member.role === 'OWNER' && requesterRole !== 'OWNER') {
+          return reply.code(403).send({ error: request.i18n.t('errors.onlyOwnerCanRemoveOwner') });
+        }
+      }
+
+      await prisma.orgMember.delete({ where: { id: memberId } });
+
+      return reply.code(204).send();
+    },
+  );
 }

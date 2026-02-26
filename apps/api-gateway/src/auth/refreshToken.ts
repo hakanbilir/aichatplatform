@@ -20,8 +20,8 @@ export async function generateRefreshToken(userId: string): Promise<RefreshToken
     data: {
       token,
       userId,
-      expiresAt
-    }
+      expiresAt,
+    },
   });
 
   return { token, expiresAt };
@@ -30,7 +30,7 @@ export async function generateRefreshToken(userId: string): Promise<RefreshToken
 export async function verifyRefreshToken(token: string): Promise<{ userId: string } | null> {
   const refreshToken = await prisma.refreshToken.findUnique({
     where: { token },
-    include: { user: { select: { id: true } } }
+    include: { user: { select: { id: true } } },
   });
 
   if (!refreshToken) {
@@ -51,7 +51,7 @@ export async function verifyRefreshToken(token: string): Promise<{ userId: strin
 export async function revokeRefreshToken(token: string): Promise<void> {
   await prisma.refreshToken.updateMany({
     where: { token },
-    data: { isRevoked: true }
+    data: { isRevoked: true },
   });
 }
 
@@ -59,11 +59,11 @@ export async function revokeAllUserRefreshTokens(userId: string): Promise<void> 
   await prisma.refreshToken.updateMany({
     where: {
       userId,
-      isRevoked: false
+      isRevoked: false,
     },
     data: {
-      isRevoked: true
-    }
+      isRevoked: true,
+    },
   });
 }
 
@@ -72,8 +72,3 @@ export async function revokeAllUserRefreshTokens(userId: string): Promise<void> 
 // Note: This function has been moved to @ai-chat/db package
 // Not: Bu fonksiyon @ai-chat/db paketine taşınmıştır
 export { cleanupExpiredTokens } from '@ai-chat/db';
-
-
-
-
-

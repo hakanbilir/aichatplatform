@@ -10,17 +10,14 @@ import {
   TextField,
   Typography,
   IconButton,
-  InputAdornment
+  InputAdornment,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
 
-import {
-  PublicSharedConversation,
-  fetchPublicSharedConversation
-} from '../api/sharing';
+import { PublicSharedConversation, fetchPublicSharedConversation } from '../api/sharing';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
@@ -92,21 +89,16 @@ export const PublicSharedConversationPage: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
       >
         <RefractionFilter />
         {/* Language Switcher in top-right corner / Sağ üst köşede dil değiştirici */}
-        <Box
-          position="absolute"
-          top={16}
-          right={16}
-          zIndex={10}
-        >
+        <Box position="absolute" top={16} right={16} zIndex={10}>
           <LanguageSwitcher />
         </Box>
         <GlassPanel refractive={!isEcoMode} sx={{ p: 4 }}>
-            <KineticTypography variant="body1">{t('loading')}</KineticTypography>
+          <KineticTypography variant="body1">{t('loading')}</KineticTypography>
         </GlassPanel>
       </BentoGrid>
     );
@@ -121,21 +113,18 @@ export const PublicSharedConversationPage: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
       >
         <RefractionFilter />
         {/* Language Switcher in top-right corner / Sağ üst köşede dil değiştirici */}
-        <Box
-          position="absolute"
-          top={16}
-          right={16}
-          zIndex={10}
-        >
+        <Box position="absolute" top={16} right={16} zIndex={10}>
           <LanguageSwitcher />
         </Box>
         <GlassPanel refractive={!isEcoMode} sx={{ p: 4, borderColor: 'error.main' }}>
-            <KineticTypography variant="body1" color="error">{error}</KineticTypography>
+          <KineticTypography variant="body1" color="error">
+            {error}
+          </KineticTypography>
         </GlassPanel>
       </BentoGrid>
     );
@@ -150,18 +139,13 @@ export const PublicSharedConversationPage: React.FC = () => {
         display: 'grid',
         gridTemplateColumns: '1fr', // Single column layout for this page
         gridTemplateRows: 'auto 1fr', // Header area + Content
-        gap: 3
+        gap: 3,
       }}
     >
       <RefractionFilter />
 
       {/* Language Switcher in top-right corner / Sağ üst köşede dil değiştirici */}
-      <Box
-        position="absolute"
-        top={16}
-        right={16}
-        zIndex={10}
-      >
+      <Box position="absolute" top={16} right={16} zIndex={10}>
         <LanguageSwitcher />
       </Box>
 
@@ -197,27 +181,34 @@ export const PublicSharedConversationPage: React.FC = () => {
                 key={msg.id}
                 refractive={!isEcoMode}
                 sx={{
-                    p: 3,
-                    borderLeft: msg.role === 'ASSISTANT' || msg.role === 'assistant'
-                        ? '4px solid #7c4dff'
-                        : '4px solid transparent',
-                    backgroundColor: msg.role === 'USER' || msg.role === 'user'
-                        ? 'rgba(255,255,255,0.02)'
-                        : undefined
+                  p: 3,
+                  borderLeft:
+                    msg.role === 'ASSISTANT' || msg.role === 'assistant'
+                      ? '4px solid #7c4dff'
+                      : '4px solid transparent',
+                  backgroundColor:
+                    msg.role === 'USER' || msg.role === 'user'
+                      ? 'rgba(255,255,255,0.02)'
+                      : undefined,
                 }}
               >
-                  <KineticTypography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                    gutterBottom
-                    sx={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem', fontWeight: 600 }}
-                  >
-                    {msg.role} · {new Date(msg.createdAt).toLocaleString()}
-                  </KineticTypography>
-                  <KineticTypography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                    {msg.content}
-                  </KineticTypography>
+                <KineticTypography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  gutterBottom
+                  sx={{
+                    textTransform: 'uppercase',
+                    letterSpacing: 1,
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {msg.role} · {new Date(msg.createdAt).toLocaleString()}
+                </KineticTypography>
+                <KineticTypography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                  {msg.content}
+                </KineticTypography>
               </GlassPanel>
             ))}
           </Box>
@@ -228,17 +219,17 @@ export const PublicSharedConversationPage: React.FC = () => {
         open={passphraseDialogOpen}
         onClose={() => {}}
         PaperProps={{
-            component: GlassPanel, // Use GlassPanel as the Dialog Paper
-            refractive: !isEcoMode,
-            sx: {
-                backgroundImage: 'none',
-                backgroundColor: 'rgba(20,20,30,0.8)',
-                backdropFilter: 'blur(20px)'
-            }
+          component: GlassPanel, // Use GlassPanel as the Dialog Paper
+          refractive: !isEcoMode,
+          sx: {
+            backgroundImage: 'none',
+            backgroundColor: 'rgba(20,20,30,0.8)',
+            backdropFilter: 'blur(20px)',
+          },
         }}
       >
         <DialogTitle>
-            <KineticTypography variant="h6">{t('enterPassphrase')}</KineticTypography>
+          <KineticTypography variant="h6">{t('enterPassphrase')}</KineticTypography>
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -277,7 +268,12 @@ export const PublicSharedConversationPage: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <SpecularButton onClick={handlePassphraseSubmit} variant="contained" fullWidth aiAction="submit-passphrase">
+          <SpecularButton
+            onClick={handlePassphraseSubmit}
+            variant="contained"
+            fullWidth
+            aiAction="submit-passphrase"
+          >
             {loading ? t('submitting') : t('submit')}
           </SpecularButton>
         </DialogActions>

@@ -5,4 +5,3 @@
   "maxLength": "Must be at most {{max}} characters",
   "passwordMinLength": "Password must be at least 8 characters"
 }
-

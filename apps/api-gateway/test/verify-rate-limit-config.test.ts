@@ -15,16 +15,20 @@ describe('Rate Limit Config Verification', () => {
     });
 
     // Route with stricter limit (Mimics auth.ts)
-    app.get('/auth/login', {
-      config: {
-        rateLimit: {
-          max: 2,
-          timeWindow: '1 minute'
-        }
-      }
-    }, async () => {
-      return { ok: true };
-    });
+    app.get(
+      '/auth/login',
+      {
+        config: {
+          rateLimit: {
+            max: 2,
+            timeWindow: '1 minute',
+          },
+        },
+      },
+      async () => {
+        return { ok: true };
+      },
+    );
 
     // Route with global limit (Mimics other routes)
     app.get('/other', async () => {
@@ -39,7 +43,7 @@ describe('Rate Limit Config Verification', () => {
     const r3 = await app.inject({ method: 'GET', url: '/auth/login' });
 
     if (r3.statusCode !== 429) {
-        console.error(`❌ Strict limit FAILED on /auth/login! Status: ${r3.statusCode}`);
+      console.error(`❌ Strict limit FAILED on /auth/login! Status: ${r3.statusCode}`);
     }
     expect(r3.statusCode).toBe(429);
   });
@@ -51,7 +55,7 @@ describe('Rate Limit Config Verification', () => {
     const o3 = await app.inject({ method: 'GET', url: '/other' });
 
     if (o3.statusCode !== 200) {
-        console.error(`❌ Global limit FAILED on /other! Status: ${o3.statusCode}`);
+      console.error(`❌ Global limit FAILED on /other! Status: ${o3.statusCode}`);
     }
     expect(o3.statusCode).toBe(200);
   });

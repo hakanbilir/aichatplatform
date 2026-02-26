@@ -22,4 +22,3 @@ export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return <>{children}</>;
 };
-

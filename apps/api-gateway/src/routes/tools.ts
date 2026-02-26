@@ -37,7 +37,12 @@ export default async function toolsRoutes(app: FastifyInstance, _opts: FastifyPl
 
     const parsedQuery = listQuerySchema.safeParse(request.query);
     if (!parsedQuery.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidQueryParams'), details: parsedQuery.error.format() });
+      return reply
+        .code(400)
+        .send({
+          error: request.i18n.t('errors.invalidQueryParams'),
+          details: parsedQuery.error.format(),
+        });
     }
 
     const { conversationId, orgId } = parsedQuery.data;
@@ -63,7 +68,9 @@ export default async function toolsRoutes(app: FastifyInstance, _opts: FastifyPl
 
     const parsedBody = executeBodySchema.safeParse(request.body);
     if (!parsedBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsedBody.error.format() });
+      return reply
+        .code(400)
+        .send({ error: request.i18n.t('errors.invalidBody'), details: parsedBody.error.format() });
     }
 
     const { conversationId, orgId, tool, args } = parsedBody.data;
@@ -79,31 +86,39 @@ export default async function toolsRoutes(app: FastifyInstance, _opts: FastifyPl
     return reply.send(result);
   });
 
-  app.post('/tools/execute-envelope', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.post(
+    '/tools/execute-envelope',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    const parsedBody = executeEnvelopeBodySchema.safeParse(request.body);
-    if (!parsedBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidBody'), details: parsedBody.error.format() });
-    }
+      const parsedBody = executeEnvelopeBodySchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        return reply
+          .code(400)
+          .send({
+            error: request.i18n.t('errors.invalidBody'),
+            details: parsedBody.error.format(),
+          });
+      }
 
-    const { conversationId, orgId, toolCalls } = parsedBody.data;
+      const { conversationId, orgId, toolCalls } = parsedBody.data;
 
-    const ctx = {
-      userId: payload.userId,
-      orgId: orgId ?? null,
-      conversationId: conversationId ?? null,
-    };
+      const ctx = {
+        userId: payload.userId,
+        orgId: orgId ?? null,
+        conversationId: conversationId ?? null,
+      };
 
-    // Ensure args is always provided (not optional)
-    const normalizedToolCalls = toolCalls.map((tc) => ({
-      tool: tc.tool,
-      args: tc.args ?? {},
-    }));
+      // Ensure args is always provided (not optional)
+      const normalizedToolCalls = toolCalls.map((tc) => ({
+        tool: tc.tool,
+        args: tc.args ?? {},
+      }));
 
-    const results = await executeToolEnvelope({ toolCalls: normalizedToolCalls }, ctx);
+      const results = await executeToolEnvelope({ toolCalls: normalizedToolCalls }, ctx);
 
-    return reply.send({ results });
-  });
+      return reply.send({ results });
+    },
+  );
 }
-

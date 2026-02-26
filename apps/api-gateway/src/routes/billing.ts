@@ -10,31 +10,39 @@ import { ensureOrgSubscription } from '../billing/billingService';
 import { initPaytrClient } from '../payments/paytrClient';
 
 const changePlanSchema = z.object({
-  planCode: z.string().min(1)
+  planCode: z.string().min(1),
 });
 
-export default async function billingRoutes(
-  app: FastifyInstance,
-  _opts: FastifyPluginOptions
-) {
+export default async function billingRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   // Public list of active plans (can be cached) (46.md)
   app.get('/billing/plans', async (_req, reply) => {
     const plans = await prisma.billingPlan.findMany({
       where: { isActive: true },
-      orderBy: { monthlyPriceMinor: 'asc' }
+      orderBy: { monthlyPriceMinor: 'asc' },
     });
 
     return reply.send({
-      plans: plans.map((p: { id: string; code: string; name: string; description: string | null; currency: string; monthlyPriceMinor: number; yearlyPriceMinor: number | null; limits: unknown }) => ({
-        id: p.id,
-        code: p.code,
-        name: p.name,
-        description: p.description,
-        currency: p.currency,
-        monthlyPriceMinor: p.monthlyPriceMinor,
-        yearlyPriceMinor: p.yearlyPriceMinor,
-        limits: p.limits
-      }))
+      plans: plans.map(
+        (p: {
+          id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          currency: string;
+          monthlyPriceMinor: number;
+          yearlyPriceMinor: number | null;
+          limits: unknown;
+        }) => ({
+          id: p.id,
+          code: p.code,
+          name: p.name,
+          description: p.description,
+          currency: p.currency,
+          monthlyPriceMinor: p.monthlyPriceMinor,
+          yearlyPriceMinor: p.yearlyPriceMinor,
+          limits: p.limits,
+        }),
+      ),
     });
   });
 
@@ -46,7 +54,7 @@ export default async function billingRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:billing:read'
+      'org:billing:read',
     );
 
     const sub = await ensureOrgSubscription(orgId);
@@ -65,7 +73,7 @@ export default async function billingRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:billing:write'
+        'org:billing:write',
       );
 
       const parsed = changePlanSchema.safeParse(req.body);
@@ -78,7 +86,9 @@ export default async function billingRoutes(
         return reply.code(400).send({ error: 'PLAN_CODE_REQUIRED' });
       }
 
-      const plan = await prisma.billingPlan.findFirst({ where: { code: planCode, isActive: true } });
+      const plan = await prisma.billingPlan.findFirst({
+        where: { code: planCode, isActive: true },
+      });
       if (!plan) {
         return reply.code(404).send({ error: 'PLAN_NOT_FOUND' });
       }
@@ -94,8 +104,8 @@ export default async function billingRoutes(
           status: 'pending',
           amountMinor,
           currency: plan.currency,
-          reason: 'plan_change'
-        }
+          reason: 'plan_change',
+        },
       });
 
       const paytr = initPaytrClient();
@@ -119,7 +129,7 @@ export default async function billingRoutes(
         no_installment: 1,
         max_installment: 0,
         user_basket: JSON.stringify([[plan.name, plan.monthlyPriceMinor.toString(), 1]]),
-        debug_on: process.env.NODE_ENV === 'development' ? 1 : 0
+        debug_on: process.env.NODE_ENV === 'development' ? 1 : 0,
       });
 
       if (checkoutRes.status === 'failed' || !checkoutRes.token) {
@@ -127,8 +137,8 @@ export default async function billingRoutes(
           where: { id: tx.id },
           data: {
             status: 'failed',
-            responsePayload: { reason: checkoutRes.reason }
-          }
+            responsePayload: { reason: checkoutRes.reason },
+          },
         });
         return reply.code(500).send({ error: 'PAYTR_CHECKOUT_FAILED', reason: checkoutRes.reason });
       }
@@ -138,15 +148,15 @@ export default async function billingRoutes(
         data: {
           providerReference: checkoutRes.token,
           requestPayload: { planCode },
-          responsePayload: { token: checkoutRes.token }
-        }
+          responsePayload: { token: checkoutRes.token },
+        },
       });
 
       // Frontend will embed PAYTR iframe with this token.
       return reply.send({
         transactionId: tx.id,
-        token: checkoutRes.token
+        token: checkoutRes.token,
       });
-    }
+    },
   );
 }

@@ -17,7 +17,6 @@ import { buildToolsSystemPrompt } from './chatEngineToolsPrompt';
 import { retrieveRelevantChunks } from './knowledgeRetrieval';
 import { getOrgAiPolicy } from './orgAiPolicy';
 
-
 export type ChatRole = 'SYSTEM' | 'USER' | 'ASSISTANT' | 'TOOL';
 
 export interface RunConversationTurnInput {
@@ -39,8 +38,9 @@ export interface RunConversationTurnResult {
   usage?: ProviderUsage;
 }
 
-
-function toTokenUsage(usage: ProviderUsage | undefined): { promptTokens: number; completionTokens: number; totalTokens: number } | undefined {
+function toTokenUsage(
+  usage: ProviderUsage | undefined,
+): { promptTokens: number; completionTokens: number; totalTokens: number } | undefined {
   if (!usage) return undefined;
   const promptTokens = usage.promptTokens ?? 0;
   const completionTokens = usage.completionTokens ?? 0;
@@ -61,7 +61,13 @@ function parseToolEnvelopeCandidate(text: string): ToolCallEnvelope | null {
   }
 }
 
-async function prepareConversationContext(conversationId: string, userId: string, content: string, images?: string[], overrides?: RunConversationTurnInput['overrides']) {
+async function prepareConversationContext(
+  conversationId: string,
+  userId: string,
+  content: string,
+  images?: string[],
+  overrides?: RunConversationTurnInput['overrides'],
+) {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: {
@@ -88,10 +94,10 @@ async function prepareConversationContext(conversationId: string, userId: string
           enableTools: true,
           enableRag: true,
           safetyLevel: true,
-          providerConfig: true
-        }
-      }
-    }
+          providerConfig: true,
+        },
+      },
+    },
   });
 
   if (!conversation) {
@@ -117,13 +123,13 @@ async function prepareConversationContext(conversationId: string, userId: string
         orgId: conversation.orgId,
         userId,
         conversationId: conversation.id,
-        messageId: userMessage.id
+        messageId: userMessage.id,
       },
       metadata: {
         modelId: conversation.model,
         hasTools: Boolean(conversation.toolsEnabled),
-        hasRag: Boolean((conversation.kbConfig as any)?.rag?.enabled)
-      }
+        hasRag: Boolean((conversation.kbConfig as any)?.rag?.enabled),
+      },
     }).catch((err) => {
       logger.error({ err }, 'Failed to emit message_sent event');
     });
@@ -142,9 +148,9 @@ async function prepareConversationContext(conversationId: string, userId: string
   });
 
   let effectiveModelId = resolveModelId(overrides?.model ?? conversation.model);
-  let effectiveTemperature = overrides?.temperature ?? (typeof conversation.temperature === 'number'
-    ? conversation.temperature
-    : undefined);
+  let effectiveTemperature =
+    overrides?.temperature ??
+    (typeof conversation.temperature === 'number' ? conversation.temperature : undefined);
 
   // If overrides are present, they take precedence over ChatProfile too?
   // Usually explicit user overrides (if allowed) win.
@@ -159,7 +165,7 @@ async function prepareConversationContext(conversationId: string, userId: string
       const rendered = await renderSystemPromptFromProfile(profile.id, {
         orgId: conversation.orgId,
         userId,
-        conversationId: conversation.id
+        conversationId: conversation.id,
       });
       if (rendered && !conversation.systemPrompt) {
         (conversation as any).systemPrompt = rendered;
@@ -182,7 +188,7 @@ async function prepareConversationContext(conversationId: string, userId: string
         orgId: conversation.orgId,
         spaceId: kbConfig.rag.spaceId ?? null,
         query: content,
-        limit: maxChunks
+        limit: maxChunks,
       });
 
       if (chunks.length > 0) {
@@ -190,18 +196,21 @@ async function prepareConversationContext(conversationId: string, userId: string
         await emitEvent({
           type: 'conversation.rag_used',
           context: { orgId: conversation.orgId!, userId, conversationId: conversation.id },
-          metadata: { spaceId: kbConfig.rag.spaceId ?? null, chunkCount: chunks.length }
+          metadata: { spaceId: kbConfig.rag.spaceId ?? null, chunkCount: chunks.length },
         }).catch((err) => {
           logger.error({ err }, 'Failed to emit rag_used event');
         });
       }
     } catch (err) {
-      logger.warn({
-        event: 'rag.retrieval.error',
-        conversationId: conversation.id,
-        orgId: conversation.orgId,
-        error: (err as Error).message
-      }, 'RAG retrieval failed, continuing without context');
+      logger.warn(
+        {
+          event: 'rag.retrieval.error',
+          conversationId: conversation.id,
+          orgId: conversation.orgId,
+          error: (err as Error).message,
+        },
+        'RAG retrieval failed, continuing without context',
+      );
     }
   }
 
@@ -223,7 +232,7 @@ async function prepareConversationContext(conversationId: string, userId: string
     try {
       const preset = await prisma.conversationPreset.findFirst({
         where: { id: presetId, orgId: conversation.orgId },
-        select: { systemPrompt: true }
+        select: { systemPrompt: true },
       });
       if (preset && preset.systemPrompt && preset.systemPrompt.trim()) {
         baseMessages.push({ role: 'system', content: preset.systemPrompt.trim() });
@@ -240,7 +249,9 @@ async function prepareConversationContext(conversationId: string, userId: string
   if (ragContextText) {
     baseMessages.push({
       role: 'system',
-      content: 'You have access to the following knowledge base context. Use it to answer the user question. If the context does not contain the answer, say so explicitly.\n\n' + ragContextText
+      content:
+        'You have access to the following knowledge base context. Use it to answer the user question. If the context does not contain the answer, say so explicitly.\n\n' +
+        ragContextText,
     });
   }
 
@@ -249,15 +260,19 @@ async function prepareConversationContext(conversationId: string, userId: string
     const meta = msg.meta as any;
 
     if (meta?.images && Array.isArray(meta.images) && meta.images.length > 0) {
-      const contentParts: ContentPart[] = [
-        { type: 'text', text: msg.content }
-      ];
+      const contentParts: ContentPart[] = [{ type: 'text', text: msg.content }];
       for (const img of meta.images) {
         contentParts.push({ type: 'image', data: img });
       }
-      baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: contentParts });
+      baseMessages.push({
+        role: role === 'TOOL' ? 'tool' : (role.toLowerCase() as any),
+        content: contentParts,
+      });
     } else {
-      baseMessages.push({ role: role === 'TOOL' ? 'tool' : role.toLowerCase() as any, content: msg.content });
+      baseMessages.push({
+        role: role === 'TOOL' ? 'tool' : (role.toLowerCase() as any),
+        content: msg.content,
+      });
     }
   }
 
@@ -275,14 +290,14 @@ async function prepareConversationContext(conversationId: string, userId: string
     toolsEnabled,
     structuredToolsEnabled,
     baseMessages,
-    ctx
+    ctx,
   };
 }
 
 async function* streamWithThoughtParsing(
   stream: AsyncGenerator<ChatStreamEvent, void, unknown>,
   onContent: (token: string) => void,
-  onThought: (token: string) => void
+  onThought: (token: string) => void,
 ): AsyncGenerator<ChatStreamEvent, void, unknown> {
   let isThinking = false;
 
@@ -352,7 +367,7 @@ async function finalizeConversationTurn(
   content: string,
   usage?: ProviderUsage,
   toolMessageId?: string,
-  thought?: string
+  thought?: string,
 ) {
   const assistantMessage = await prisma.message.create({
     data: {
@@ -386,7 +401,7 @@ async function finalizeConversationTurn(
       modelName,
       feature: 'chat',
       inputTokens: usage.promptTokens || 0,
-      outputTokens: usage.completionTokens || 0
+      outputTokens: usage.completionTokens || 0,
     }).catch((err) => {
       logger.error({ err }, 'Failed to record usage');
     });
@@ -399,14 +414,31 @@ export async function runConversationTurn(
   input: RunConversationTurnInput,
 ): Promise<RunConversationTurnResult> {
   const startedAt = process.hrtime.bigint();
-  const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
-    await prepareConversationContext(input.conversationId, input.userId, input.content, input.images, input.overrides);
+  const {
+    conversation,
+    modelConfig,
+    provider,
+    temperature,
+    toolsEnabled,
+    structuredToolsEnabled,
+    baseMessages,
+    ctx,
+  } = await prepareConversationContext(
+    input.conversationId,
+    input.userId,
+    input.content,
+    input.images,
+    input.overrides,
+  );
 
   // Tools Logic
   if (structuredToolsEnabled) {
     const tools = await listToolsForContext(ctx);
     const toolsPrompt = buildToolsSystemPrompt(tools);
-    const planningMessages: ProviderMessage[] = [{ role: 'system', content: toolsPrompt }, ...baseMessages];
+    const planningMessages: ProviderMessage[] = [
+      { role: 'system', content: toolsPrompt },
+      ...baseMessages,
+    ];
 
     const planResult = await provider.chat(planningMessages, {
       model: modelConfig.providerModel,
@@ -420,8 +452,15 @@ export async function runConversationTurn(
       if (conversation.orgId) {
         await emitEvent({
           type: 'conversation.tool_call',
-          context: { orgId: conversation.orgId, userId: input.userId, conversationId: conversation.id },
-          metadata: { toolNames: envelope.toolCalls.map((t) => t.tool), modelId: conversation.model }
+          context: {
+            orgId: conversation.orgId,
+            userId: input.userId,
+            conversationId: conversation.id,
+          },
+          metadata: {
+            toolNames: envelope.toolCalls.map((t) => t.tool),
+            modelId: conversation.model,
+          },
         }).catch((err) => logger.error({ err }, 'Failed to emit tool_call event'));
       }
 
@@ -440,7 +479,10 @@ export async function runConversationTurn(
         ...baseMessages,
         {
           role: 'tool',
-          content: 'Tool results (JSON):\n' + JSON.stringify({ toolResults }, null, 2) + '\nUse this information to answer the user. Respond normally to the user now.',
+          content:
+            'Tool results (JSON):\n' +
+            JSON.stringify({ toolResults }, null, 2) +
+            '\nUse this information to answer the user. Respond normally to the user now.',
         },
       ];
 
@@ -456,12 +498,14 @@ export async function runConversationTurn(
         input.userId,
         finalResult.content,
         finalResult.usage,
-        toolMessage.id
+        toolMessage.id,
       );
 
       const diffNs = Number(process.hrtime.bigint() - startedAt);
       const durationSec = diffNs / 1e9;
-      chatTurnDurationSeconds.labels(modelConfig.id, conversation.orgId || 'none', 'true').observe(durationSec);
+      chatTurnDurationSeconds
+        .labels(modelConfig.id, conversation.orgId || 'none', 'true')
+        .observe(durationSec);
 
       return {
         assistantMessageId: assistantMessage.id,
@@ -483,12 +527,14 @@ export async function runConversationTurn(
     modelConfig,
     input.userId,
     result.content,
-    result.usage
+    result.usage,
   );
 
   const diffNs = Number(process.hrtime.bigint() - startedAt);
   const durationSec = diffNs / 1e9;
-  chatTurnDurationSeconds.labels(modelConfig.id, conversation.orgId || 'none', structuredToolsEnabled ? 'false' : 'none').observe(durationSec);
+  chatTurnDurationSeconds
+    .labels(modelConfig.id, conversation.orgId || 'none', structuredToolsEnabled ? 'false' : 'none')
+    .observe(durationSec);
 
   return {
     assistantMessageId: assistantMessage.id,
@@ -501,8 +547,22 @@ export async function* streamConversationTurn(
   input: RunConversationTurnInput,
 ): AsyncGenerator<ChatStreamEvent, void, unknown> {
   const startedAt = process.hrtime.bigint();
-  const { conversation, modelConfig, provider, temperature, toolsEnabled, structuredToolsEnabled, baseMessages, ctx } =
-    await prepareConversationContext(input.conversationId, input.userId, input.content, input.images, input.overrides);
+  const {
+    conversation,
+    modelConfig,
+    provider,
+    temperature,
+    toolsEnabled,
+    structuredToolsEnabled,
+    baseMessages,
+    ctx,
+  } = await prepareConversationContext(
+    input.conversationId,
+    input.userId,
+    input.content,
+    input.images,
+    input.overrides,
+  );
 
   if (!provider.chatStream) {
     throw new Error('Provider does not support streaming');
@@ -517,7 +577,10 @@ export async function* streamConversationTurn(
   if (structuredToolsEnabled) {
     const tools = await listToolsForContext(ctx);
     const toolsPrompt = buildToolsSystemPrompt(tools);
-    const planningMessages: ProviderMessage[] = [{ role: 'system', content: toolsPrompt }, ...baseMessages];
+    const planningMessages: ProviderMessage[] = [
+      { role: 'system', content: toolsPrompt },
+      ...baseMessages,
+    ];
 
     // Planning phase is non-streaming to simplify JSON parsing
     const planResult = await provider.chat(planningMessages, {
@@ -532,17 +595,24 @@ export async function* streamConversationTurn(
       if (conversation.orgId) {
         await emitEvent({
           type: 'conversation.tool_call',
-          context: { orgId: conversation.orgId, userId: input.userId, conversationId: conversation.id },
-          metadata: { toolNames: envelope.toolCalls.map((t) => t.tool), modelId: conversation.model }
+          context: {
+            orgId: conversation.orgId,
+            userId: input.userId,
+            conversationId: conversation.id,
+          },
+          metadata: {
+            toolNames: envelope.toolCalls.map((t) => t.tool),
+            modelId: conversation.model,
+          },
         }).catch((err) => logger.error({ err }, 'Failed to emit tool_call event'));
       }
 
       // Emit tool start events to client
       for (const [i, call] of envelope.toolCalls.entries()) {
         yield {
-           type: 'tool_start',
-           toolName: call.tool,
-           toolCallId: `${call.tool}-${i}`
+          type: 'tool_start',
+          toolName: call.tool,
+          toolCallId: `${call.tool}-${i}`,
         };
       }
 
@@ -553,10 +623,10 @@ export async function* streamConversationTurn(
         const call = envelope.toolCalls[i];
         const result = toolResults[i];
         yield {
-            type: 'tool_end',
-            toolName: call.tool,
-            toolCallId: `${call.tool}-${i}`,
-            toolResult: result
+          type: 'tool_end',
+          toolName: call.tool,
+          toolCallId: `${call.tool}-${i}`,
+          toolResult: result,
         };
       }
 
@@ -574,7 +644,10 @@ export async function* streamConversationTurn(
         ...baseMessages,
         {
           role: 'tool',
-          content: 'Tool results (JSON):\n' + JSON.stringify({ toolResults }, null, 2) + '\nUse this information to answer the user. Respond normally to the user now.',
+          content:
+            'Tool results (JSON):\n' +
+            JSON.stringify({ toolResults }, null, 2) +
+            '\nUse this information to answer the user. Respond normally to the user now.',
         },
       ];
 
@@ -585,38 +658,46 @@ export async function* streamConversationTurn(
         toolsEnabled,
       });
 
-      for await (const event of streamWithThoughtParsing(stream, (c) => finalContent += c, (t) => finalThought += t)) {
+      for await (const event of streamWithThoughtParsing(
+        stream,
+        (c) => (finalContent += c),
+        (t) => (finalThought += t),
+      )) {
         if (event.type === 'end') {
           if (event.usage) finalUsage = event.usage;
           yield {
             ...event,
-            finalMessage: { role: 'assistant', content: finalContent }
+            finalMessage: { role: 'assistant', content: finalContent },
           };
         } else {
           yield event;
         }
       }
     } else {
-        // Fallback: Plan phase didn't produce tools, but it might have produced an answer?
-        // Usually if we prompt for tools, and it returns text, that text IS the answer.
-        // We should just stream that text to the user?
-        // But we already fetched it non-streaming.
-        // To be "streaming", we want the user to see it token by token.
-        // Since we did a non-streaming call, we already have the full content.
-        // We can simulate streaming it out, or just send it as one chunk.
-        // OR: Better approach: If we want streaming, maybe we shouldn't do non-streaming planning?
-        // But parsing JSON from a stream is hard.
-        // Compromise: If plan fails, we assume it's a direct answer. We just stream it as a single chunk (simulated).
-        // Or re-run as stream? (Wasteful).
+      // Fallback: Plan phase didn't produce tools, but it might have produced an answer?
+      // Usually if we prompt for tools, and it returns text, that text IS the answer.
+      // We should just stream that text to the user?
+      // But we already fetched it non-streaming.
+      // To be "streaming", we want the user to see it token by token.
+      // Since we did a non-streaming call, we already have the full content.
+      // We can simulate streaming it out, or just send it as one chunk.
+      // OR: Better approach: If we want streaming, maybe we shouldn't do non-streaming planning?
+      // But parsing JSON from a stream is hard.
+      // Compromise: If plan fails, we assume it's a direct answer. We just stream it as a single chunk (simulated).
+      // Or re-run as stream? (Wasteful).
 
-        // Let's optimize: If no tools used, we yield the content we got.
-        finalContent = planResult.content;
-        finalUsage = toTokenUsage(planResult.usage);
+      // Let's optimize: If no tools used, we yield the content we got.
+      finalContent = planResult.content;
+      finalUsage = toTokenUsage(planResult.usage);
 
-        // Yield synthetic start/token/end
-        yield { type: 'start' };
-        yield { type: 'token', token: finalContent };
-        yield { type: 'end', usage: toTokenUsage(finalUsage), finalMessage: { role: 'assistant', content: finalContent } };
+      // Yield synthetic start/token/end
+      yield { type: 'start' };
+      yield { type: 'token', token: finalContent };
+      yield {
+        type: 'end',
+        usage: toTokenUsage(finalUsage),
+        finalMessage: { role: 'assistant', content: finalContent },
+      };
     }
   } else {
     // Single pass streaming
@@ -626,12 +707,16 @@ export async function* streamConversationTurn(
       toolsEnabled,
     });
 
-    for await (const event of streamWithThoughtParsing(stream, (c) => finalContent += c, (t) => finalThought += t)) {
+    for await (const event of streamWithThoughtParsing(
+      stream,
+      (c) => (finalContent += c),
+      (t) => (finalThought += t),
+    )) {
       if (event.type === 'end') {
         if (event.usage) finalUsage = event.usage;
         yield {
           ...event,
-          finalMessage: { role: 'assistant', content: finalContent }
+          finalMessage: { role: 'assistant', content: finalContent },
         };
       } else {
         yield event;
@@ -641,20 +726,26 @@ export async function* streamConversationTurn(
 
   // Finalize (save to DB)
   if (finalContent || toolMessageId) {
-      // If we have toolMessageId but no final content (rare), we still save something?
-      // Assistant usually replies.
-      await finalizeConversationTurn(
-        conversation,
-        modelConfig,
-        input.userId,
-        finalContent,
-        finalUsage,
-        toolMessageId,
-        finalThought
-      );
+    // If we have toolMessageId but no final content (rare), we still save something?
+    // Assistant usually replies.
+    await finalizeConversationTurn(
+      conversation,
+      modelConfig,
+      input.userId,
+      finalContent,
+      finalUsage,
+      toolMessageId,
+      finalThought,
+    );
   }
 
   const diffNs = Number(process.hrtime.bigint() - startedAt);
   const durationSec = diffNs / 1e9;
-  chatTurnDurationSeconds.labels(modelConfig.id, conversation.orgId || 'none', structuredToolsEnabled ? 'mixed' : 'false').observe(durationSec);
+  chatTurnDurationSeconds
+    .labels(
+      modelConfig.id,
+      conversation.orgId || 'none',
+      structuredToolsEnabled ? 'mixed' : 'false',
+    )
+    .observe(durationSec);
 }

@@ -9,7 +9,7 @@ import {
   CardContent,
   CircularProgress,
   IconButton,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -25,7 +25,9 @@ import { PresetEditorDialog } from './PresetEditorDialog';
 export const PresetsGalleryPage: React.FC = () => {
   const { t } = useTranslation(['presets', 'common']);
   const { orgId } = useParams<{ orgId: string }>();
-  const { presets, loading, error, createPreset, updatePreset } = useConversationPresets(orgId || null);
+  const { presets, loading, error, createPreset, updatePreset } = useConversationPresets(
+    orgId || null,
+  );
   const navigate = useNavigate();
 
   // Dialog state / Dialog durumu
@@ -75,7 +77,7 @@ export const PresetsGalleryPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -122,10 +124,10 @@ export const PresetsGalleryPage: React.FC = () => {
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, minmax(0, 1fr))',
-              md: 'repeat(3, minmax(0, 1fr))'
+              md: 'repeat(3, minmax(0, 1fr))',
             },
             gap: 2,
-            mt: 1
+            mt: 1,
           }}
         >
           {presets.map((preset) => {
@@ -138,7 +140,7 @@ export const PresetsGalleryPage: React.FC = () => {
                   onClick={() => handleStartConversation(preset.id)}
                   sx={{
                     borderRadius: 3,
-                    height: '100%'
+                    height: '100%',
                   }}
                 >
                   <CardContent>
@@ -151,7 +153,7 @@ export const PresetsGalleryPage: React.FC = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          background: `radial-gradient(circle at 30% 30%, ${color}, transparent 60%)`
+                          background: `radial-gradient(circle at 30% 30%, ${color}, transparent 60%)`,
                         }}
                       >
                         <span style={{ fontSize: 18 }}>{emoji}</span>
@@ -169,18 +171,14 @@ export const PresetsGalleryPage: React.FC = () => {
                           zIndex: 1,
                           backgroundColor: 'background.paper',
                           '&:hover': {
-                            backgroundColor: 'action.hover'
-                          }
+                            backgroundColor: 'action.hover',
+                          },
                         }}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ minHeight: 40 }}
-                    >
+                    <Typography variant="body2" color="text.secondary" sx={{ minHeight: 40 }}>
                       {preset.description || t('noDescription')}
                     </Typography>
                     <Box mt={1.5}>
@@ -210,4 +208,3 @@ export const PresetsGalleryPage: React.FC = () => {
     </Box>
   );
 };
-

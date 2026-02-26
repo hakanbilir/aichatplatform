@@ -26,30 +26,32 @@ export async function resolveTenantByHostname(hostname: string): Promise<Hostnam
   const domain = await prisma.orgDomain.findFirst({
     where: {
       hostname,
-      isVerified: true
+      isVerified: true,
     },
     include: {
       org: {
         include: {
-          brandingConfig: true
-        }
-      }
-    }
+          brandingConfig: true,
+        },
+      },
+    },
   });
 
   if (domain && domain.org) {
     return {
       orgId: domain.org.id,
       orgSlug: domain.org.slug,
-      branding: domain.org.brandingConfig ? {
-        displayName: domain.org.brandingConfig.displayName,
-        logoUrl: domain.org.brandingConfig.logoUrl,
-        faviconUrl: domain.org.brandingConfig.faviconUrl,
-        primaryColor: domain.org.brandingConfig.primaryColor,
-        secondaryColor: domain.org.brandingConfig.secondaryColor,
-        backgroundGradient: domain.org.brandingConfig.backgroundGradient,
-        fontFamily: domain.org.brandingConfig.fontFamily
-      } : null
+      branding: domain.org.brandingConfig
+        ? {
+            displayName: domain.org.brandingConfig.displayName,
+            logoUrl: domain.org.brandingConfig.logoUrl,
+            faviconUrl: domain.org.brandingConfig.faviconUrl,
+            primaryColor: domain.org.brandingConfig.primaryColor,
+            secondaryColor: domain.org.brandingConfig.secondaryColor,
+            backgroundGradient: domain.org.brandingConfig.backgroundGradient,
+            fontFamily: domain.org.brandingConfig.fontFamily,
+          }
+        : null,
     };
   }
 
@@ -60,22 +62,24 @@ export async function resolveTenantByHostname(hostname: string): Promise<Hostnam
     const org = await prisma.organization.findUnique({
       where: { slug: slugMatch[1] },
       include: {
-        brandingConfig: true
-      }
+        brandingConfig: true,
+      },
     });
     if (org) {
       return {
         orgId: org.id,
         orgSlug: org.slug,
-        branding: org.brandingConfig ? {
-          displayName: org.brandingConfig.displayName,
-          logoUrl: org.brandingConfig.logoUrl,
-          faviconUrl: org.brandingConfig.faviconUrl,
-          primaryColor: org.brandingConfig.primaryColor,
-          secondaryColor: org.brandingConfig.secondaryColor,
-          backgroundGradient: org.brandingConfig.backgroundGradient,
-          fontFamily: org.brandingConfig.fontFamily
-        } : null
+        branding: org.brandingConfig
+          ? {
+              displayName: org.brandingConfig.displayName,
+              logoUrl: org.brandingConfig.logoUrl,
+              faviconUrl: org.brandingConfig.faviconUrl,
+              primaryColor: org.brandingConfig.primaryColor,
+              secondaryColor: org.brandingConfig.secondaryColor,
+              backgroundGradient: org.brandingConfig.backgroundGradient,
+              fontFamily: org.brandingConfig.fontFamily,
+            }
+          : null,
       };
     }
   }
@@ -83,7 +87,7 @@ export async function resolveTenantByHostname(hostname: string): Promise<Hostnam
   return {
     orgId: null,
     orgSlug: null,
-    branding: null
+    branding: null,
   };
 }
 

@@ -51,7 +51,6 @@ export function useAuditLog(orgId: string | null, initialQuery: AuditLogQuery = 
     response,
     events,
     loading,
-    error
+    error,
   };
 }
-

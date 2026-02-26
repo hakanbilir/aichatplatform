@@ -24,12 +24,12 @@ export interface UpdateRetentionConfigInput {
 
 export async function fetchRetentionConfig(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<OrgDataRetentionConfig | null> {
   const res = await apiRequest<{ config: OrgDataRetentionConfig | null }>(
     `/orgs/${orgId}/retention`,
     { method: 'GET' },
-    token
+    token,
   );
   return res.config;
 }
@@ -37,19 +37,18 @@ export async function fetchRetentionConfig(
 export async function updateRetentionConfig(
   token: string,
   orgId: string,
-  input: UpdateRetentionConfigInput
+  input: UpdateRetentionConfigInput,
 ): Promise<OrgDataRetentionConfig> {
   const res = await apiRequest<{ config: OrgDataRetentionConfig }>(
     `/orgs/${orgId}/retention`,
     {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
   return res.config;
 }
-

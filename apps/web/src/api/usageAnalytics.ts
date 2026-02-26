@@ -41,7 +41,7 @@ export interface TopUserDto {
 export async function fetchUsageAnalytics(
   token: string,
   orgId: string,
-  params: { startDate?: string; endDate?: string; feature?: string } = {}
+  params: { startDate?: string; endDate?: string; feature?: string } = {},
 ): Promise<UsageAnalyticsResponse> {
   const searchParams = new URLSearchParams();
   if (params.startDate) searchParams.set('startDate', params.startDate);
@@ -53,7 +53,7 @@ export async function fetchUsageAnalytics(
   return apiRequest<UsageAnalyticsResponse>(
     `/orgs/${orgId}/analytics/usage${query ? `?${query}` : ''}`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
@@ -63,7 +63,7 @@ export async function streamUsageAnalytics(
   onData: (data: UsageAnalyticsResponse) => void,
   onError: (error: Error) => void,
   params: { startDate?: string; endDate?: string; feature?: string } = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<void> {
   const searchParams = new URLSearchParams();
   if (params.startDate) searchParams.set('startDate', params.startDate);
@@ -77,14 +77,14 @@ export async function streamUsageAnalytics(
     onData,
     onError,
     token,
-    signal
+    signal,
   );
 }
 
 export async function fetchTopUsers(
   token: string,
   orgId: string,
-  params: { startDate?: string; endDate?: string; feature?: string } = {}
+  params: { startDate?: string; endDate?: string; feature?: string } = {},
 ): Promise<{ topUsers: TopUserDto[] }> {
   const searchParams = new URLSearchParams();
   if (params.startDate) searchParams.set('startDate', params.startDate);
@@ -96,7 +96,7 @@ export async function fetchTopUsers(
   return apiRequest<{ topUsers: TopUserDto[] }>(
     `/orgs/${orgId}/analytics/top-users${query ? `?${query}` : ''}`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
@@ -106,7 +106,7 @@ export async function streamTopUsers(
   onData: (data: { topUsers: TopUserDto[] }) => void,
   onError: (error: Error) => void,
   params: { startDate?: string; endDate?: string; feature?: string } = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<void> {
   const searchParams = new URLSearchParams();
   if (params.startDate) searchParams.set('startDate', params.startDate);
@@ -120,6 +120,6 @@ export async function streamTopUsers(
     onData,
     onError,
     token,
-    signal
+    signal,
   );
 }

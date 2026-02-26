@@ -17,7 +17,10 @@ function run() {
   let firstMessageAt: Date | null = null;
   let lastMessageAt: Date | null = null;
 
-  const dayBuckets = new Map<string, { promptTokens: number; completionTokens: number; totalTokens: number }>();
+  const dayBuckets = new Map<
+    string,
+    { promptTokens: number; completionTokens: number; totalTokens: number }
+  >();
 
   const modelBuckets = new Map<
     string,
@@ -40,7 +43,8 @@ function run() {
     }
 
     const promptTokens = typeof usage.promptTokens === 'number' ? usage.promptTokens : 0;
-    const completionTokens = typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
+    const completionTokens =
+      typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
     const totalTokens = promptTokens + completionTokens;
 
     totalPromptTokens += promptTokens;

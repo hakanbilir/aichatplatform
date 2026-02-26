@@ -9,7 +9,7 @@ import {
   ConversationSearchResponse,
   ConversationSearchPayload,
   searchConversationsStream,
-  SearchSort
+  SearchSort,
 } from '../api/search';
 
 export interface UseConversationSearchState {
@@ -28,7 +28,7 @@ export function useConversationSearch(orgId: string | null) {
     sort: 'recent',
     filters: {},
     page: 0,
-    pageSize: 20
+    pageSize: 20,
   });
 
   const [results, setResults] = useState<ConversationSearchResponse | null>(null);
@@ -41,7 +41,7 @@ export function useConversationSearch(orgId: string | null) {
       if (!token || !orgId) return;
       const nextState: UseConversationSearchState = {
         ...state,
-        ...override
+        ...override,
       };
 
       setState(nextState);
@@ -55,7 +55,7 @@ export function useConversationSearch(orgId: string | null) {
           page: nextState.page,
           pageSize: nextState.pageSize,
           sort: nextState.sort,
-          filters: nextState.filters
+          filters: nextState.filters,
         };
 
         const currentHits: ConversationSearchHit[] = [];
@@ -68,7 +68,7 @@ export function useConversationSearch(orgId: string | null) {
               total: data.total,
               page: data.page,
               pageSize: data.pageSize,
-              hits: []
+              hits: [],
             });
           } else if (event === 'hit') {
             currentHits.push(data);
@@ -76,16 +76,15 @@ export function useConversationSearch(orgId: string | null) {
             setHits([...currentHits]);
           } else if (event === 'done') {
             if (meta) {
-               setResults({
-                 total: meta.total,
-                 page: meta.page,
-                 pageSize: meta.pageSize,
-                 hits: currentHits
-               });
+              setResults({
+                total: meta.total,
+                page: meta.page,
+                pageSize: meta.pageSize,
+                hits: currentHits,
+              });
             }
           }
         });
-
       } catch (err) {
         console.error(err);
         setError((err as Error).message || 'Search failed');
@@ -93,7 +92,7 @@ export function useConversationSearch(orgId: string | null) {
         setLoading(false);
       }
     },
-    [token, orgId, state]
+    [token, orgId, state],
   );
 
   return {
@@ -103,6 +102,6 @@ export function useConversationSearch(orgId: string | null) {
     loading,
     error,
     runSearch,
-    setState
+    setState,
   };
 }

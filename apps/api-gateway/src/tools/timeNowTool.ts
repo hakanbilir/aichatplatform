@@ -25,4 +25,3 @@ export const timeNowTool: ToolDefinition<TimeNowArgs, TimeNowResult> = {
     };
   },
 };
-

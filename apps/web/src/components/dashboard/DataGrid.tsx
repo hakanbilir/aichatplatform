@@ -81,7 +81,7 @@ export function DataGrid<T extends Record<string, any>>({
   const theme = useTheme();
   const [sortColumn, setSortColumn] = useState<string | null>(initialSortColumn || null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
-    initialSortColumn ? initialSortDirection : false
+    initialSortColumn ? initialSortDirection : false,
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -98,9 +98,7 @@ export function DataGrid<T extends Record<string, any>>({
     // Default search: search in all string/number values / Varsayılan arama: tüm string/sayı değerlerinde ara
     const query = searchQuery.toLowerCase();
     return data.filter((row) =>
-      Object.values(row).some((value) =>
-        String(value).toLowerCase().includes(query)
-      )
+      Object.values(row).some((value) => String(value).toLowerCase().includes(query)),
     );
   }, [data, searchQuery, customSearch]);
 
@@ -244,7 +242,11 @@ export function DataGrid<T extends Record<string, any>>({
                   {column.sortable !== false ? (
                     <TableSortLabel
                       active={sortColumn === column.key}
-                      direction={sortColumn === column.key && sortDirection !== false ? sortDirection : undefined}
+                      direction={
+                        sortColumn === column.key && sortDirection !== false
+                          ? sortDirection
+                          : undefined
+                      }
                       onClick={() => handleSort(column.key)}
                       sx={{
                         '& .MuiTableSortLabel-icon': {
@@ -340,4 +342,3 @@ export function DataGrid<T extends Record<string, any>>({
     </Box>
   );
 }
-

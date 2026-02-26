@@ -47,7 +47,16 @@ function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps)
 
   return (
     <GlassPanel sx={{ mt: 2, mb: 2, overflow: 'hidden', borderRadius: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', px: 2, bgcolor: 'rgba(255, 255, 255, 0.03)', height: 48 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          px: 2,
+          bgcolor: 'rgba(255, 255, 255, 0.03)',
+          height: 48,
+        }}
+      >
         <Typography variant="subtitle2" sx={{ fontWeight: 600, flexGrow: 1, letterSpacing: 0.5 }}>
           {title || 'Generated Artifact'}
         </Typography>
@@ -56,67 +65,102 @@ function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps)
           onChange={(_, v) => setActiveTab(v)}
           sx={{
             minHeight: 48,
-            '& .MuiTabs-indicator': { backgroundColor: 'primary.main' }
+            '& .MuiTabs-indicator': { backgroundColor: 'primary.main' },
           }}
         >
-            <Tab
-              label="Preview"
-              icon={<Visibility sx={{ fontSize: 16 }} />}
-              iconPosition="start"
-              sx={{ minHeight: 48, py: 0, color: 'text.secondary', '&.Mui-selected': { color: 'primary.main' } }}
-            />
-            <Tab
-              label="Code"
-              icon={<Code sx={{ fontSize: 16 }} />}
-              iconPosition="start"
-              sx={{ minHeight: 48, py: 0, color: 'text.secondary', '&.Mui-selected': { color: 'primary.main' } }}
-            />
+          <Tab
+            label="Preview"
+            icon={<Visibility sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            sx={{
+              minHeight: 48,
+              py: 0,
+              color: 'text.secondary',
+              '&.Mui-selected': { color: 'primary.main' },
+            }}
+          />
+          <Tab
+            label="Code"
+            icon={<Code sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            sx={{
+              minHeight: 48,
+              py: 0,
+              color: 'text.secondary',
+              '&.Mui-selected': { color: 'primary.main' },
+            }}
+          />
         </Tabs>
       </Box>
 
       <Box sx={{ p: 0, bgcolor: 'background.paper', height: 400, overflow: 'hidden' }}>
         {activeTab === 0 && (
-           <Box sx={{ height: '100%', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: '#fff' }}>
-             {type === 'html' ? (
-                <iframe
-                  srcDoc={debouncedCode}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  sandbox="allow-scripts allow-popups allow-forms"
-                  title="artifact-preview"
-                />
-             ) : (
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: sanitizedCode,
-                  }}
-                  style={{ maxWidth: '100%', maxHeight: '100%', overflow: 'auto' }}
-                />
-             )}
-           </Box>
+          <Box
+            sx={{
+              height: '100%',
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              bgcolor: '#fff',
+            }}
+          >
+            {type === 'html' ? (
+              <iframe
+                srcDoc={debouncedCode}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                sandbox="allow-scripts allow-popups allow-forms"
+                title="artifact-preview"
+              />
+            ) : (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: sanitizedCode,
+                }}
+                style={{ maxWidth: '100%', maxHeight: '100%', overflow: 'auto' }}
+              />
+            )}
+          </Box>
         )}
         {activeTab === 1 && (
-           <Box sx={{ p: 2, bgcolor: '#1e1e1e', height: '100%', overflow: 'auto', position: 'relative' }}>
-              <Tooltip title={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}>
-                <IconButton
-                  onClick={handleCopy}
-                  aria-label={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}
-                  sx={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    color: 'white',
-                    bgcolor: 'rgba(255, 255, 255, 0.1)',
-                    '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
-                  }}
-                  size="small"
-                >
-                  {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
-                </IconButton>
-              </Tooltip>
-              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.8rem', color: '#d4d4d4', whiteSpace: 'pre-wrap' }}>
-                {code}
-              </pre>
-           </Box>
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: '#1e1e1e',
+              height: '100%',
+              overflow: 'auto',
+              position: 'relative',
+            }}
+          >
+            <Tooltip title={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}>
+              <IconButton
+                onClick={handleCopy}
+                aria-label={copied ? t('message.copied', 'Copied') : t('message.copy', 'Copy')}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  color: 'white',
+                  bgcolor: 'rgba(255, 255, 255, 0.1)',
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
+                }}
+                size="small"
+              >
+                {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+            <pre
+              style={{
+                margin: 0,
+                fontFamily: 'monospace',
+                fontSize: '0.8rem',
+                color: '#d4d4d4',
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {code}
+            </pre>
+          </Box>
         )}
       </Box>
     </GlassPanel>

@@ -12,17 +12,14 @@ import {
   Pagination,
   Radio,
   RadioGroup,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
-import {
-  fetchModerationIncidents,
-  ModerationIncidentDto
-} from '../api/moderationIncidents';
+import { fetchModerationIncidents, ModerationIncidentDto } from '../api/moderationIncidents';
 
 export const OrgSafetyIncidentsPage: React.FC = () => {
   const { orgId } = useParams();
@@ -50,14 +47,14 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
         page,
         pageSize,
         source: sourceFilter === 'all' ? undefined : sourceFilter,
-        severeOnly
+        severeOnly,
       });
 
       setItems(res.items);
       setTotal(res.total);
     } catch (err) {
       console.error(err);
-      setError("Failed to load incidents.");
+      setError('Failed to load incidents.');
     }
   };
 
@@ -77,7 +74,7 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -108,10 +105,7 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
 
           <FormControlLabel
             control={
-              <Checkbox
-                checked={severeOnly}
-                onChange={(e) => setSevereOnly(e.target.checked)}
-              />
+              <Checkbox checked={severeOnly} onChange={(e) => setSevereOnly(e.target.checked)} />
             }
             label="Severe only"
           />
@@ -127,7 +121,7 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
             flexDirection: 'column',
             gap: 1.5,
             height: '100%',
-            overflow: 'auto'
+            overflow: 'auto',
           }}
         >
           {items.length === 0 && !error && (
@@ -146,7 +140,7 @@ export const OrgSafetyIncidentsPage: React.FC = () => {
                 borderColor: inc.isSevere ? 'error.light' : 'divider',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 0.5
+                gap: 0.5,
               }}
             >
               <Box display="flex" alignItems="center" justifyContent="space-between">

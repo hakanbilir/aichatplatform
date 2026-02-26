@@ -29,18 +29,23 @@ export interface ToolsPanelProps {
   orgId: string | null;
 }
 
-const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, conversationId, orgId }) => {
+const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({
+  open,
+  onClose,
+  conversationId,
+  orgId,
+}) => {
   const { t } = useTranslation('chat');
-  const { tools, loadingTools, toolsError, runs, executing, executeError, runTool, refetchTools } = useToolsPanel(
-    conversationId,
-    orgId,
-    open
-  );
+  const { tools, loadingTools, toolsError, runs, executing, executeError, runTool, refetchTools } =
+    useToolsPanel(conversationId, orgId, open);
 
   const [selectedToolName, setSelectedToolName] = useState<string | null>(null);
   const [argsJson, setArgsJson] = useState<string>('{}');
 
-  const selectedTool = useMemo(() => tools.find((t) => t.name === selectedToolName) || null, [tools, selectedToolName]);
+  const selectedTool = useMemo(
+    () => tools.find((t) => t.name === selectedToolName) || null,
+    [tools, selectedToolName],
+  );
 
   const lastRun = runs[0] ?? null;
 
@@ -105,7 +110,10 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, convers
             }}
           >
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-              <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.08 }}>
+              <Typography
+                variant="caption"
+                sx={{ textTransform: 'uppercase', letterSpacing: 0.08 }}
+              >
                 {t('tools.panel')}
               </Typography>
               <Tooltip title={t('tools.reload')}>
@@ -144,7 +152,8 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, convers
                     borderRadius: 1.5,
                     mb: 0.5,
                     '&.Mui-selected': {
-                      background: 'linear-gradient(90deg, rgba(59,130,246,0.45), rgba(45,212,191,0.35))',
+                      background:
+                        'linear-gradient(90deg, rgba(59,130,246,0.45), rgba(45,212,191,0.35))',
                     },
                     '&:hover': {
                       backgroundColor: 'rgba(30,64,175,0.6)',
@@ -174,7 +183,10 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, convers
             <Box display="flex" flexDirection="column" p={1.5} gap={1}>
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Box>
-                  <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.08 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ textTransform: 'uppercase', letterSpacing: 0.08 }}
+                  >
                     {t('tools.arguments')}
                   </Typography>
                   {selectedTool ? (
@@ -242,8 +254,14 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({ open, onClose, convers
 
               {lastRun && (
                 <>
-                  <Typography variant="caption" color="rgba(148,163,184,0.9)" display="block" mb={0.5}>
-                    {lastRun.tool} · {lastRun.createdAt.toLocaleTimeString()} · {lastRun.ok ? 'OK' : 'ERROR'}
+                  <Typography
+                    variant="caption"
+                    color="rgba(148,163,184,0.9)"
+                    display="block"
+                    mb={0.5}
+                  >
+                    {lastRun.tool} · {lastRun.createdAt.toLocaleTimeString()} ·{' '}
+                    {lastRun.ok ? 'OK' : 'ERROR'}
                   </Typography>
                   <Box
                     component="pre"

@@ -4,7 +4,7 @@ import { prisma } from '@ai-chat/db';
 
 export async function getDefaultPlan() {
   const plan = await prisma.billingPlan.findFirst({
-    where: { isDefault: true, isActive: true }
+    where: { isDefault: true, isActive: true },
   });
   return plan;
 }
@@ -12,7 +12,7 @@ export async function getDefaultPlan() {
 export async function ensureOrgSubscription(orgId: string) {
   let sub = await prisma.orgSubscription.findUnique({
     where: { orgId },
-    include: { plan: true }
+    include: { plan: true },
   });
 
   if (!sub) {
@@ -31,9 +31,9 @@ export async function ensureOrgSubscription(orgId: string) {
         status: 'active',
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
-        paymentProvider: 'paytr'
+        paymentProvider: 'paytr',
       },
-      include: { plan: true }
+      include: { plan: true },
     });
   }
 
@@ -42,7 +42,7 @@ export async function ensureOrgSubscription(orgId: string) {
 
 export async function changeOrgPlan(orgId: string, planCode: string) {
   const plan = await prisma.billingPlan.findFirst({
-    where: { code: planCode, isActive: true }
+    where: { code: planCode, isActive: true },
   });
   if (!plan) {
     throw new Error('PLAN_NOT_FOUND');
@@ -58,7 +58,7 @@ export async function changeOrgPlan(orgId: string, planCode: string) {
       status: 'active',
       currentPeriodStart: now,
       currentPeriodEnd: periodEnd,
-      cancelAtPeriodEnd: false
+      cancelAtPeriodEnd: false,
     },
     create: {
       orgId,
@@ -67,9 +67,9 @@ export async function changeOrgPlan(orgId: string, planCode: string) {
       currentPeriodStart: now,
       currentPeriodEnd: periodEnd,
       cancelAtPeriodEnd: false,
-      paymentProvider: 'paytr'
+      paymentProvider: 'paytr',
     },
-    include: { plan: true }
+    include: { plan: true },
   });
 
   return sub;
@@ -84,7 +84,7 @@ export async function createOrUpdateSubscription(
   orgId: string,
   planId: string,
   paymentProvider: string,
-  providerCustomerId: string | null
+  providerCustomerId: string | null,
 ) {
   const plan = await prisma.billingPlan.findUnique({ where: { id: planId } });
   if (!plan) {
@@ -102,7 +102,7 @@ export async function createOrUpdateSubscription(
       currentPeriodStart: now,
       currentPeriodEnd: periodEnd,
       paymentProvider,
-      providerCustomerId: providerCustomerId ?? undefined
+      providerCustomerId: providerCustomerId ?? undefined,
     },
     create: {
       orgId,
@@ -111,7 +111,7 @@ export async function createOrUpdateSubscription(
       currentPeriodStart: now,
       currentPeriodEnd: periodEnd,
       paymentProvider,
-      providerCustomerId: providerCustomerId ?? null
-    }
+      providerCustomerId: providerCustomerId ?? null,
+    },
   });
 }
