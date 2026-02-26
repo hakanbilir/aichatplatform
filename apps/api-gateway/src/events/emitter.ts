@@ -20,15 +20,15 @@ export async function emitEvent(params: EmitEventParams): Promise<void> {
       type,
       conversationId: context.conversationId ?? null,
       messageId: context.messageId ?? null,
-      metadata: metadata ?? {}
-    }
+      metadata: metadata ?? {},
+    },
   });
 
   // Broadcast to local listeners (e.g., SSE)
   localEmitter.emit('event', {
     ...params,
     eventId: event.id,
-    createdAt: event.createdAt
+    createdAt: event.createdAt,
   });
 
   // Find matching webhook subscriptions and enqueue deliveries
@@ -36,10 +36,10 @@ export async function emitEvent(params: EmitEventParams): Promise<void> {
     where: {
       orgIntegration: {
         orgId: context.orgId,
-        isEnabled: true
+        isEnabled: true,
       },
-      isActive: true
-    }
+      isActive: true,
+    },
   });
 
   if (webhooks.length === 0) return;
@@ -61,12 +61,11 @@ export async function emitEvent(params: EmitEventParams): Promise<void> {
         userId: event.userId,
         conversationId: event.conversationId,
         messageId: event.messageId,
-        metadata: event.metadata
-      } as any
+        metadata: event.metadata,
+      } as any,
     }));
 
   if (deliveriesData.length > 0) {
     await prisma.webhookDelivery.createMany({ data: deliveriesData });
   }
 }
-

@@ -38,4 +38,3 @@ async function authPlugin(app: FastifyInstance) {
 }
 
 export default fp(authPlugin);
-

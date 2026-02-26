@@ -52,7 +52,7 @@ async function main() {
   if (existingSuperadmin) {
     console.log(`Superadmin user with email ${superadminEmail} already exists.`);
     console.log(`${superadminEmail} e-postasına sahip süperadmin kullanıcı zaten mevcut.`);
-    
+
     // Ensure existing user is marked as superadmin
     // Mevcut kullanıcının süperadmin olarak işaretlendiğinden emin ol
     if (!existingSuperadmin.isSuperadmin) {
@@ -118,4 +118,3 @@ void main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

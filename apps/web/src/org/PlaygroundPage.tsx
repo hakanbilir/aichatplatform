@@ -32,7 +32,7 @@ export const PlaygroundPage: React.FC = () => {
     try {
       const res = await playgroundComplete(token, orgId, {
         prompt,
-        systemPrompt: systemPrompt.trim() || undefined
+        systemPrompt: systemPrompt.trim() || undefined,
       });
       setOutput(res.output);
       setLatency(res.latencyMs ?? null);
@@ -52,7 +52,7 @@ export const PlaygroundPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" gap={1}>
@@ -106,7 +106,7 @@ export const PlaygroundPage: React.FC = () => {
                 borderRadius: 2,
                 backgroundColor: 'action.hover',
                 border: '1px solid',
-                borderColor: 'divider'
+                borderColor: 'divider',
               }}
             >
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>

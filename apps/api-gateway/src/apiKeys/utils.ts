@@ -16,4 +16,3 @@ export function generateOrgApiKey(orgId: string): GeneratedApiKey {
 export function hashExistingToken(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
-

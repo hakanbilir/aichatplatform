@@ -4,7 +4,7 @@ import {
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatCompletionChunk,
-  LlmChatProvider
+  LlmChatProvider,
 } from '../types';
 
 interface OllamaConfig {
@@ -37,14 +37,14 @@ export class OllamaChatProvider implements LlmChatProvider {
       options: {
         temperature: req.temperature ?? 0.7,
         top_p: req.topP ?? 1.0,
-        num_predict: req.maxTokens ?? undefined
-      }
+        num_predict: req.maxTokens ?? undefined,
+      },
     };
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -58,13 +58,14 @@ export class OllamaChatProvider implements LlmChatProvider {
 
     // Extract usage if available from Ollama response
     // Ollama yanıtından kullanım bilgisi varsa çıkar
-    const usage = json.eval_count || json.prompt_eval_count
-      ? {
-          promptTokens: json.prompt_eval_count ?? 0,
-          completionTokens: json.eval_count ?? 0,
-          totalTokens: (json.prompt_eval_count ?? 0) + (json.eval_count ?? 0)
-        }
-      : undefined;
+    const usage =
+      json.eval_count || json.prompt_eval_count
+        ? {
+            promptTokens: json.prompt_eval_count ?? 0,
+            completionTokens: json.eval_count ?? 0,
+            totalTokens: (json.prompt_eval_count ?? 0) + (json.eval_count ?? 0),
+          }
+        : undefined;
 
     return { content, usage }; // toolCalls omitted for now
   }
@@ -77,14 +78,14 @@ export class OllamaChatProvider implements LlmChatProvider {
       options: {
         temperature: req.temperature ?? 0.7,
         top_p: req.topP ?? 1.0,
-        num_predict: req.maxTokens ?? undefined
-      }
+        num_predict: req.maxTokens ?? undefined,
+      },
     };
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
 
     if (!res.ok || !res.body) {
@@ -111,7 +112,7 @@ export class OllamaChatProvider implements LlmChatProvider {
 
             yield {
               delta: token || null,
-              done: doneChunk
+              done: doneChunk,
             };
           } catch {
             // Ignore malformed lines

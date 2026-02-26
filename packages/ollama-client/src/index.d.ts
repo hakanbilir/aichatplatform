@@ -1,4 +1,9 @@
-import { ChatCompletionParams, ChatCompletionResponse, ChatStreamEvent, LlmModel } from '@ai-chat/core-types';
+import {
+  ChatCompletionParams,
+  ChatCompletionResponse,
+  ChatStreamEvent,
+  LlmModel,
+} from '@ai-chat/core-types';
 /**
  * Simple health check against Ollama.
  * Returns true if the /api/tags endpoint responds successfully.
@@ -18,7 +23,9 @@ export declare function listOllamaModels(): Promise<LlmModel[]>;
  * Ollama üzerinden streaming olmayan chat completion gerçekleştirir.
  * NOT: Çoğu UI akışı için streaming tercih edilir. Bu bir kolaylık wrapper'ıdır.
  */
-export declare function createChatCompletion(params: ChatCompletionParams): Promise<ChatCompletionResponse>;
+export declare function createChatCompletion(
+  params: ChatCompletionParams,
+): Promise<ChatCompletionResponse>;
 /**
  * Streaming chat completion via Ollama.
  *
@@ -34,7 +41,9 @@ export declare function createChatCompletion(params: ChatCompletionParams): Prom
  * - type: 'end' finalMessage + usage ile (varsa)
  * - type: 'error' bir şeyler ters giderse
  */
-export declare function streamChatCompletion(params: ChatCompletionParams & {
+export declare function streamChatCompletion(
+  params: ChatCompletionParams & {
     signal?: AbortSignal;
-}): AsyncGenerator<ChatStreamEvent, void, unknown>;
+  },
+): AsyncGenerator<ChatStreamEvent, void, unknown>;
 //# sourceMappingURL=index.d.ts.map

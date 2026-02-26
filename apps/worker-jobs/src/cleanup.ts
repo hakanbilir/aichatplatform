@@ -9,8 +9,8 @@ import { prisma } from '@ai-chat/db';
 export async function runDataRetentionCleanup() {
   const orgs = await prisma.orgDataRetentionConfig.findMany({
     where: {
-      autoDeleteEnabled: true
-    }
+      autoDeleteEnabled: true,
+    },
   });
 
   const now = new Date();
@@ -19,19 +19,17 @@ export async function runDataRetentionCleanup() {
     // Soft delete conversations based on conversationRetentionDays
     // conversationRetentionDays'e göre konuşmaları yumuşak sil
     if (cfg.conversationRetentionDays) {
-      const cutoff = new Date(
-        now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000
-      );
+      const cutoff = new Date(now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000);
 
       await prisma.conversation.updateMany({
         where: {
           orgId: cfg.orgId,
           deletedAt: null,
-          createdAt: { lt: cutoff }
+          createdAt: { lt: cutoff },
         },
         data: {
-          deletedAt: now
-        }
+          deletedAt: now,
+        },
       });
     }
 
@@ -39,14 +37,14 @@ export async function runDataRetentionCleanup() {
     // Saklama süresinden daha uzun süre yumuşak silinmiş konuşmaları kalıcı olarak sil
     if (cfg.conversationRetentionDays) {
       const hardDeleteCutoff = new Date(
-        now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000
+        now.getTime() - cfg.conversationRetentionDays * 24 * 60 * 60 * 1000,
       );
 
       await prisma.conversation.deleteMany({
         where: {
           orgId: cfg.orgId,
-          deletedAt: { not: null, lt: hardDeleteCutoff }
-        }
+          deletedAt: { not: null, lt: hardDeleteCutoff },
+        },
       });
     }
 
@@ -54,29 +52,27 @@ export async function runDataRetentionCleanup() {
     // messageRetentionDays'e göre mesajları sil
     if (cfg.messageRetentionDays) {
       const messageCutoff = new Date(
-        now.getTime() - cfg.messageRetentionDays * 24 * 60 * 60 * 1000
+        now.getTime() - cfg.messageRetentionDays * 24 * 60 * 60 * 1000,
       );
 
       await prisma.message.deleteMany({
         where: {
           orgId: cfg.orgId,
-          createdAt: { lt: messageCutoff }
-        }
+          createdAt: { lt: messageCutoff },
+        },
       });
     }
 
     // Delete files based on fileRetentionDays
     // fileRetentionDays'e göre dosyaları sil
     if (cfg.fileRetentionDays) {
-      const fileCutoff = new Date(
-        now.getTime() - cfg.fileRetentionDays * 24 * 60 * 60 * 1000
-      );
+      const fileCutoff = new Date(now.getTime() - cfg.fileRetentionDays * 24 * 60 * 60 * 1000);
 
       await prisma.file.deleteMany({
         where: {
           orgId: cfg.orgId,
-          createdAt: { lt: fileCutoff }
-        }
+          createdAt: { lt: fileCutoff },
+        },
       });
     }
 
@@ -84,7 +80,7 @@ export async function runDataRetentionCleanup() {
     // Son temizleme zaman damgasını güncelle
     await prisma.orgDataRetentionConfig.update({
       where: { id: cfg.id },
-      data: { lastCleanupAt: now }
+      data: { lastCleanupAt: now },
     });
   }
 }
@@ -98,8 +94,8 @@ export async function cleanupExpiredAuditLogs() {
   // Audit saklama yapılandırması olan org'ları al
   const orgs = await prisma.orgDataRetentionConfig.findMany({
     where: {
-      autoDeleteEnabled: true
-    }
+      autoDeleteEnabled: true,
+    },
   });
 
   const now = new Date();
@@ -109,15 +105,13 @@ export async function cleanupExpiredAuditLogs() {
     // Varsayılan audit saklama: belirtilmezse 90 gün
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const auditRetentionDays = (cfg as any).auditRetentionDays ?? 90;
-    const cutoff = new Date(
-      now.getTime() - auditRetentionDays * 24 * 60 * 60 * 1000
-    );
+    const cutoff = new Date(now.getTime() - auditRetentionDays * 24 * 60 * 60 * 1000);
 
     await prisma.event.deleteMany({
       where: {
         orgId: cfg.orgId,
-        createdAt: { lt: cutoff }
-      }
+        createdAt: { lt: cutoff },
+      },
     });
   }
 }

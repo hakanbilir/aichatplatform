@@ -15,14 +15,14 @@ export async function abuseRateGuard(request: FastifyRequest, reply: FastifyRepl
     where: {
       orgId,
       userId: user.userId,
-      OR: [{ until: null }, { until: { gt: new Date() } }]
-    }
+      OR: [{ until: null }, { until: { gt: new Date() } }],
+    },
   });
 
   if (blocked) {
     return reply.code(403).send({
       error: 'USER_BLOCKED',
-      reason: blocked.reason
+      reason: blocked.reason,
     });
   }
 
@@ -33,14 +33,14 @@ export async function abuseRateGuard(request: FastifyRequest, reply: FastifyRepl
     where: {
       orgId,
       authorId: user.userId,
-      createdAt: { gt: oneMinuteAgo }
-    }
+      createdAt: { gt: oneMinuteAgo },
+    },
   });
 
   if (recentMessagesCount > MAX_MESSAGES_PER_MINUTE) {
     return reply.code(429).send({
       error: 'RATE_LIMITED',
-      reason: 'Too many messages per minute. Please slow down.'
+      reason: 'Too many messages per minute. Please slow down.',
     });
   }
 }

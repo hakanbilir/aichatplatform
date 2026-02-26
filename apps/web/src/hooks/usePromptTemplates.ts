@@ -9,7 +9,7 @@ import {
   deletePromptTemplateApi,
   createPromptTemplateVersion,
   CreatePromptTemplateInput,
-  PromptVariable
+  PromptVariable,
 } from '../api/prompts';
 
 export function usePromptTemplates(orgId: string) {

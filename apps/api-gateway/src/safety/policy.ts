@@ -16,18 +16,18 @@ const PLATFORM_DEFAULTS: Record<ModerationCategory, ModerationAction> = {
   pii: 'warn',
   prompt_injection: 'warn',
   copyright: 'log_only',
-  other: 'log_only'
+  other: 'log_only',
 };
 
 export async function decideSafetyAction(
   orgId: string,
-  result: ModerationResult
+  result: ModerationResult,
 ): Promise<SafetyDecision> {
   const cfg = await prisma.orgSafetyConfig.findUnique({ where: { orgId } });
 
   const actionMap: Record<string, ModerationAction> = {
     ...PLATFORM_DEFAULTS,
-    ...(cfg?.categoryActions as any)
+    ...(cfg?.categoryActions as any),
   };
 
   // Pick max severity category score
@@ -37,7 +37,7 @@ export async function decideSafetyAction(
     return {
       action: 'allow',
       categories: [],
-      reason: undefined
+      reason: undefined,
     };
   }
 
@@ -62,6 +62,6 @@ export async function decideSafetyAction(
   return {
     action,
     categories: sorted,
-    reason
+    reason,
   };
 }

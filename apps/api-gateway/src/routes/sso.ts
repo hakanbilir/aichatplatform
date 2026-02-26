@@ -19,7 +19,7 @@ export default async function ssoRoutes(app: FastifyInstance, _opts: FastifyPlug
     }
 
     const connection = await prisma.ssoConnection.findFirst({
-      where: { id: connectionId, orgId: org.id, isEnabled: true }
+      where: { id: connectionId, orgId: org.id, isEnabled: true },
     });
 
     if (!connection) {
@@ -38,27 +38,31 @@ export default async function ssoRoutes(app: FastifyInstance, _opts: FastifyPlug
     const { connectionId, orgId } = req.query as any;
 
     const connection = await prisma.ssoConnection.findFirst({
-      where: { id: connectionId, orgId, isEnabled: true }
+      where: { id: connectionId, orgId, isEnabled: true },
     });
 
     if (!connection) {
       return reply.code(404).send({ error: 'SSO_CONNECTION_NOT_FOUND' });
     }
 
-    const userInfo = await handleSamlCallback(body.SAMLResponse, body.RelayState, connection.config as Record<string, any>);
+    const userInfo = await handleSamlCallback(
+      body.SAMLResponse,
+      body.RelayState,
+      connection.config as Record<string, any>,
+    );
 
     const user = await findOrProvisionUserFromSso(
       orgId,
       userInfo.email,
       userInfo.name,
       userInfo.groups,
-      connectionId
+      connectionId,
     );
 
     const payload: JwtPayload = {
       userId: user.id,
       orgId,
-      isSuperadmin: user.isSuperadmin
+      isSuperadmin: user.isSuperadmin,
     };
 
     const token = app.jwt.sign(payload);
@@ -71,27 +75,31 @@ export default async function ssoRoutes(app: FastifyInstance, _opts: FastifyPlug
     const { code, state, connectionId, orgId } = req.query as any;
 
     const connection = await prisma.ssoConnection.findFirst({
-      where: { id: connectionId, orgId, isEnabled: true }
+      where: { id: connectionId, orgId, isEnabled: true },
     });
 
     if (!connection) {
       return reply.code(404).send({ error: 'SSO_CONNECTION_NOT_FOUND' });
     }
 
-    const userInfo = await handleOidcCallback(code, state, connection.config as Record<string, any>);
+    const userInfo = await handleOidcCallback(
+      code,
+      state,
+      connection.config as Record<string, any>,
+    );
 
     const user = await findOrProvisionUserFromSso(
       orgId,
       userInfo.email,
       userInfo.name,
       userInfo.groups,
-      connectionId
+      connectionId,
     );
 
     const payload: JwtPayload = {
       userId: user.id,
       orgId,
-      isSuperadmin: user.isSuperadmin
+      isSuperadmin: user.isSuperadmin,
     };
 
     const token = app.jwt.sign(payload);

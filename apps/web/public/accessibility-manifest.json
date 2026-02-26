@@ -30,24 +30,15 @@
       "role": "region",
       "contrastRatio": "16.86:1 (White Text vs Glass on Dark)",
       "keyboardNavigation": "Pass through",
-      "attributes": [
-        "data-eco-mode"
-      ]
+      "attributes": ["data-eco-mode"]
     },
     "specular-button": {
       "role": "button",
       "contrastRatio": "> 7:1",
       "keyboardNavigation": "Focusable (Tab)",
-      "states": [
-        "hover",
-        "focus",
-        "active"
-      ],
+      "states": ["hover", "focus", "active"],
       "aria": {
-        "required": [
-          "aria-label",
-          "aria-pressed (if toggle)"
-        ]
+        "required": ["aria-label", "aria-pressed (if toggle)"]
       }
     },
     "bento-grid": {

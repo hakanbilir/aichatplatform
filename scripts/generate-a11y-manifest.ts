@@ -14,33 +14,33 @@ const routerContent = fs.readFileSync(routerPath, 'utf-8');
 // Regex to find paths
 const pathRegex = /path:\s*'([^']+)'/g;
 const matches = [...routerContent.matchAll(pathRegex)];
-const routes = matches.map(m => m[1]);
+const routes = matches.map((m) => m[1]);
 
 const manifest = {
   generatedAt: new Date().toISOString(),
-  standards: "WCAG 2.1 AAA",
-  theme: "Kinetic Refraction 2026",
+  standards: 'WCAG 2.1 AAA',
+  theme: 'Kinetic Refraction 2026',
   components: {
-    "GlassPanel": {
-      "role": "region",
-      "contrastRatio": "4.5:1 (with blur)",
-      "ariaLabel": "dynamic"
+    GlassPanel: {
+      role: 'region',
+      contrastRatio: '4.5:1 (with blur)',
+      ariaLabel: 'dynamic',
     },
-    "SpecularButton": {
-      "role": "button",
-      "focusable": true,
-      "tabIndex": 0,
-      "contrastRatio": "7:1"
-    }
+    SpecularButton: {
+      role: 'button',
+      focusable: true,
+      tabIndex: 0,
+      contrastRatio: '7:1',
+    },
   },
-  routes: {} as Record<string, any>
+  routes: {} as Record<string, any>,
 };
 
-routes.forEach(route => {
+routes.forEach((route) => {
   manifest.routes[route] = {
-    tabOrder: "Sequential",
-    ariaLandmarks: ["banner", "main", "contentinfo"],
-    glassEffects: "Reduced in Eco-Mode"
+    tabOrder: 'Sequential',
+    ariaLandmarks: ['banner', 'main', 'contentinfo'],
+    glassEffects: 'Reduced in Eco-Mode',
   };
 });
 

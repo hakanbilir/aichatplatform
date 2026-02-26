@@ -1,6 +1,11 @@
 import { FastifyPluginCallback } from 'fastify';
 
-import { getMetrics, getMetricsContentType, httpRequestsTotal, httpRequestDurationSeconds } from '../metrics';
+import {
+  getMetrics,
+  getMetricsContentType,
+  httpRequestsTotal,
+  httpRequestDurationSeconds,
+} from '../metrics';
 
 const metricsPlugin: FastifyPluginCallback = (app, _opts, done) => {
   const startTimeSymbol = Symbol('startTime');
@@ -55,4 +60,3 @@ const metricsPlugin: FastifyPluginCallback = (app, _opts, done) => {
 };
 
 export default metricsPlugin;
-

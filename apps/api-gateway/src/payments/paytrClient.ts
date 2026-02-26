@@ -45,13 +45,10 @@ export class PaytrClient {
       params.email,
       params.payment_amount,
       params.merchant_oid,
-      this.cfg.merchantSalt
+      this.cfg.merchantSalt,
     ].join('');
 
-    return crypto
-      .createHmac('sha256', this.cfg.merchantKey)
-      .update(hashStr)
-      .digest('base64');
+    return crypto.createHmac('sha256', this.cfg.merchantKey).update(hashStr).digest('base64');
   }
 
   async createCheckoutToken(params: PaytrCreateCheckoutParams): Promise<PaytrCheckoutResponse> {
@@ -71,14 +68,17 @@ export class PaytrClient {
       max_installment: String(params.max_installment ?? 0),
       user_basket: params.user_basket ?? '[]',
       debug_on: String(params.debug_on ?? 0),
-      paytr_token: hash
+      paytr_token: hash,
     });
 
-    const res = await fetch(`${process.env.PAYTR_BASE_URL || 'https://www.paytr.com'}/odeme/api/get-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    });
+    const res = await fetch(
+      `${process.env.PAYTR_BASE_URL || 'https://www.paytr.com'}/odeme/api/get-token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      },
+    );
 
     if (!res.ok) {
       const text = await res.text();
@@ -101,11 +101,7 @@ export class PaytrClient {
     hash: string;
   }): boolean {
     const hashData = `${this.cfg.merchantId}${params.merchantOid}${params.status}${params.totalAmount}${this.cfg.merchantSalt}`;
-    const expectedHash = crypto
-      .createHash('sha256')
-      .update(hashData)
-      .digest('hex')
-      .toUpperCase();
+    const expectedHash = crypto.createHash('sha256').update(hashData).digest('hex').toUpperCase();
 
     return expectedHash === params.hash.toUpperCase();
   }

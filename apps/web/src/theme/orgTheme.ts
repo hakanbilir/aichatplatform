@@ -12,23 +12,23 @@ export function createOrgTheme(branding: OrgBrandingConfigDto | null): Theme {
     palette: {
       mode: 'light',
       primary: {
-        main: primaryColor
+        main: primaryColor,
       },
       secondary: {
-        main: secondaryColor
-      }
+        main: secondaryColor,
+      },
     },
     typography: {
-      fontFamily: branding?.fontFamily || undefined
+      fontFamily: branding?.fontFamily || undefined,
     },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundImage: branding?.backgroundGradient || undefined
-          }
-        }
-      }
-    }
+            backgroundImage: branding?.backgroundGradient || undefined,
+          },
+        },
+      },
+    },
   });
 }

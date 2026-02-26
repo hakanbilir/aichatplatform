@@ -167,7 +167,8 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+          backgroundImage:
+            'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
           backdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.08)',
           transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -198,7 +199,8 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+          backgroundImage:
+            'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
           backdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.08)',
           transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -218,4 +220,3 @@ export const theme = createTheme({
     },
   },
 } as any); // Type assertion for custom theme extensions / Özel tema uzantıları için tip onayı
-

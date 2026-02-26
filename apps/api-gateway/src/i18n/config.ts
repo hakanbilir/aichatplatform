@@ -6,21 +6,18 @@ import Backend from 'i18next-fs-backend';
 // Initialize i18next for Node.js
 // Node.js için i18next'i başlat
 // eslint-disable-next-line import/no-named-as-default-member
-i18next
-  .use(Backend)
-  .init({
-    lng: 'tr', // Default language is Turkish / Varsayılan dil Türkçe
-    fallbackLng: 'tr',
-    supportedLngs: ['tr', 'en'],
-    defaultNS: 'errors',
-    ns: ['errors', 'validation'],
-    backend: {
-      loadPath: path.join(process.cwd(), 'src/i18n/locales', '{{lng}}', '{{ns}}.json'),
-    },
-    interpolation: {
-      escapeValue: false,
-    },
-  });
+i18next.use(Backend).init({
+  lng: 'tr', // Default language is Turkish / Varsayılan dil Türkçe
+  fallbackLng: 'tr',
+  supportedLngs: ['tr', 'en'],
+  defaultNS: 'errors',
+  ns: ['errors', 'validation'],
+  backend: {
+    loadPath: path.join(process.cwd(), 'src/i18n/locales', '{{lng}}', '{{ns}}.json'),
+  },
+  interpolation: {
+    escapeValue: false,
+  },
+});
 
 export default i18next;
-

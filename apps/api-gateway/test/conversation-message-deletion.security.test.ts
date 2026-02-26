@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock } from 'bun:test';
 
 // Mock the db module
@@ -24,17 +23,17 @@ mock.module('@ai-chat/db', () => {
       },
       message: {
         findFirst: mock((args) => {
-           // Return a message authored by someone else
-           return Promise.resolve({
-             id: 'msg_1',
-             conversationId: 'conv_1',
-             authorId: 'user_other', // Message Author is NOT the attacker
-             role: 'USER'
-           });
+          // Return a message authored by someone else
+          return Promise.resolve({
+            id: 'msg_1',
+            conversationId: 'conv_1',
+            authorId: 'user_other', // Message Author is NOT the attacker
+            role: 'USER',
+          });
         }),
         delete: mock(() => Promise.resolve({ id: 'msg_1' })),
-      }
-    }
+      },
+    },
   };
 });
 
@@ -48,23 +47,22 @@ mock.module('../src/rbac/guards', () => {
 
 // Mock emitter
 mock.module('../src/events/emitter', () => {
-    return {
-        emitEvent: mock(() => Promise.resolve()),
-    };
+  return {
+    emitEvent: mock(() => Promise.resolve()),
+  };
 });
 // Mock llm service
 mock.module('../src/llm/modelRegistryService', () => {
-    return {
-        resolveModelForOrg: mock(() => Promise.resolve()),
-    };
+  return {
+    resolveModelForOrg: mock(() => Promise.resolve()),
+  };
 });
 // Mock prompt render
 mock.module('../src/promptStudio/render', () => {
-    return {
-        renderSystemPromptFromProfile: mock(() => Promise.resolve('')),
-    };
+  return {
+    renderSystemPromptFromProfile: mock(() => Promise.resolve('')),
+  };
 });
-
 
 import fastify from 'fastify';
 import conversationsRoutes from '../src/routes/conversations';
@@ -80,9 +78,9 @@ describe('Conversation Message Deletion Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(conversationsRoutes);
@@ -94,7 +92,7 @@ describe('Conversation Message Deletion Security', () => {
 
     const response = await app.inject({
       method: 'DELETE',
-      url: '/conversations/conv_1/messages/msg_1'
+      url: '/conversations/conv_1/messages/msg_1',
     });
 
     // Currently this will be 200/204, but we want 403

@@ -1,8 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  Box,
-  IconButton,
-} from '@mui/material';
+import { Box, IconButton } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -12,10 +9,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useOrgModels } from '../hooks/useOrgModels';
 import { usePromptTemplates } from '../prompts/usePromptTemplates';
 import { CreatePromptTemplateInput, PromptTemplate } from '../api/prompts';
-import {
-  createConversation,
-  updateConversation,
-} from '../api/conversations';
+import { createConversation, updateConversation } from '../api/conversations';
 import { ConversationExportDialog } from '../conversations/ConversationExportDialog';
 import { ConversationShareDialog } from '../conversations/ConversationShareDialog';
 import { useChat } from '../hooks/useChat';
@@ -73,10 +67,10 @@ export const ChatPage: React.FC = () => {
     sendMessage,
     regenerate,
     stop,
-    refetch: refetchConversation
+    refetch: refetchConversation,
   } = useChat({
     conversationId,
-    onError: (err) => console.error("Chat Error:", err),
+    onError: (err) => console.error('Chat Error:', err),
   });
 
   const [model, setModel] = useState<string>('llama3.1');
@@ -95,7 +89,7 @@ export const ChatPage: React.FC = () => {
   const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
-  
+
   const { user, activeOrg } = useAuth();
 
   const effectiveOrgId = conversation?.orgId ?? paramOrgId ?? activeOrg?.id ?? null;
@@ -104,17 +98,24 @@ export const ChatPage: React.FC = () => {
 
   const modelOptions = React.useMemo(() => {
     if (!orgModels) return [];
-    return orgModels.map(m => ({
+    return orgModels.map((m) => ({
       value: m.modelName,
-      label: m.displayName
+      label: m.displayName,
     }));
   }, [orgModels]);
 
   const { createTemplate, updateTemplate } = usePromptTemplates(conversation?.orgId ?? null);
 
   // Performance optimization: Disable interim results to prevent excessive re-renders of ChatPage
-  const { isListening, transcript, startListening, stopListening, resetTranscript, supported: speechSupported } = useSpeechToText({
-    interimResults: false
+  const {
+    isListening,
+    transcript,
+    startListening,
+    stopListening,
+    resetTranscript,
+    supported: speechSupported,
+  } = useSpeechToText({
+    interimResults: false,
   });
 
   useEffect(() => {
@@ -172,21 +173,21 @@ export const ChatPage: React.FC = () => {
   // Sync settings with loaded conversation
   useEffect(() => {
     if (conversation) {
-        // Only update if not dirty to avoid overwriting user edits while typing
-        if (!dirty) {
-            const nextModel = conversation.model || 'llama3.1';
-            const nextTemp = clampTemperature(conversation.temperature ?? 0.7);
-            const nextTopP = clampTopP(conversation.topP ?? 1);
-            setModel(nextModel);
-            setTemperature(nextTemp);
-            setTopP(nextTopP);
-        }
+      // Only update if not dirty to avoid overwriting user edits while typing
+      if (!dirty) {
+        const nextModel = conversation.model || 'llama3.1';
+        const nextTemp = clampTemperature(conversation.temperature ?? 0.7);
+        const nextTopP = clampTopP(conversation.topP ?? 1);
+        setModel(nextModel);
+        setTemperature(nextTemp);
+        setTopP(nextTopP);
+      }
     } else if (orgModels && orgModels.length > 0 && !dirty) {
-        // If new conversation and current default model is invalid, pick first available
-        const isCurrentValid = orgModels.some(m => m.modelName === model);
-        if (!isCurrentValid) {
-            setModel(orgModels[0].modelName);
-        }
+      // If new conversation and current default model is invalid, pick first available
+      const isCurrentValid = orgModels.some((m) => m.modelName === model);
+      if (!isCurrentValid) {
+        setModel(orgModels[0].modelName);
+      }
     }
   }, [conversation, dirty, orgModels, model]);
 
@@ -199,13 +200,16 @@ export const ChatPage: React.FC = () => {
     return () => window.clearTimeout(timeout);
   }, [savedAt]);
 
-  const handleSend = useCallback(async (content: string, images?: string[]) => {
-    await sendMessage(content, images, {
+  const handleSend = useCallback(
+    async (content: string, images?: string[]) => {
+      await sendMessage(content, images, {
         model,
         temperature,
-        topP
-    });
-  }, [sendMessage, model, temperature, topP]);
+        topP,
+      });
+    },
+    [sendMessage, model, temperature, topP],
+  );
 
   const handleSaveSettings = async () => {
     if (!token || !conversationId) return;
@@ -284,13 +288,16 @@ export const ChatPage: React.FC = () => {
     setPromptLibraryOpen(false);
   }, []);
 
-  const handleSaveTemplate = useCallback(async (input: CreatePromptTemplateInput, existingId?: string) => {
-    if (existingId) {
-      await updateTemplate(existingId, input);
-    } else {
-      await createTemplate(input);
-    }
-  }, [updateTemplate, createTemplate]);
+  const handleSaveTemplate = useCallback(
+    async (input: CreatePromptTemplateInput, existingId?: string) => {
+      if (existingId) {
+        await updateTemplate(existingId, input);
+      } else {
+        await createTemplate(input);
+      }
+    },
+    [updateTemplate, createTemplate],
+  );
 
   const currentTitle = conversation?.title || t('conversation.new');
 
@@ -320,7 +327,10 @@ export const ChatPage: React.FC = () => {
       />
 
       {/* Chat view */}
-      <GlassPanel refractive={!isEcoMode} sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <GlassPanel
+        refractive={!isEcoMode}
+        sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      >
         <ChatView
           messages={messages ?? []}
           streamingAssistantText={streamingText}
@@ -330,31 +340,33 @@ export const ChatPage: React.FC = () => {
         />
 
         {/* Regenerate Button */}
-        {!isStreaming && messages && messages.length > 0 &&
-        (messages[messages.length - 1].role === 'ASSISTANT' ||
-          messages[messages.length - 1].role === 'assistant') && (
-          <Box display="flex" justifyContent="center" pb={1}>
-            <SpecularButton
-              startIcon={<RestartAltIcon />}
-              size="small"
-              variant="outlined"
-              onClick={regenerate}
-              aiAction="regenerate"
-              sx={{
-                borderRadius: 4,
-                borderColor: 'rgba(255,255,255,0.12)',
-                color: 'text.secondary',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  bgcolor: 'rgba(124,77,255,0.04)'
-                }
-              }}
-            >
-              {t('chat.regenerate', 'Regenerate response')}
-            </SpecularButton>
-          </Box>
-        )}
+        {!isStreaming &&
+          messages &&
+          messages.length > 0 &&
+          (messages[messages.length - 1].role === 'ASSISTANT' ||
+            messages[messages.length - 1].role === 'assistant') && (
+            <Box display="flex" justifyContent="center" pb={1}>
+              <SpecularButton
+                startIcon={<RestartAltIcon />}
+                size="small"
+                variant="outlined"
+                onClick={regenerate}
+                aiAction="regenerate"
+                sx={{
+                  borderRadius: 4,
+                  borderColor: 'rgba(255,255,255,0.12)',
+                  color: 'text.secondary',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    bgcolor: 'rgba(124,77,255,0.04)',
+                  },
+                }}
+              >
+                {t('chat.regenerate', 'Regenerate response')}
+              </SpecularButton>
+            </Box>
+          )}
       </GlassPanel>
 
       {/* Input Area */}
@@ -383,11 +395,7 @@ export const ChatPage: React.FC = () => {
         />
       </GlassPanel>
 
-      <VoiceModeOverlay
-        isListening={isListening}
-        transcript={transcript}
-        onStop={stopListening}
-      />
+      <VoiceModeOverlay isListening={isListening} transcript={transcript} onStop={stopListening} />
 
       {/* Settings drawer */}
       <ConversationSettingsDrawer

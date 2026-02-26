@@ -14,4 +14,3 @@ export function buildToolsSystemPrompt(tools: ToolDefinition[]): string {
     `If you do not need tools, respond normally in natural language. Do NOT mix normal language and the JSON object in the same response.`
   );
 }
-

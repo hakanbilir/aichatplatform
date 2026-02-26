@@ -47,45 +47,46 @@ interface ChatSettingsBarProps {
   onOpenSettings: () => void;
 }
 
-export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
-  title,
-  model,
-  models,
-  temperature,
-  topP,
-  dirty,
-  saving,
-  savedAt,
-  usage,
-  conversationId,
-  isEcoMode,
-  onToggleEcoMode,
-  onChangeModel,
-  onChangeTemperature,
-  onChangeTopP,
-  onSaveSettings,
-  onResetSettings,
-  onOpenTools,
-  onOpenSettings,
-}) => {
-  const { t } = useTranslation('chat');
+export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(
+  ({
+    title,
+    model,
+    models,
+    temperature,
+    topP,
+    dirty,
+    saving,
+    savedAt,
+    usage,
+    conversationId,
+    isEcoMode,
+    onToggleEcoMode,
+    onChangeModel,
+    onChangeTemperature,
+    onChangeTopP,
+    onSaveSettings,
+    onResetSettings,
+    onOpenTools,
+    onOpenSettings,
+  }) => {
+    const { t } = useTranslation('chat');
 
-  const creativityLabel =
-    temperature < 0.4
-      ? t('settings.creativity.precise')
-      : temperature < 1
-        ? t('settings.creativity.balanced')
-        : t('settings.creativity.creative');
+    const creativityLabel =
+      temperature < 0.4
+        ? t('settings.creativity.precise')
+        : temperature < 1
+          ? t('settings.creativity.balanced')
+          : t('settings.creativity.creative');
 
-  return (
-    <GlassPanel
+    return (
+      <GlassPanel
         refractive={!isEcoMode}
         sx={{
           display: 'flex',
           alignItems: 'center',
           gap: 2,
           p: 1.5,
-          minHeight: 'auto'
+          minHeight: 'auto',
         }}
       >
         <Box flex={1} minWidth={0}>
@@ -117,10 +118,10 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
               </MenuItem>
             )}
             {/* Fallback if current model is not in list but set */}
-            {model && models.length > 0 && !models.find(m => m.value === model) && (
-               <MenuItem value={model} disabled>
-                  {model} (Unavailable)
-               </MenuItem>
+            {model && models.length > 0 && !models.find((m) => m.value === model) && (
+              <MenuItem value={model} disabled>
+                {model} (Unavailable)
+              </MenuItem>
             )}
           </Select>
         </FormControl>
@@ -129,17 +130,38 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
           <Typography variant="caption" color="text.secondary">
             {t('settings.temperature')}
           </Typography>
-          <Slider size="small" value={temperature} min={0} max={2} step={0.1} onChange={onChangeTemperature} aria-label={t('settings.temperature')} />
+          <Slider
+            size="small"
+            value={temperature}
+            min={0}
+            max={2}
+            step={0.1}
+            onChange={onChangeTemperature}
+            aria-label={t('settings.temperature')}
+          />
         </Box>
 
         <Box width={130} px={1}>
           <Typography variant="caption" color="text.secondary">
             {t('settings.topP')}
           </Typography>
-          <Slider size="small" value={topP} min={0} max={1} step={0.05} onChange={onChangeTopP} aria-label={t('settings.topP')} />
+          <Slider
+            size="small"
+            value={topP}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={onChangeTopP}
+            aria-label={t('settings.topP')}
+          />
         </Box>
 
-        <Chip size="small" label={creativityLabel} sx={{ fontSize: 11, height: 24 }} variant="outlined" />
+        <Chip
+          size="small"
+          label={creativityLabel}
+          sx={{ fontSize: 11, height: 24 }}
+          variant="outlined"
+        />
 
         {usage && (
           <>
@@ -167,7 +189,11 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
               aria-label={isEcoMode ? t('settings.ecoModeOn') : t('settings.ecoModeOff')}
               data-ai-action="toggle-eco-mode"
             >
-              {isEcoMode ? <EnergySavingsLeafIcon fontSize="small" /> : <BoltIcon fontSize="small" />}
+              {isEcoMode ? (
+                <EnergySavingsLeafIcon fontSize="small" />
+              ) : (
+                <BoltIcon fontSize="small" />
+              )}
             </IconButton>
           </Tooltip>
           <Tooltip title={t('settings.toolsPanel')}>
@@ -235,7 +261,8 @@ export const ChatSettingsBar: React.FC<ChatSettingsBarProps> = memo(({
           )}
         </Box>
       </GlassPanel>
-  );
-});
+    );
+  },
+);
 
 ChatSettingsBar.displayName = 'ChatSettingsBar';

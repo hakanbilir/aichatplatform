@@ -18,7 +18,7 @@ import {
   TableRow,
   TextField,
   Tooltip,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -32,14 +32,10 @@ export const AuditLogPage: React.FC = () => {
   const { t } = useTranslation(['audit', 'common']);
   const { orgId } = useParams<{ orgId: string }>();
 
-  const {
-    query,
-    setQuery,
-    response,
-    events,
-    loading,
-    error
-  } = useAuditLog(orgId || null, { page: 0, pageSize: 25 });
+  const { query, setQuery, response, events, loading, error } = useAuditLog(orgId || null, {
+    page: 0,
+    pageSize: 25,
+  });
 
   const gradientBg =
     'radial-gradient(circle at top left, rgba(251,191,36,0.16), transparent 55%), ' +
@@ -60,7 +56,7 @@ export const AuditLogPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -92,7 +88,7 @@ export const AuditLogPage: React.FC = () => {
                   setQuery((prev) => ({
                     ...prev,
                     page: 0,
-                    type: e.target.value || undefined
+                    type: e.target.value || undefined,
                   }))
                 }
               />
@@ -108,7 +104,7 @@ export const AuditLogPage: React.FC = () => {
                   setQuery((prev) => ({
                     ...prev,
                     pageSize: Number(e.target.value),
-                    page: 0
+                    page: 0,
                   }))
                 }
               >
@@ -187,7 +183,7 @@ export const AuditLogPage: React.FC = () => {
                                 if (!orgId) return;
                                 window.open(
                                   `/app/orgs/${orgId}/chat/${ev.conversationId}`,
-                                  '_blank'
+                                  '_blank',
                                 );
                               }}
                             >
@@ -209,7 +205,7 @@ export const AuditLogPage: React.FC = () => {
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
                           }}
                         >
                           {JSON.stringify(ev.metadata)}
@@ -231,7 +227,7 @@ export const AuditLogPage: React.FC = () => {
                 onChange={(_, p) =>
                   setQuery((prev) => ({
                     ...prev,
-                    page: p - 1
+                    page: p - 1,
                   }))
                 }
               />
@@ -242,4 +238,3 @@ export const AuditLogPage: React.FC = () => {
     </Box>
   );
 };
-

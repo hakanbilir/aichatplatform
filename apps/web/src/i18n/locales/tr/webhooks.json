@@ -19,4 +19,3 @@
   "disabled": "Devre dışı",
   "noWebhooks": "Henüz webhook yok. Olaylarda imzalı HTTP POST çağrıları almak için bir tane oluşturun."
 }
-

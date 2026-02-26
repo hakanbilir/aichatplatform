@@ -22,8 +22,8 @@ export async function ingestDocumentFromText(params: {
       sourceType: params.sourceType ?? 'api',
       sourceUrl: params.sourceUrl ?? null,
       text: params.text,
-      status: 'pending'
-    }
+      status: 'pending',
+    },
   });
 
   const job = await prisma.embeddingJob.create({
@@ -31,20 +31,23 @@ export async function ingestDocumentFromText(params: {
       orgId: params.orgId,
       spaceId: params.spaceId,
       documentId: doc.id,
-      status: 'pending'
-    }
+      status: 'pending',
+    },
   });
 
   // Synchronous ingestion (for now). For large docs, move to a background queue.
   try {
     await runEmbeddingJob(job.id);
   } catch (err) {
-    logger.error({
-      event: 'knowledge.ingest.error',
-      orgId: params.orgId,
-      documentId: doc.id,
-      error: (err as Error).message
-    }, 'Knowledge ingestion failed');
+    logger.error(
+      {
+        event: 'knowledge.ingest.error',
+        orgId: params.orgId,
+        documentId: doc.id,
+        error: (err as Error).message,
+      },
+      'Knowledge ingestion failed',
+    );
   }
 
   return { documentId: doc.id };
@@ -58,11 +61,11 @@ export async function runEmbeddingJob(jobId: string): Promise<void> {
 
   await prisma.embeddingJob.update({
     where: { id: job.id },
-    data: { status: 'running', error: null }
+    data: { status: 'running', error: null },
   });
 
   const doc = await prisma.knowledgeDocument.findUnique({
-    where: { id: job.documentId }
+    where: { id: job.documentId },
   });
 
   if (!doc) {
@@ -85,12 +88,15 @@ export async function runEmbeddingJob(jobId: string): Promise<void> {
     embeddings = await provider.embed(chunks);
   } catch (err) {
     // If embedding fails, still create chunks without embeddings
-    logger.warn({
-      event: 'knowledge.embed.failed',
-      jobId: job.id,
-      documentId: doc.id,
-      error: (err as Error).message
-    }, 'Embedding provider failed, creating chunks without embeddings');
+    logger.warn(
+      {
+        event: 'knowledge.embed.failed',
+        jobId: job.id,
+        documentId: doc.id,
+        error: (err as Error).message,
+      },
+      'Embedding provider failed, creating chunks without embeddings',
+    );
 
     embeddings = chunks.map(() => []); // Empty embeddings
   }
@@ -102,9 +108,7 @@ export async function runEmbeddingJob(jobId: string): Promise<void> {
   // Note: Prisma doesn't support vector types directly, so we use raw SQL
   for (let index = 0; index < chunks.length; index++) {
     const chunk = chunks[index];
-    const embedding = embeddings[index] && embeddings[index].length > 0
-      ? embeddings[index]
-      : null;
+    const embedding = embeddings[index] && embeddings[index].length > 0 ? embeddings[index] : null;
 
     if (embedding) {
       // Use raw SQL to insert with vector type
@@ -119,7 +123,7 @@ export async function runEmbeddingJob(jobId: string): Promise<void> {
         doc.id,
         index,
         chunk,
-        embeddingStr
+        embeddingStr,
       );
     } else {
       // Insert without embedding (can use Prisma for this)
@@ -128,8 +132,8 @@ export async function runEmbeddingJob(jobId: string): Promise<void> {
           orgId: doc.orgId,
           documentId: doc.id,
           index,
-          text: chunk
-        }
+          text: chunk,
+        },
       });
     }
   }
@@ -139,13 +143,12 @@ export async function runEmbeddingJob(jobId: string): Promise<void> {
       where: { id: doc.id },
       data: {
         status: 'ingested',
-        statusMessage: null
-      }
+        statusMessage: null,
+      },
     }),
     prisma.embeddingJob.update({
       where: { id: job.id },
-      data: { status: 'completed', error: null }
-    })
+      data: { status: 'completed', error: null },
+    }),
   ]);
 }
-

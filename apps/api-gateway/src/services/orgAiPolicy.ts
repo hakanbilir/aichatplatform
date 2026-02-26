@@ -27,7 +27,7 @@ export async function getOrgAiPolicy(orgId: string): Promise<OrgAiPolicyDto | nu
     name: row.name,
     description: row.description,
     systemPrompt: row.systemPrompt,
-    config: row.config as OrgAiPolicyConfig
+    config: row.config as OrgAiPolicyConfig,
   };
 }
 
@@ -44,15 +44,15 @@ export async function upsertOrgAiPolicy(params: {
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as any
+      config: (params.config ?? {}) as any,
     },
     create: {
       orgId: params.orgId,
       name: params.name,
       description: params.description ?? null,
       systemPrompt: params.systemPrompt,
-      config: (params.config ?? {}) as any
-    }
+      config: (params.config ?? {}) as any,
+    },
   });
 
   return {
@@ -61,7 +61,6 @@ export async function upsertOrgAiPolicy(params: {
     name: row.name,
     description: row.description,
     systemPrompt: row.systemPrompt,
-    config: row.config as OrgAiPolicyConfig
+    config: row.config as OrgAiPolicyConfig,
   };
 }
-

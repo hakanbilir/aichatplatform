@@ -2,7 +2,7 @@
   --gradient-primary: radial-gradient(circle at 0% 0%, #7c4dff 0%, #00e5ff 40%, #ff4081 90%);
   --gradient-sidebar: linear-gradient(180deg, rgba(124, 77, 255, 0.8), rgba(0, 229, 255, 0.4));
   --gradient-header: linear-gradient(90deg, rgba(124, 77, 255, 0.9), rgba(0, 229, 255, 0.8));
-  
+
   /* Metric card gradients */
   --gradient-metric-1: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(56, 189, 248, 0.16));
   --gradient-metric-2: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(45, 212, 191, 0.18));
@@ -10,13 +10,13 @@
   --gradient-metric-4: linear-gradient(135deg, rgba(124, 77, 255, 0.18), rgba(0, 229, 255, 0.16));
   --gradient-metric-5: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(251, 191, 36, 0.18));
   --gradient-metric-6: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(248, 113, 113, 0.18));
-  
+
   /* Button gradients */
-  --gradient-button-primary: linear-gradient(135deg, #7C4DFF 0%, #00E5FF 100%);
-  --gradient-button-success: linear-gradient(135deg, #10B981 0%, #34D399 100%);
-  --gradient-button-warning: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
-  --gradient-button-error: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
-  
+  --gradient-button-primary: linear-gradient(135deg, #7c4dff 0%, #00e5ff 100%);
+  --gradient-button-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  --gradient-button-warning: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --gradient-button-error: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+
   /* Chart gradients */
   --gradient-chart-1: linear-gradient(180deg, rgba(124, 77, 255, 0.3), rgba(124, 77, 255, 0.05));
   --gradient-chart-2: linear-gradient(180deg, rgba(0, 229, 255, 0.3), rgba(0, 229, 255, 0.05));
@@ -32,14 +32,20 @@ body,
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Roboto', sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'SF Pro Text',
+    'Roboto',
+    sans-serif;
   background: radial-gradient(circle at top left, #111427 0%, #050711 45%, #000000 100%);
 }
 
 .gradient-shell {
-  background: radial-gradient(circle at top left, rgba(124, 77, 255, 0.28), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(0, 229, 255, 0.18), transparent 55%),
-    #050711;
+  background:
+    radial-gradient(circle at top left, rgba(124, 77, 255, 0.28), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(0, 229, 255, 0.18), transparent 55%), #050711;
 }
 
 .gradient-sidebar {
@@ -107,7 +113,9 @@ body {
 
 .micro-elevated {
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
-  transition: box-shadow 160ms ease, transform 160ms ease;
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .micro-elevated:hover {
@@ -132,7 +140,8 @@ body {
 
 /* Data loading/updating animations */
 @keyframes data-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -187,4 +196,3 @@ body {
 .chart-line-draw {
   animation: chart-line-draw 1s ease-out;
 }
-

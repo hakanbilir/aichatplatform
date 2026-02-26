@@ -34,27 +34,30 @@ export function useTextToSpeech() {
     }
   }, []);
 
-  const speak = useCallback((text: string, options: SpeakOptions = {}) => {
-    if (!supported) return;
+  const speak = useCallback(
+    (text: string, options: SpeakOptions = {}) => {
+      if (!supported) return;
 
-    // Cancel existing speech
-    window.speechSynthesis.cancel();
+      // Cancel existing speech
+      window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(text);
 
-    if (options.voice) utterance.voice = options.voice;
-    if (options.rate !== undefined) utterance.rate = options.rate;
-    if (options.pitch !== undefined) utterance.pitch = options.pitch;
-    if (options.volume !== undefined) utterance.volume = options.volume;
+      if (options.voice) utterance.voice = options.voice;
+      if (options.rate !== undefined) utterance.rate = options.rate;
+      if (options.pitch !== undefined) utterance.pitch = options.pitch;
+      if (options.volume !== undefined) utterance.volume = options.volume;
 
-    utterance.onstart = () => setState('playing');
-    utterance.onend = () => setState('idle');
-    utterance.onerror = () => setState('idle');
-    utterance.onpause = () => setState('paused');
-    utterance.onresume = () => setState('playing');
+      utterance.onstart = () => setState('playing');
+      utterance.onend = () => setState('idle');
+      utterance.onerror = () => setState('idle');
+      utterance.onpause = () => setState('paused');
+      utterance.onresume = () => setState('playing');
 
-    window.speechSynthesis.speak(utterance);
-  }, [supported]);
+      window.speechSynthesis.speak(utterance);
+    },
+    [supported],
+  );
 
   const stop = useCallback(() => {
     if (!supported) return;
@@ -80,6 +83,6 @@ export function useTextToSpeech() {
     state,
     speaking: state === 'playing',
     supported,
-    voices
+    voices,
   };
 }

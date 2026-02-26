@@ -19,7 +19,7 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import BlockIcon from '@mui/icons-material/Block';
@@ -35,7 +35,7 @@ import {
   fetchOrgMembers,
   inviteOrgMember,
   updateMemberRole,
-  updateMemberStatus
+  updateMemberStatus,
 } from '../api/orgAdminMembers';
 import { LoadingState } from '../components/dashboard/LoadingState';
 
@@ -102,7 +102,7 @@ export const OrgMembersPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -177,10 +177,7 @@ export const OrgMembersPage: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleToggleStatus(m)}
-                        >
+                        <IconButton size="small" onClick={() => handleToggleStatus(m)}>
                           {m.status === 'active' ? (
                             <BlockIcon fontSize="small" />
                           ) : (
@@ -192,11 +189,11 @@ export const OrgMembersPage: React.FC = () => {
                   ))}
                   {members.length === 0 && !loading && (
                     <TableRow>
-                       <TableCell colSpan={5} align="center">
-                         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                           {t('members.noMembers', { defaultValue: 'No members found.' })}
-                         </Typography>
-                       </TableCell>
+                      <TableCell colSpan={5} align="center">
+                        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                          {t('members.noMembers', { defaultValue: 'No members found.' })}
+                        </Typography>
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -231,9 +228,7 @@ export const OrgMembersPage: React.FC = () => {
                         <TableCell>{inv.role}</TableCell>
                         <TableCell>{inv.status}</TableCell>
                         <TableCell>
-                          {inv.expiresAt
-                            ? new Date(inv.expiresAt).toLocaleDateString()
-                            : '—'}
+                          {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : '—'}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -267,11 +262,7 @@ export const OrgMembersPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>{t('cancel', { ns: 'common' })}</Button>
-          <Button
-            onClick={handleInvite}
-            disabled={!inviteEmail}
-            variant="contained"
-          >
+          <Button onClick={handleInvite} disabled={!inviteEmail} variant="contained">
             {t('members.sendInvite')}
           </Button>
         </DialogActions>

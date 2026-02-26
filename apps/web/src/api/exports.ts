@@ -16,30 +16,25 @@ export async function createExportJob(
   token: string,
   orgId: string,
   conversationId: string,
-  format: ConversationExportFormat
+  format: ConversationExportFormat,
 ): Promise<{ exportId: string; status: string }> {
   return apiRequest<{ exportId: string; status: string }>(
     `/orgs/${orgId}/conversations/${conversationId}/export`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ format })
+      body: JSON.stringify({ format }),
     },
-    token
+    token,
   );
 }
 
 export async function fetchExportJob(
   token: string,
   orgId: string,
-  exportId: string
+  exportId: string,
 ): Promise<ExportJob> {
-  return apiRequest<ExportJob>(
-    `/orgs/${orgId}/exports/${exportId}`,
-    { method: 'GET' },
-    token
-  );
+  return apiRequest<ExportJob>(`/orgs/${orgId}/exports/${exportId}`, { method: 'GET' }, token);
 }
-

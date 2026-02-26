@@ -32,11 +32,5 @@
       "@ai-chat/config/*": ["packages/config/src/*"]
     }
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    ".next"
-  ]
+  "exclude": ["node_modules", "dist", "build", ".next"]
 }
-

@@ -3,7 +3,11 @@ import { Typography, TypographyProps } from '@mui/material';
 
 import { useEcoMode } from '../../../hooks/useEcoMode';
 
-export const KineticTypography: React.FC<TypographyProps & { component?: React.ElementType }> = ({ children, className, ...props }) => {
+export const KineticTypography: React.FC<TypographyProps & { component?: React.ElementType }> = ({
+  children,
+  className,
+  ...props
+}) => {
   const textRef = useRef<HTMLElement>(null);
   const { isEcoMode } = useEcoMode();
 
@@ -25,7 +29,9 @@ export const KineticTypography: React.FC<TypographyProps & { component?: React.E
           const centerY = rect.top + rect.height / 2;
 
           // Calculate distance from center of element
-          const dist = Math.sqrt(Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2));
+          const dist = Math.sqrt(
+            Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2),
+          );
 
           // Map distance to font weight (closer = heavier)
           // Max weight 700, min 300. Max influence distance 500px.
@@ -59,11 +65,7 @@ export const KineticTypography: React.FC<TypographyProps & { component?: React.E
   }, [isEcoMode]);
 
   return (
-    <Typography
-      ref={textRef}
-      className={`kinetic-typography ${className || ''}`}
-      {...props}
-    >
+    <Typography ref={textRef} className={`kinetic-typography ${className || ''}`} {...props}>
       {children}
     </Typography>
   );

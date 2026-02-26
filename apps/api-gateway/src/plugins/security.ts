@@ -31,12 +31,6 @@ async function securityPlugin(app: FastifyInstance) {
     allowList: ['127.0.0.1', '::1'], // Allow localhost
     hook: 'onRequest',
   });
-
 }
 
 export default fp(securityPlugin);
-
-
-
-
-

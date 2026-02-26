@@ -1,6 +1,11 @@
 // apps/api-gateway/src/llm/router.ts
 
-import { ChatCompletionRequest, LlmChatProvider, ChatCompletionResponse, ChatCompletionChunk } from './types';
+import {
+  ChatCompletionRequest,
+  LlmChatProvider,
+  ChatCompletionResponse,
+  ChatCompletionChunk,
+} from './types';
 import { OllamaChatProvider } from './providers/ollama';
 // Future imports: OpenAIChatProvider, AnthropicChatProvider, etc.
 
@@ -29,14 +34,14 @@ function resolveProvider(modelProvider: string): LlmChatProvider {
 }
 
 export async function completeWithRouting(
-  req: ChatCompletionRequest
+  req: ChatCompletionRequest,
 ): Promise<ChatCompletionResponse> {
   const provider = resolveProvider(req.modelProvider);
   return provider.complete(req);
 }
 
 export function streamWithRouting(
-  req: ChatCompletionRequest
+  req: ChatCompletionRequest,
 ): AsyncIterableIterator<ChatCompletionChunk> {
   const provider = resolveProvider(req.modelProvider);
   return provider.stream(req) as AsyncIterableIterator<ChatCompletionChunk>;

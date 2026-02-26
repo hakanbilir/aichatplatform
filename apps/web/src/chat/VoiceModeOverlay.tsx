@@ -51,7 +51,8 @@ const VoiceModeOverlayComponent: React.FC<VoiceModeOverlayProps> = ({
       >
         <Box textAlign="center">
           <KineticTypography variant="h3" sx={{ color: 'white', mb: 2 }}>
-            {t('voiceMode.listening', 'Listening')}{dots}
+            {t('voiceMode.listening', 'Listening')}
+            {dots}
           </KineticTypography>
           <Typography variant="h5" sx={{ color: 'rgba(255,255,255,0.7)', maxWidth: '800px' }}>
             {transcript || t('voiceMode.speakNow', 'Start speaking...')}

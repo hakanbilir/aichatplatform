@@ -1,7 +1,5 @@
 **Note:** This project has been migrated from Docker to PM2 process management. See `/root/PM2_MIGRATION_GUIDE.md` for details.
 
-
-
 # SECURITY.md – Node.js Web App Security Profile for AI Agents
 
 > **Purpose**  
@@ -12,18 +10,18 @@
 
 ## 0. Global Rules for AI Agents
 
-1. **Never weaken security.**  
+1. **Never weaken security.**
    - You MUST NOT remove or relax existing security checks unless you immediately replace them with a stronger, equivalent control.
-2. **Keep the app working.**  
+2. **Keep the app working.**
    - All changes MUST keep the app compiling, tests passing and the main workflows functioning. If a security improvement would break the app, prefer the **smallest safe change** and document the limitation in comments.
-3. **No secrets in code.**  
-   - Do NOT introduce hardcoded passwords, API keys, tokens or private keys.  
+3. **No secrets in code.**
+   - Do NOT introduce hardcoded passwords, API keys, tokens or private keys.
    - Always load secrets from environment variables or from the existing secret management mechanism.
-4. **Respect the tech stack.**  
+4. **Respect the tech stack.**
    - Detect whether the app uses **Express, Fastify, NestJS, Koa or another framework**, and apply the relevant recipes below without changing the architectural style.
-5. **Idempotent changes.**  
+5. **Idempotent changes.**
    - Write security code so that running the agent multiple times does NOT duplicate middleware, env vars, or CI jobs.
-6. **Prefer LTS Node.js.**  
+6. **Prefer LTS Node.js.**
    - Target **Node.js 24.x LTS ("Krypton")** when possible. If the project is on Node 20.x or 22.x LTS, prefer **upgrading to 24.x** in new work but **do not break current production** just to change the version.
 
 ---
@@ -41,8 +39,8 @@ AI agents MUST scan and understand at least the following files if they exist:
 
 For each security task below, the agent MUST:
 
-1. Locate the relevant files.  
-2. Detect current patterns (e.g. Express vs NestJS).  
+1. Locate the relevant files.
+2. Detect current patterns (e.g. Express vs NestJS).
 3. Apply the specific recipes, code templates and configuration rules described in this document.
 
 ---
@@ -54,7 +52,7 @@ For each security task below, the agent MUST:
 1. Locate Node version declarations in:
    - `.nvmrc`, `package.json` (`engines.node`), `Dockerfile`, CI configuration.
 2. If the runtime is **older than Node 20.x**:
-   - Add a **comment** in `SECURITY.md` or `README.md` recommending upgrade to **Node 24.x LTS**.  
+   - Add a **comment** in `SECURITY.md` or `README.md` recommending upgrade to **Node 24.x LTS**.
    - Do **not** change CI images or runtime unless this repository clearly already supports Node ≥20.
 3. If `engines.node` is missing in `package.json`, set it to a safe LTS range, for example:
    ```json
@@ -107,6 +105,7 @@ If the project uses **Express** (detected via `import express from 'express'` or
    - `express-rate-limit`
    - `compression`
 2. In the main server file (commonly `src/server.ts` or `src/index.ts`), after `const app = express();`, add **idempotent** middleware setup:
+
    ```ts
    import helmet from 'helmet';
    import cors from 'cors';
@@ -124,14 +123,14 @@ If the project uses **Express** (detected via `import express from 'express'` or
    // CORS – replace ALLOWED_ORIGINS with a comma-separated list in env
    const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
      .split(',')
-     .map(o => o.trim())
+     .map((o) => o.trim())
      .filter(Boolean);
 
    app.use(
      cors({
        origin: allowedOrigins.length > 0 ? allowedOrigins : false,
        credentials: true,
-     })
+     }),
    );
 
    // Gzip / Brotli compression
@@ -147,6 +146,7 @@ If the project uses **Express** (detected via `import express from 'express'` or
 
    app.use('/api', apiLimiter);
    ```
+
 3. The agent MUST ensure this block is inserted **once**, not duplicated.
 
 ### 3.2 Fastify / NestJS / Koa
@@ -167,9 +167,10 @@ AI agents MUST verify and enforce the following rules.
 
 ### 4.1 Password Storage
 
-1. Search for any place passwords are stored or compared.  
+1. Search for any place passwords are stored or compared.
    - If plaintext or weak hashing (e.g. `md5`, `sha1`) is used, change it to **Argon2** (preferred) or **bcrypt**.
 2. If using Argon2, ensure a safe configuration, for example:
+
    ```ts
    import argon2 from 'argon2';
 
@@ -196,7 +197,7 @@ For cookie-based sessions (e.g. `express-session`):
          secure: process.env.NODE_ENV === 'production',
          sameSite: 'lax',
        },
-     })
+     }),
    );
    ```
 2. If `SESSION_SECRET` is missing, **do not** hardcode; require env var and document need in comments.
@@ -225,7 +226,7 @@ If JWTs are used (search for `jsonwebtoken` or similar):
 
 ### 5.2 XSS & Output Encoding
 
-1. Ensure templates or JSX/TSX rendering escape user-provided content by default.  
+1. Ensure templates or JSX/TSX rendering escape user-provided content by default.
 2. For raw HTML/rich text, sanitize using a trusted library (e.g. `sanitize-html`) and a **strict allowlist**.
 3. AI agents MUST NOT introduce unsanitized interpolation of user input into HTML, JavaScript or attribute contexts.
 
@@ -242,7 +243,7 @@ For cookie-based browser sessions:
 
 ### 6.2 Rate Limiting & DoS
 
-1. Confirm that high-risk endpoints (login, registration, password reset) are rate limited.  
+1. Confirm that high-risk endpoints (login, registration, password reset) are rate limited.
 2. Set JSON/body parser limits, for example:
    ```ts
    app.use(express.json({ limit: '1mb' }));
@@ -266,8 +267,8 @@ If the application accepts file uploads:
 1. Enforce constraints via a library like `multer` or framework plugin:
    - Maximum file size
    - Allowed MIME types and file extensions
-2. Store files **outside** the web root or in object storage (S3, GCS, etc.).  
-3. Never execute uploaded content.  
+2. Store files **outside** the web root or in object storage (S3, GCS, etc.).
+3. Never execute uploaded content.
 4. For images or PDFs, prefer processing them in a separate worker or microservice to limit exposure to parser vulnerabilities.
 
 ---
@@ -342,7 +343,7 @@ AI agents MUST verify that protected routes and controllers perform explicit aut
 
 After applying changes, an AI agent SHOULD:
 
-1. Ensure the application builds and tests pass.  
+1. Ensure the application builds and tests pass.
 2. Update or create a short section in `CHANGELOG.md` or commit messages summarizing:
    - Which security controls were added or modified
    - Any remaining limitations (e.g. legacy Node version, external services preventing stricter security)

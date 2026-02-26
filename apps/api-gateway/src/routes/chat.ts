@@ -18,209 +18,230 @@ const sendMessageBodySchema = z.object({
 
 export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   // Non-streaming message send
-  app.post('/conversations/:id/messages', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.post(
+    '/conversations/:id/messages',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    const paramsSchema = z.object({ id: z.string().min(1) });
-    const parseParams = paramsSchema.safeParse(request.params);
-    if (!parseParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidConversationId') });
-    }
-    const conversationId = parseParams.data.id;
+      const paramsSchema = z.object({ id: z.string().min(1) });
+      const parseParams = paramsSchema.safeParse(request.params);
+      if (!parseParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidConversationId') });
+      }
+      const conversationId = parseParams.data.id;
 
-    const parseBody = sendMessageBodySchema.safeParse(request.body);
-    if (!parseBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
-    }
+      const parseBody = sendMessageBodySchema.safeParse(request.body);
+      if (!parseBody.success) {
+        return reply
+          .code(400)
+          .send({
+            error: request.i18n.t('errors.invalidMessageData'),
+            details: parseBody.error.format(),
+          });
+      }
 
-    const { content, model, temperature, topP, maxTokens, images } = parseBody.data;
+      const { content, model, temperature, topP, maxTokens, images } = parseBody.data;
 
-    // Verify access rights
-    const memberships = await prisma.orgMember.findMany({
-      where: { userId: payload.userId },
-      select: { orgId: true },
-    });
-    const orgIds = memberships.map((m: { orgId: string }) => m.orgId);
+      // Verify access rights
+      const memberships = await prisma.orgMember.findMany({
+        where: { userId: payload.userId },
+        select: { orgId: true },
+      });
+      const orgIds = memberships.map((m: { orgId: string }) => m.orgId);
 
-    const orConditions: any[] = [{ userId: payload.userId }];
-    if (orgIds.length > 0) {
-      orConditions.push({ orgId: { in: orgIds } });
-    }
+      const orConditions: any[] = [{ userId: payload.userId }];
+      if (orgIds.length > 0) {
+        orConditions.push({ orgId: { in: orgIds } });
+      }
 
-    const conversation = await prisma.conversation.findFirst({
-      where: {
-        id: conversationId,
-        OR: orConditions,
-      },
-      select: { id: true, orgId: true, userId: true }
-    });
-
-    if (!conversation) {
-      return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
-    }
-
-    // Enforce permissions:
-    // If org conversation, user must have conversation:chat permission (VIEWERs don't have it).
-    // If personal conversation, user must be the owner (implicitly guaranteed by query, but explicit check adds safety).
-    if (conversation.orgId) {
-      await assertOrgPermission(
-        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-        conversation.orgId,
-        'conversation:chat'
-      );
-    } else if (conversation.userId !== payload.userId) {
-      // Should not happen due to OR conditions in query, but defensive coding
-      return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
-    }
-
-    try {
-      const result = await runConversationTurn({
-        conversationId: conversation.id,
-        userId: payload.userId,
-        content,
-        images,
-        overrides: {
-          model,
-          temperature,
-          topP,
-          maxTokens
-        }
+      const conversation = await prisma.conversation.findFirst({
+        where: {
+          id: conversationId,
+          OR: orConditions,
+        },
+        select: { id: true, orgId: true, userId: true },
       });
 
-      // Fetch the created messages to return them in expected format
-      // Note: This is slightly inefficient but ensures consistency with old API response format
-      const messages = await prisma.message.findMany({
-        where: { conversationId: conversation.id },
-        orderBy: { createdAt: 'desc' },
-        take: 2
-      });
+      if (!conversation) {
+        return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
+      }
 
-      const assistantMessage = messages.find((m: { role: string }) => m.role === 'ASSISTANT');
-      const userMessage = messages.find((m: { role: string }) => m.role === 'USER');
+      // Enforce permissions:
+      // If org conversation, user must have conversation:chat permission (VIEWERs don't have it).
+      // If personal conversation, user must be the owner (implicitly guaranteed by query, but explicit check adds safety).
+      if (conversation.orgId) {
+        await assertOrgPermission(
+          { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+          conversation.orgId,
+          'conversation:chat',
+        );
+      } else if (conversation.userId !== payload.userId) {
+        // Should not happen due to OR conditions in query, but defensive coding
+        return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
+      }
 
-      return reply.send({
-        conversationId: conversation.id,
-        userMessage: userMessage ? {
-          id: userMessage.id,
-          role: userMessage.role,
-          content: userMessage.content,
-          createdAt: userMessage.createdAt,
-        } : undefined,
-        assistantMessage: assistantMessage ? {
-          id: assistantMessage.id,
-          role: assistantMessage.role,
-          content: assistantMessage.content,
-          createdAt: assistantMessage.createdAt,
-        } : undefined,
-        usage: result.usage,
-      });
+      try {
+        const result = await runConversationTurn({
+          conversationId: conversation.id,
+          userId: payload.userId,
+          content,
+          images,
+          overrides: {
+            model,
+            temperature,
+            topP,
+            maxTokens,
+          },
+        });
 
-    } catch (err) {
-      request.log.error(err);
-      return reply.code(500).send({ error: 'Chat generation failed' });
-    }
-  });
+        // Fetch the created messages to return them in expected format
+        // Note: This is slightly inefficient but ensures consistency with old API response format
+        const messages = await prisma.message.findMany({
+          where: { conversationId: conversation.id },
+          orderBy: { createdAt: 'desc' },
+          take: 2,
+        });
+
+        const assistantMessage = messages.find((m: { role: string }) => m.role === 'ASSISTANT');
+        const userMessage = messages.find((m: { role: string }) => m.role === 'USER');
+
+        return reply.send({
+          conversationId: conversation.id,
+          userMessage: userMessage
+            ? {
+                id: userMessage.id,
+                role: userMessage.role,
+                content: userMessage.content,
+                createdAt: userMessage.createdAt,
+              }
+            : undefined,
+          assistantMessage: assistantMessage
+            ? {
+                id: assistantMessage.id,
+                role: assistantMessage.role,
+                content: assistantMessage.content,
+                createdAt: assistantMessage.createdAt,
+              }
+            : undefined,
+          usage: result.usage,
+        });
+      } catch (err) {
+        request.log.error(err);
+        return reply.code(500).send({ error: 'Chat generation failed' });
+      }
+    },
+  );
 
   // Streaming message send via SSE
-  app.post('/conversations/:id/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
+  app.post(
+    '/conversations/:id/stream',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
 
-    const paramsSchema = z.object({ id: z.string().min(1) });
-    const parseParams = paramsSchema.safeParse(request.params);
-    if (!parseParams.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidConversationId') });
-    }
-    const conversationId = parseParams.data.id;
+      const paramsSchema = z.object({ id: z.string().min(1) });
+      const parseParams = paramsSchema.safeParse(request.params);
+      if (!parseParams.success) {
+        return reply.code(400).send({ error: request.i18n.t('errors.invalidConversationId') });
+      }
+      const conversationId = parseParams.data.id;
 
-    const parseBody = sendMessageBodySchema.safeParse(request.body);
-    if (!parseBody.success) {
-      return reply.code(400).send({ error: request.i18n.t('errors.invalidMessageData'), details: parseBody.error.format() });
-    }
+      const parseBody = sendMessageBodySchema.safeParse(request.body);
+      if (!parseBody.success) {
+        return reply
+          .code(400)
+          .send({
+            error: request.i18n.t('errors.invalidMessageData'),
+            details: parseBody.error.format(),
+          });
+      }
 
-    const { content, model, temperature, topP, maxTokens, images } = parseBody.data;
+      const { content, model, temperature, topP, maxTokens, images } = parseBody.data;
 
-    // Verify access rights
-    const memberships = await prisma.orgMember.findMany({
-      where: { userId: payload.userId },
-      select: { orgId: true },
-    });
-    const orgIds = memberships.map((m: { orgId: string }) => m.orgId);
+      // Verify access rights
+      const memberships = await prisma.orgMember.findMany({
+        where: { userId: payload.userId },
+        select: { orgId: true },
+      });
+      const orgIds = memberships.map((m: { orgId: string }) => m.orgId);
 
-    const orConditions: any[] = [{ userId: payload.userId }];
-    if (orgIds.length > 0) {
-      orConditions.push({ orgId: { in: orgIds } });
-    }
+      const orConditions: any[] = [{ userId: payload.userId }];
+      if (orgIds.length > 0) {
+        orConditions.push({ orgId: { in: orgIds } });
+      }
 
-    const conversation = await prisma.conversation.findFirst({
-      where: {
-        id: conversationId,
-        OR: orConditions,
-      },
-      select: { id: true, orgId: true, userId: true }
-    });
-
-    if (!conversation) {
-      return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
-    }
-
-    // Enforce permissions:
-    // If org conversation, user must have conversation:chat permission (VIEWERs don't have it).
-    // If personal conversation, user must be the owner (implicitly guaranteed by query, but explicit check adds safety).
-    if (conversation.orgId) {
-      await assertOrgPermission(
-        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-        conversation.orgId,
-        'conversation:chat'
-      );
-    } else if (conversation.userId !== payload.userId) {
-      // Should not happen due to OR conditions in query, but defensive coding
-      return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
-    }
-
-    // Set up SSE headers
-    reply.raw.setHeader('Content-Type', 'text/event-stream');
-    reply.raw.setHeader('Cache-Control', 'no-cache');
-    reply.raw.setHeader('Connection', 'keep-alive');
-    reply.raw.flushHeaders?.();
-
-    const sendEvent = (event: unknown) => {
-      reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
-    };
-
-    const abortController = new AbortController();
-
-    request.raw.on('close', () => {
-      abortController.abort();
-    });
-
-    try {
-      const generator = streamConversationTurn({
-        conversationId: conversation.id,
-        userId: payload.userId,
-        content,
-        images,
-        overrides: {
-          model,
-          temperature,
-          topP,
-          maxTokens
-        }
+      const conversation = await prisma.conversation.findFirst({
+        where: {
+          id: conversationId,
+          OR: orConditions,
+        },
+        select: { id: true, orgId: true, userId: true },
       });
 
-      for await (const event of generator) {
-        // Just forward the event from chatEngine
-        sendEvent(event as ChatStreamEvent);
+      if (!conversation) {
+        return reply.code(404).send({ error: request.i18n.t('errors.conversationNotFound') });
       }
 
-      reply.raw.end();
-    } catch (err) {
-      request.log.error(err);
-      try {
-        sendEvent({ type: 'error', error: (err as Error).message });
-        reply.raw.end();
-      } catch {
-        // Ignore if connection already closed
+      // Enforce permissions:
+      // If org conversation, user must have conversation:chat permission (VIEWERs don't have it).
+      // If personal conversation, user must be the owner (implicitly guaranteed by query, but explicit check adds safety).
+      if (conversation.orgId) {
+        await assertOrgPermission(
+          { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+          conversation.orgId,
+          'conversation:chat',
+        );
+      } else if (conversation.userId !== payload.userId) {
+        // Should not happen due to OR conditions in query, but defensive coding
+        return reply.code(403).send({ error: request.i18n.t('errors.forbidden') });
       }
-    }
-  });
+
+      // Set up SSE headers
+      reply.raw.setHeader('Content-Type', 'text/event-stream');
+      reply.raw.setHeader('Cache-Control', 'no-cache');
+      reply.raw.setHeader('Connection', 'keep-alive');
+      reply.raw.flushHeaders?.();
+
+      const sendEvent = (event: unknown) => {
+        reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+      };
+
+      const abortController = new AbortController();
+
+      request.raw.on('close', () => {
+        abortController.abort();
+      });
+
+      try {
+        const generator = streamConversationTurn({
+          conversationId: conversation.id,
+          userId: payload.userId,
+          content,
+          images,
+          overrides: {
+            model,
+            temperature,
+            topP,
+            maxTokens,
+          },
+        });
+
+        for await (const event of generator) {
+          // Just forward the event from chatEngine
+          sendEvent(event as ChatStreamEvent);
+        }
+
+        reply.raw.end();
+      } catch (err) {
+        request.log.error(err);
+        try {
+          sendEvent({ type: 'error', error: (err as Error).message });
+          reply.raw.end();
+        } catch {
+          // Ignore if connection already closed
+        }
+      }
+    },
+  );
 }

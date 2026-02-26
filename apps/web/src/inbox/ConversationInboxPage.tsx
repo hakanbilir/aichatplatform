@@ -10,7 +10,7 @@ import {
   Skeleton,
   TextField,
   Tooltip,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SearchIcon from '@mui/icons-material/Search';
@@ -37,7 +37,12 @@ interface ConversationHitCardProps {
   sx?: any;
 }
 
-const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, isEcoMode, sx }) => {
+const ConversationHitCard: React.FC<ConversationHitCardProps> = ({
+  hit,
+  onOpen,
+  isEcoMode,
+  sx,
+}) => {
   const { t } = useTranslation('inbox');
   const firstSnippet = hit.messages[0]?.snippet || '';
 
@@ -61,18 +66,14 @@ const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, 
         gap: 0.5,
         '&:hover': {
           borderColor: 'primary.main',
-          boxShadow: (theme) => theme.shadows[2]
+          boxShadow: (theme) => theme.shadows[2],
         },
         transition: 'border-color 120ms ease-out, box-shadow 120ms ease-out',
         ...sx,
       }}
     >
       <Box display="flex" justifyContent="space-between" alignItems="center" gap={1}>
-        <Typography
-          variant="subtitle2"
-          noWrap
-          sx={{ flex: 1, minWidth: 0 }}
-        >
+        <Typography variant="subtitle2" noWrap sx={{ flex: 1, minWidth: 0 }}>
           {hit.conversationTitle}
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, ml: 1 }}>
@@ -88,7 +89,7 @@ const ConversationHitCard: React.FC<ConversationHitCardProps> = ({ hit, onOpen, 
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
         >
           {firstSnippet}
@@ -116,15 +117,9 @@ export const ConversationInboxPage: React.FC = () => {
   const navigate = useNavigate();
   const { isEcoMode } = useEcoMode();
 
-  const {
-    state,
-    hits,
-    results,
-    loading,
-    error,
-    runSearch,
-    setState
-  } = useConversationSearch(orgId || null);
+  const { state, hits, results, loading, error, runSearch, setState } = useConversationSearch(
+    orgId || null,
+  );
 
   useEffect(() => {
     // initial: sync from URL query param
@@ -170,7 +165,7 @@ export const ConversationInboxPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       {/* Header */}
@@ -178,7 +173,9 @@ export const ConversationInboxPage: React.FC = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <AutoAwesomeIcon fontSize="small" />
           <Box>
-            <KineticTypography variant="h6" component="h1">{t('title')}</KineticTypography>
+            <KineticTypography variant="h6" component="h1">
+              {t('title')}
+            </KineticTypography>
             <Typography variant="caption" color="text.secondary">
               {t('subtitle')}
             </Typography>
@@ -215,7 +212,7 @@ export const ConversationInboxPage: React.FC = () => {
                   </IconButton>
                 </Tooltip>
               </InputAdornment>
-            )
+            ),
           }}
         />
 
@@ -272,8 +269,8 @@ export const ConversationInboxPage: React.FC = () => {
               gridTemplateColumns: {
                 xs: '1fr',
                 md: 'repeat(2, minmax(0, 1fr))',
-                lg: 'repeat(3, minmax(0, 1fr))'
-              }
+                lg: 'repeat(3, minmax(0, 1fr))',
+              },
             }}
           >
             {hits.map((hit, index) => (
@@ -306,4 +303,3 @@ export const ConversationInboxPage: React.FC = () => {
     </Box>
   );
 };
-

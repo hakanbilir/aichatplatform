@@ -33,7 +33,7 @@ export async function signup(data: {
     ...data,
     orgName: data.orgName?.trim() || undefined,
   };
-  
+
   return apiRequest<AuthResponse>('/auth/signup', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -57,7 +57,8 @@ export async function getMe(token: string): Promise<MeResponse> {
   return apiRequest<MeResponse>('/auth/me', { method: 'GET' }, token);
 }
 
-export async function getOrganizations(token: string): Promise<{ organizations: OrganizationSummary[] }> {
+export async function getOrganizations(
+  token: string,
+): Promise<{ organizations: OrganizationSummary[] }> {
   return apiRequest<{ organizations: OrganizationSummary[] }>('/orgs', { method: 'GET' }, token);
 }
-

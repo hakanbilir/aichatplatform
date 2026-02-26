@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock } from 'bun:test';
 
 // Mock the db module
@@ -14,12 +13,14 @@ mock.module('@ai-chat/db', () => {
         findMany: mock(() => Promise.resolve([])),
       },
       user: {
-        findUnique: mock(() => Promise.resolve({ id: 'user1', name: 'User 1', email: 'user1@example.com' })),
+        findUnique: mock(() =>
+          Promise.resolve({ id: 'user1', name: 'User 1', email: 'user1@example.com' }),
+        ),
       },
       organization: {
         findUnique: mock(() => Promise.resolve({ id: 'org_id', name: 'Org 1' })),
-      }
-    }
+      },
+    },
   };
 });
 
@@ -33,16 +34,16 @@ mock.module('../src/rbac/guards', () => {
 
 // Mock email service
 mock.module('../src/services/email', () => {
-    return {
-        sendInvitationEmail: mock(() => Promise.resolve()),
-    };
+  return {
+    sendInvitationEmail: mock(() => Promise.resolve()),
+  };
 });
 
 // Mock audit log
 mock.module('../src/services/audit', () => {
-    return {
-        writeAuditLog: mock(() => Promise.resolve()),
-    };
+  return {
+    writeAuditLog: mock(() => Promise.resolve()),
+  };
 });
 
 import fastify from 'fastify';
@@ -59,9 +60,9 @@ describe('Org Admin Members Security', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgAdminMembersRoutes);
@@ -70,10 +71,10 @@ describe('Org Admin Members Security', () => {
       method: 'POST',
       url: '/orgs/org_id/admin/members/invite',
       payload: {
-          email: 'test@example.com',
-          role: 'INVALID_ROLE',
-          expiresInDays: 7
-      }
+        email: 'test@example.com',
+        role: 'INVALID_ROLE',
+        expiresInDays: 7,
+      },
     });
 
     // Should be 400 Bad Request due to validation
@@ -88,9 +89,9 @@ describe('Org Admin Members Security', () => {
     });
 
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgAdminMembersRoutes);
@@ -99,15 +100,15 @@ describe('Org Admin Members Security', () => {
       method: 'POST',
       url: '/orgs/org_id/admin/members/invite',
       payload: {
-          email: 'test@example.com',
-          role: 'SUPERADMIN',
-          expiresInDays: 7
-      }
+        email: 'test@example.com',
+        role: 'SUPERADMIN',
+        expiresInDays: 7,
+      },
     });
 
     // Should be 400 after fix (currently likely 201)
     if (response.statusCode === 201) {
-        console.log("⚠️ Vulnerability confirmed: SUPERADMIN role accepted.");
+      console.log('⚠️ Vulnerability confirmed: SUPERADMIN role accepted.');
     }
     expect(response.statusCode).toBe(400);
   });
@@ -120,9 +121,9 @@ describe('Org Admin Members Security', () => {
     });
 
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgAdminMembersRoutes);
@@ -131,8 +132,8 @@ describe('Org Admin Members Security', () => {
       method: 'PATCH',
       url: '/orgs/org_id/admin/members/user_2/role',
       payload: {
-          role: 'INVALID_ROLE'
-      }
+        role: 'INVALID_ROLE',
+      },
     });
 
     expect(response.statusCode).toBe(400);
@@ -146,9 +147,9 @@ describe('Org Admin Members Security', () => {
     });
 
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(orgAdminMembersRoutes);
@@ -157,13 +158,13 @@ describe('Org Admin Members Security', () => {
       method: 'PATCH',
       url: '/orgs/org_id/admin/members/user_2/role',
       payload: {
-          role: 'SUPERADMIN'
-      }
+        role: 'SUPERADMIN',
+      },
     });
 
-     // Should be 400 after fix (currently likely 200)
+    // Should be 400 after fix (currently likely 200)
     if (response.statusCode === 200) {
-        console.log("⚠️ Vulnerability confirmed: SUPERADMIN role accepted in update.");
+      console.log('⚠️ Vulnerability confirmed: SUPERADMIN role accepted in update.');
     }
     expect(response.statusCode).toBe(400);
   });

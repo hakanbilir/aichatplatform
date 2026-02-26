@@ -47,4 +47,3 @@ module.exports = {
   },
   ignorePatterns: ['dist/', 'build/', '.next/', 'node_modules/'],
 };
-

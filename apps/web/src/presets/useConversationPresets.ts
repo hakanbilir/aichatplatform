@@ -9,7 +9,7 @@ import {
   createConversationPresetApi,
   deleteConversationPresetApi,
   fetchConversationPresets,
-  updateConversationPresetApi
+  updateConversationPresetApi,
 } from '../api/presets';
 
 export function useConversationPresets(orgId: string | null) {
@@ -76,7 +76,6 @@ export function useConversationPresets(orgId: string | null) {
     error,
     createPreset,
     updatePreset,
-    deletePreset
+    deletePreset,
   };
 }
-

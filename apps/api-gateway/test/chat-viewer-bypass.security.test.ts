@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock, beforeAll } from 'bun:test';
 import fastify from 'fastify';
 import { roleHasPermission, OrgRole, OrgPermission } from '../src/rbac/roles';
@@ -31,11 +30,11 @@ mock.module('@ai-chat/db', () => {
         findMany: mock(() => Promise.resolve([{ orgId: 'org1', role: 'VIEWER' }])),
         // Used by userHasOrgPermission
         findFirst: mock((args) => {
-             // If checking for membership to get role
-             if (args?.where?.userId === 'user1' && args?.where?.orgId === 'org1') {
-                 return Promise.resolve({ role: 'VIEWER' });
-             }
-             return Promise.resolve(null);
+          // If checking for membership to get role
+          if (args?.where?.userId === 'user1' && args?.where?.orgId === 'org1') {
+            return Promise.resolve({ role: 'VIEWER' });
+          }
+          return Promise.resolve(null);
         }),
       },
       conversation: {
@@ -43,16 +42,20 @@ mock.module('@ai-chat/db', () => {
       },
       message: {
         findMany: mock(() => Promise.resolve([])),
-      }
-    }
+      },
+    },
   };
 });
 
 // Mock Chat Engine
 mock.module('../src/services/chatEngine', () => {
   return {
-    runConversationTurn: mock(() => Promise.resolve({ usage: { promptTokens: 10, completionTokens: 10 } })),
-    streamConversationTurn: mock(async function* () { yield { type: 'token', text: 'hi' }; }),
+    runConversationTurn: mock(() =>
+      Promise.resolve({ usage: { promptTokens: 10, completionTokens: 10 } }),
+    ),
+    streamConversationTurn: mock(async function* () {
+      yield { type: 'token', text: 'hi' };
+    }),
   };
 });
 
@@ -76,9 +79,9 @@ describe('Chat Authorization Bypass Check', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(chatRoutes);
@@ -86,16 +89,16 @@ describe('Chat Authorization Bypass Check', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/conversations/conv1/messages',
-      payload: { content: 'Hello' }
+      payload: { content: 'Hello' },
     });
 
     // Currently expect 200 because the vulnerability exists
     if (response.statusCode === 200) {
-        console.log("🚨 VULNERABILITY REPRODUCED: VIEWER can send messages.");
+      console.log('🚨 VULNERABILITY REPRODUCED: VIEWER can send messages.');
     } else if (response.statusCode === 403) {
-        console.log("✅ ACCESS DENIED: VIEWER cannot send messages.");
+      console.log('✅ ACCESS DENIED: VIEWER cannot send messages.');
     } else {
-        console.log(`ℹ️ Unexpected status: ${response.statusCode}`, response.body);
+      console.log(`ℹ️ Unexpected status: ${response.statusCode}`, response.body);
     }
 
     // In reproduction phase, we assert it IS 200 (proving the bug)

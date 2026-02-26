@@ -14,30 +14,30 @@ export interface OrgApiKeySummary {
 
 export async function fetchOrgApiKeys(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ keys: OrgApiKeySummary[] }> {
   return apiRequest<{ keys: OrgApiKeySummary[] }>(
     `/orgs/${orgId}/admin/api-keys`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
 export async function createOrgApiKey(
   token: string,
   orgId: string,
-  input: { name: string; description?: string; scopes: string[]; expiresAt?: string }
+  input: { name: string; description?: string; scopes: string[]; expiresAt?: string },
 ): Promise<{ id: string; token: string }> {
   return apiRequest<{ id: string; token: string }>(
     `/orgs/${orgId}/admin/api-keys`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
@@ -51,30 +51,25 @@ export async function updateOrgApiKey(
     scopes: string[];
     expiresAt: string;
     isActive: boolean;
-  }>
+  }>,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/admin/api-keys/${keyId}`,
     {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     },
-    token
+    token,
   );
 }
 
-export async function deleteOrgApiKey(
-  token: string,
-  orgId: string,
-  keyId: string
-): Promise<void> {
+export async function deleteOrgApiKey(token: string, orgId: string, keyId: string): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/admin/api-keys/${keyId}`,
     { method: 'DELETE' },
-    token
+    token,
   );
 }
-

@@ -13,12 +13,12 @@ export interface OrgSafetyConfigDto {
 
 export async function fetchOrgSafetyConfig(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ config: OrgSafetyConfigDto | null }> {
   return apiRequest<{ config: OrgSafetyConfigDto | null }>(
     `/orgs/${orgId}/safety`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
@@ -30,14 +30,14 @@ export async function updateOrgSafetyConfig(
     moderateAssistantMessages: boolean;
     categoryActions: Record<string, 'block' | 'warn' | 'log_only' | 'allow'>;
     allowedDomains: string[];
-  }>
+  }>,
 ): Promise<{ config: OrgSafetyConfigDto }> {
   return apiRequest<{ config: OrgSafetyConfigDto }>(
     `/orgs/${orgId}/safety`,
     {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     },
-    token
+    token,
   );
 }

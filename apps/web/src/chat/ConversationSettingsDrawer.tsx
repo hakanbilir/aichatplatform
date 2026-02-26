@@ -54,7 +54,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
   conversationId,
   orgId,
   models,
-  onSettingsSaved
+  onSettingsSaved,
 }) => {
   const { t } = useTranslation(['chat', 'common']);
   const { token } = useAuth();
@@ -191,7 +191,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
                   >
-                     {models.length > 0 ? (
+                    {models.length > 0 ? (
                       models.map((opt) => (
                         <MenuItem key={opt.value} value={opt.value}>
                           {opt.label}
@@ -202,14 +202,18 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                         {t('models.loading', 'Loading models...')}
                       </MenuItem>
                     )}
-                    {model && models.length > 0 && !models.find(m => m.value === model) && (
-                       <MenuItem value={model} disabled>
-                          {model} (Unavailable)
-                       </MenuItem>
+                    {model && models.length > 0 && !models.find((m) => m.value === model) && (
+                      <MenuItem value={model} disabled>
+                        {model} (Unavailable)
+                      </MenuItem>
                     )}
                   </Select>
                 </FormControl>
-                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5, display: 'block' }}
+                >
                   {t('settings.modelKeyHelper')}
                 </Typography>
               </Box>
@@ -263,15 +267,27 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                   {t('settings.toolsIntegrations')}
                 </KineticTypography>
                 <FormControlLabel
-                  control={<Switch checked={codeExecution} onChange={(e) => setCodeExecution(e.target.checked)} />}
+                  control={
+                    <Switch
+                      checked={codeExecution}
+                      onChange={(e) => setCodeExecution(e.target.checked)}
+                    />
+                  }
                   label={t('settings.codeExecution')}
                 />
                 <FormControlLabel
-                  control={<Switch checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />}
+                  control={
+                    <Switch checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
+                  }
                   label={t('settings.webSearch')}
                 />
                 <FormControlLabel
-                  control={<Switch checked={structuredTools} onChange={(e) => setStructuredTools(e.target.checked)} />}
+                  control={
+                    <Switch
+                      checked={structuredTools}
+                      onChange={(e) => setStructuredTools(e.target.checked)}
+                    />
+                  }
                   label={t('settings.structuredTools')}
                 />
               </Box>

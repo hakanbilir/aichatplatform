@@ -40,4 +40,3 @@ export type { ChartLegendProps, ChartLegendItem } from './utils/ChartLegend';
 
 export { StatusIndicator } from './utils/StatusIndicator';
 export type { StatusIndicatorProps, StatusType } from './utils/StatusIndicator';
-

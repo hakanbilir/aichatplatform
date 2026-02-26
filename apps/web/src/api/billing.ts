@@ -30,26 +30,26 @@ export async function fetchBillingPlans(token: string): Promise<{ plans: Billing
 
 export async function fetchOrgSubscription(
   token: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ subscription: OrgSubscriptionDto | null }> {
   return apiRequest<{ subscription: OrgSubscriptionDto | null }>(
     `/orgs/${orgId}/billing`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
 export async function requestPlanChange(
   token: string,
   orgId: string,
-  planId: string
+  planId: string,
 ): Promise<{ token: string; transactionId: string }> {
   return apiRequest<{ token: string; transactionId: string }>(
     `/orgs/${orgId}/billing/change-plan`,
     {
       method: 'POST',
-      body: JSON.stringify({ planId })
+      body: JSON.stringify({ planId }),
     },
-    token
+    token,
   );
 }

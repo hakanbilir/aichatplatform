@@ -15,8 +15,3 @@ export const OrgAnalyticsRouteWrapper: React.FC = () => {
 
   return <OrgAnalyticsPage orgId={orgId} />;
 };
-
-
-
-
-

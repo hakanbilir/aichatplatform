@@ -11,8 +11,8 @@ export async function createConversationExportJob(payload: CreateExportRequest) 
       userId: payload.requestedBy,
       conversationId: payload.conversationId,
       format: payload.format,
-      status: 'pending'
-    }
+      status: 'pending',
+    },
   });
 
   // Optionally emit an event for observability (see 38.md)
@@ -20,4 +20,3 @@ export async function createConversationExportJob(payload: CreateExportRequest) 
 
   return job;
 }
-

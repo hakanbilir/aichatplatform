@@ -10,7 +10,7 @@ const TOOLS: ToolDefinition<unknown, unknown>[] = [
   timeNowTool as ToolDefinition<unknown, unknown>,
   orgUsageSnapshotTool as ToolDefinition<unknown, unknown>,
   conversationSearchTool as ToolDefinition<unknown, unknown>,
-  generateUiTool as ToolDefinition<unknown, unknown>
+  generateUiTool as ToolDefinition<unknown, unknown>,
 ];
 
 export function listAllTools(): ToolDefinition[] {
@@ -20,4 +20,3 @@ export function listAllTools(): ToolDefinition[] {
 export function getToolByName(name: string): ToolDefinition | undefined {
   return TOOLS.find((t) => t.name === name);
 }
-

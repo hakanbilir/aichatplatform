@@ -36,12 +36,12 @@ export const Shell: React.FC = () => {
         gap: isMobile ? 0 : 'var(--bento-gap)',
         padding: isMobile ? 0 : 'var(--bento-gap)',
         transition: 'background 300ms ease',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}
     >
       {/* Header - Spans full width */}
       <Box sx={{ gridColumn: '1 / -1', zIndex: 10 }}>
-         <TopBar />
+        <TopBar />
       </Box>
 
       {/* Sidebar - Desktop */}

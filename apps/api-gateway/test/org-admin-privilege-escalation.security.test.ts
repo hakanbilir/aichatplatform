@@ -1,16 +1,17 @@
-
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import fastify from 'fastify';
 
 // Setup mocks BEFORE importing routes
 const mockUpdateMany = mock(() => Promise.resolve({ count: 1 }));
 const mockUpdate = mock(() => Promise.resolve({ id: 'member_1', role: 'VIEWER' }));
-const mockFindUnique = mock(() => Promise.resolve({
+const mockFindUnique = mock(() =>
+  Promise.resolve({
     id: 'member_1',
     userId: 'target_owner_id',
     orgId: 'org_id',
-    role: 'OWNER'
-}));
+    role: 'OWNER',
+  }),
+);
 
 mock.module('@ai-chat/db', () => {
   return {
@@ -29,8 +30,8 @@ mock.module('@ai-chat/db', () => {
       },
       organization: {
         findUnique: mock(() => Promise.resolve({ id: 'org_id' })),
-      }
-    }
+      },
+    },
   };
 });
 
@@ -42,15 +43,15 @@ mock.module('../src/rbac/guards', () => {
 });
 
 mock.module('../src/services/email', () => {
-    return {
-        sendInvitationEmail: mock(() => Promise.resolve()),
-    };
+  return {
+    sendInvitationEmail: mock(() => Promise.resolve()),
+  };
 });
 
 mock.module('../src/services/audit', () => {
-    return {
-        writeAuditLog: mock(() => Promise.resolve()),
-    };
+  return {
+    writeAuditLog: mock(() => Promise.resolve()),
+  };
 });
 
 // Import after mocks
@@ -69,9 +70,9 @@ describe('Org Admin Privilege Escalation Security', () => {
       req.user = { userId: 'admin_user', isSuperadmin: false };
     });
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
     app.register(orgAdminMembersRoutes);
   });
@@ -81,13 +82,13 @@ describe('Org Admin Privilege Escalation Security', () => {
       method: 'PATCH',
       url: '/orgs/org_id/admin/members/target_owner_id/role',
       payload: {
-          role: 'VIEWER'
-      }
+        role: 'VIEWER',
+      },
     });
 
     // Currently this returns 200 because checks are missing
     if (response.statusCode === 200) {
-        console.log("⚠️  Vulnerability Reproduced: ADMIN successfully demoted OWNER (Status 200)");
+      console.log('⚠️  Vulnerability Reproduced: ADMIN successfully demoted OWNER (Status 200)');
     }
 
     expect(response.statusCode).toBe(403);
@@ -99,12 +100,12 @@ describe('Org Admin Privilege Escalation Security', () => {
       method: 'PATCH',
       url: '/orgs/org_id/admin/members/target_owner_id/status',
       payload: {
-          disabled: true
-      }
+        disabled: true,
+      },
     });
 
     if (response.statusCode === 200) {
-        console.log("⚠️  Vulnerability Reproduced: ADMIN successfully disabled OWNER (Status 200)");
+      console.log('⚠️  Vulnerability Reproduced: ADMIN successfully disabled OWNER (Status 200)');
     }
 
     expect(response.statusCode).toBe(403);

@@ -43,9 +43,9 @@ describe('Org Analytics Routes', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter: () => ({
-            t: (key: string) => key,
-        })
+      getter: () => ({
+        t: (key: string) => key,
+      }),
     });
 
     const { default: orgAnalyticsRoutes } = await import('./org-analytics');
@@ -76,12 +76,12 @@ describe('Org Analytics Routes', () => {
             promptTokens: 10,
             completionTokens: 20,
             totalTokens: 30,
-            latencyMs: 100
-          }
+            latencyMs: 100,
+          },
         },
         conversation: {
-          model: 'gpt-4'
-        }
+          model: 'gpt-4',
+        },
       },
       {
         createdAt: new Date('2026-01-01T11:00:00Z'),
@@ -90,13 +90,13 @@ describe('Org Analytics Routes', () => {
             promptTokens: 5,
             completionTokens: 5,
             totalTokens: 10,
-            latencyMs: 50
-          }
+            latencyMs: 50,
+          },
         },
         conversation: {
-          model: 'gpt-3.5'
-        }
-      }
+          model: 'gpt-3.5',
+        },
+      },
     ];
 
     mockFindManyMessage.mockResolvedValue(mockMessages);

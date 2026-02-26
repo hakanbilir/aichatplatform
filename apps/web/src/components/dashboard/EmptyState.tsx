@@ -90,4 +90,3 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     </Box>
   );
 };
-

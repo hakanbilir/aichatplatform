@@ -50,12 +50,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   const isClickable = !!onClick;
 
   // Get gradient class or custom gradient / Gradyan sınıfını veya özel gradyanı al
-  const gradientClass = customGradient
-    ? undefined
-    : `gradient-metric-${gradientVariant}`;
-  const gradientStyle = customGradient
-    ? { background: customGradient }
-    : undefined;
+  const gradientClass = customGradient ? undefined : `gradient-metric-${gradientVariant}`;
+  const gradientStyle = customGradient ? { background: customGradient } : undefined;
 
   // Get trend color / Trend rengini al
   const getTrendColor = () => {
@@ -184,4 +180,3 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   return cardContent;
 };
-

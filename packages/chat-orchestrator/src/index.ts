@@ -156,7 +156,10 @@ function trimMessagesToMaxTokens(messages: ChatMessage[], maxTokens: number): Ch
  * - Konuşma geçmişi
  * - Mevcut kullanıcı mesajı
  */
-export function buildPromptMessages(context: ConversationContext, userMessage: ChatMessage): ChatMessage[] {
+export function buildPromptMessages(
+  context: ConversationContext,
+  userMessage: ChatMessage,
+): ChatMessage[] {
   const messages: ChatMessage[] = [];
 
   if (context.systemPrompt) {

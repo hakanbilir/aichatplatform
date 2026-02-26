@@ -7,7 +7,7 @@
 export async function handleSamlCallback(
   samlResponse: string,
   _relayState: string | null, // Reserved for SAML relay state handling
-  _config?: Record<string, any> // Reserved for future SAML config usage
+  _config?: Record<string, any>, // Reserved for future SAML config usage
 ): Promise<{ email: string; name: string | null; groups: string[] }> {
   if (!samlResponse) {
     throw new Error('SAML response is required');
@@ -30,7 +30,7 @@ export async function handleSamlCallback(
       /<Attribute[^>]*Name="([^"]*email[^"]*)"[^>]*>[\s\S]*?<AttributeValue[^>]*>([^<]+)<\/AttributeValue>/gi,
       /<saml2:Attribute[^>]*Name="([^"]*email[^"]*)"[^>]*>[\s\S]*?<saml2:AttributeValue[^>]*>([^<]+)<\/saml2:AttributeValue>/gi,
       /NameID[^>]*>([^<@]+@[^<]+)<\/NameID/gi,
-      /<Email[^>]*>([^<]+)<\/Email>/gi
+      /<Email[^>]*>([^<]+)<\/Email>/gi,
     ];
 
     let email: string | null = null;
@@ -57,7 +57,7 @@ export async function handleSamlCallback(
       /<saml:Attribute[^>]*Name="([^"]*displayname[^"]*)"[^>]*>[\s\S]*?<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/gi,
       /<saml:Attribute[^>]*Name="([^"]*cn[^"]*)"[^>]*>[\s\S]*?<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/gi,
       /<GivenName[^>]*>([^<]+)<\/GivenName>/gi,
-      /<Surname[^>]*>([^<]+)<\/Surname>/gi
+      /<Surname[^>]*>([^<]+)<\/Surname>/gi,
     ];
 
     let name: string | null = null;
@@ -69,13 +69,21 @@ export async function handleSamlCallback(
       for (const match of matches) {
         const attrName = (match[1] || '').toLowerCase();
         const attrValue = match[match.length - 1]?.trim();
-        
+
         if (attrValue) {
           if (attrName.includes('given') || attrName.includes('first')) {
             givenName = attrValue;
-          } else if (attrName.includes('surname') || attrName.includes('last') || attrName.includes('family')) {
+          } else if (
+            attrName.includes('surname') ||
+            attrName.includes('last') ||
+            attrName.includes('family')
+          ) {
             surname = attrValue;
-          } else if (attrName.includes('name') || attrName.includes('display') || attrName.includes('cn')) {
+          } else if (
+            attrName.includes('name') ||
+            attrName.includes('display') ||
+            attrName.includes('cn')
+          ) {
             name = attrValue;
           }
         }
@@ -95,7 +103,7 @@ export async function handleSamlCallback(
       /<Attribute[^>]*Name="([^"]*group[^"]*)"[^>]*>[\s\S]*?<AttributeValue[^>]*>([^<]+)<\/AttributeValue>/gi,
       /<saml2:Attribute[^>]*Name="([^"]*group[^"]*)"[^>]*>[\s\S]*?<saml2:AttributeValue[^>]*>([^<]+)<\/saml2:AttributeValue>/gi,
       /<saml:Attribute[^>]*Name="([^"]*memberof[^"]*)"[^>]*>[\s\S]*?<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/gi,
-      /<saml:Attribute[^>]*Name="([^"]*role[^"]*)"[^>]*>[\s\S]*?<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/gi
+      /<saml:Attribute[^>]*Name="([^"]*role[^"]*)"[^>]*>[\s\S]*?<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/gi,
     ];
 
     const groups: string[] = [];
@@ -112,7 +120,7 @@ export async function handleSamlCallback(
     return {
       email,
       name,
-      groups
+      groups,
     };
   } catch (err) {
     if (err instanceof Error) {

@@ -14,7 +14,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-  InputAdornment
+  InputAdornment,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import LinkIcon from '@mui/icons-material/Link';
@@ -37,7 +37,7 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
   onClose,
   orgId,
   conversationId,
-  basePublicUrl
+  basePublicUrl,
 }) => {
   const { t } = useTranslation(['conversations', 'common']);
   const { token } = useAuth();
@@ -62,7 +62,7 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
       const link = await createShareLink(token, orgId, conversationId, {
         expiresAt,
         passphrase: passphrase || undefined,
-        anonymize
+        anonymize,
       });
 
       const url = `${basePublicUrl}/s/${link.slug}`;
@@ -120,7 +120,11 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
                       edge="end"
                       size="small"
                     >
-                      {showPassphrase ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      {showPassphrase ? (
+                        <VisibilityOff fontSize="small" />
+                      ) : (
+                        <Visibility fontSize="small" />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -128,10 +132,7 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
             />
             <FormControlLabel
               control={
-                <Checkbox
-                  checked={anonymize}
-                  onChange={(e) => setAnonymize(e.target.checked)}
-                />
+                <Checkbox checked={anonymize} onChange={(e) => setAnonymize(e.target.checked)} />
               }
               label={t('share.anonymize')}
             />
@@ -149,14 +150,11 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
                 borderColor: 'divider',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1
+                gap: 1,
               }}
             >
               <LinkIcon fontSize="small" />
-              <Typography
-                variant="body2"
-                sx={{ flex: 1, wordBreak: 'break-all' }}
-              >
+              <Typography variant="body2" sx={{ flex: 1, wordBreak: 'break-all' }}>
                 {publicUrl}
               </Typography>
               <Tooltip title={t('share.copy')}>
@@ -179,4 +177,3 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
     </Dialog>
   );
 };
-

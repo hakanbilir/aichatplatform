@@ -22,11 +22,7 @@ export interface ChartLegendProps {
   sx?: object;
 }
 
-export const ChartLegend: React.FC<ChartLegendProps> = ({
-  items,
-  layout = 'horizontal',
-  sx,
-}) => {
+export const ChartLegend: React.FC<ChartLegendProps> = ({ items, layout = 'horizontal', sx }) => {
   return (
     <Box
       sx={{
@@ -82,4 +78,3 @@ export const ChartLegend: React.FC<ChartLegendProps> = ({
     </Box>
   );
 };
-

@@ -25,7 +25,7 @@ export async function fetchWebhooks(token: string, orgId: string): Promise<Webho
   const res = await apiRequest<{ webhooks: Webhook[] }>(
     `/orgs/${orgId}/webhooks`,
     { method: 'GET' },
-    token
+    token,
   );
   return res.webhooks;
 }
@@ -33,18 +33,18 @@ export async function fetchWebhooks(token: string, orgId: string): Promise<Webho
 export async function createWebhookApi(
   token: string,
   orgId: string,
-  input: CreateWebhookInput
+  input: CreateWebhookInput,
 ): Promise<Webhook> {
   const res = await apiRequest<{ webhook: Webhook }>(
     `/orgs/${orgId}/webhooks`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
   return res.webhook;
 }
@@ -53,30 +53,29 @@ export async function updateWebhookApi(
   token: string,
   orgId: string,
   webhookId: string,
-  data: Partial<CreateWebhookInput & { isEnabled: boolean }>
+  data: Partial<CreateWebhookInput & { isEnabled: boolean }>,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/webhooks/${webhookId}`,
     {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     },
-    token
+    token,
   );
 }
 
 export async function deleteWebhookApi(
   token: string,
   orgId: string,
-  webhookId: string
+  webhookId: string,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/webhooks/${webhookId}`,
     { method: 'DELETE' },
-    token
+    token,
   );
 }
-

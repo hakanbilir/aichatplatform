@@ -46,17 +46,30 @@ export interface ConversationDetails {
   }>;
 }
 
-export async function listConversations(token: string, params: { limit?: number } = {}): Promise<{ conversations: ConversationListItem[] }> {
+export async function listConversations(
+  token: string,
+  params: { limit?: number } = {},
+): Promise<{ conversations: ConversationListItem[] }> {
   const query = new URLSearchParams();
   if (params.limit != null) query.set('limit', String(params.limit));
   const suffix = query.toString() ? `?${query.toString()}` : '';
 
-  return apiRequest<{ conversations: ConversationListItem[] }>(`/conversations${suffix}`, { method: 'GET' }, token);
+  return apiRequest<{ conversations: ConversationListItem[] }>(
+    `/conversations${suffix}`,
+    { method: 'GET' },
+    token,
+  );
 }
 
 export async function createConversation(
   token: string,
-  data: { title?: string; systemPrompt?: string; model?: string; temperature?: number; topP?: number },
+  data: {
+    title?: string;
+    systemPrompt?: string;
+    model?: string;
+    temperature?: number;
+    topP?: number;
+  },
 ): Promise<ConversationListItem> {
   const result = await apiRequest<ConversationListItem>(
     '/conversations',
@@ -69,8 +82,15 @@ export async function createConversation(
   return result;
 }
 
-export async function getConversation(token: string, id: string): Promise<{ conversation: ConversationDetails }> {
-  return apiRequest<{ conversation: ConversationDetails }>(`/conversations/${id}`, { method: 'GET' }, token);
+export async function getConversation(
+  token: string,
+  id: string,
+): Promise<{ conversation: ConversationDetails }> {
+  return apiRequest<{ conversation: ConversationDetails }>(
+    `/conversations/${id}`,
+    { method: 'GET' },
+    token,
+  );
 }
 
 export interface UpdateConversationPayload {
@@ -98,7 +118,11 @@ export async function updateConversation(
   );
 }
 
-export async function deleteMessage(token: string, conversationId: string, messageId: string): Promise<void> {
+export async function deleteMessage(
+  token: string,
+  conversationId: string,
+  messageId: string,
+): Promise<void> {
   return apiRequest<void>(
     `/conversations/${conversationId}/messages/${messageId}`,
     {
@@ -121,8 +145,15 @@ export interface ConversationUsageSummary {
   lastMessageAt: string | null;
 }
 
-export async function getConversationUsage(token: string, id: string): Promise<ConversationUsageSummary> {
-  return apiRequest<ConversationUsageSummary>(`/conversations/${id}/usage`, { method: 'GET' }, token);
+export async function getConversationUsage(
+  token: string,
+  id: string,
+): Promise<ConversationUsageSummary> {
+  return apiRequest<ConversationUsageSummary>(
+    `/conversations/${id}/usage`,
+    { method: 'GET' },
+    token,
+  );
 }
 
 // Org-scoped conversation endpoints
@@ -138,7 +169,11 @@ export async function listOrgConversations(
 
   const suffix = query.toString() ? `?${query.toString()}` : '';
 
-  return apiRequest<ConversationListResponse>(`/orgs/${orgId}/conversations${suffix}`, { method: 'GET' }, token);
+  return apiRequest<ConversationListResponse>(
+    `/orgs/${orgId}/conversations${suffix}`,
+    { method: 'GET' },
+    token,
+  );
 }
 
 export async function createOrgConversation(
@@ -158,4 +193,3 @@ export async function createOrgConversation(
     token,
   );
 }
-

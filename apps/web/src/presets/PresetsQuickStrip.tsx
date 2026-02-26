@@ -56,4 +56,3 @@ export const PresetsQuickStrip: React.FC = () => {
     </Box>
   );
 };
-

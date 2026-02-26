@@ -12,7 +12,7 @@ import {
   IconButton,
   Switch,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
@@ -39,7 +39,7 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
   open,
   onClose,
   initialTemplate,
-  onSave
+  onSave,
 }) => {
   const { t } = useTranslation(['prompts', 'common']);
   const [name, setName] = useState('');
@@ -62,18 +62,18 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
 
     const version = initialTemplate.latestVersion;
     if (version) {
-        setSystemPrompt(version.systemPrompt);
-        const vars: EditableVariable[] = Object.entries(version.variables).map(([key, val]) => ({
-            id: key,
-            name: key,
-            description: val.description || '',
-            required: val.required ?? false,
-            defaultValue: val.defaultValue || ''
-        }));
-        setVariables(vars);
+      setSystemPrompt(version.systemPrompt);
+      const vars: EditableVariable[] = Object.entries(version.variables).map(([key, val]) => ({
+        id: key,
+        name: key,
+        description: val.description || '',
+        required: val.required ?? false,
+        defaultValue: val.defaultValue || '',
+      }));
+      setVariables(vars);
     } else {
-        setSystemPrompt('');
-        setVariables([]);
+      setSystemPrompt('');
+      setVariables([]);
     }
   }, [initialTemplate, open]);
 
@@ -94,8 +94,8 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
         name: varName,
         description: '',
         required: false,
-        defaultValue: ''
-      }
+        defaultValue: '',
+      },
     ]);
   };
 
@@ -115,14 +115,14 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
     if (!name.trim() || !systemPrompt.trim()) return;
 
     const varsRecord: Record<string, PromptVariable> = {};
-    variables.forEach(v => {
-        if (v.name.trim()) {
-            varsRecord[v.name.trim()] = {
-                description: v.description,
-                required: v.required,
-                defaultValue: v.defaultValue || undefined
-            };
-        }
+    variables.forEach((v) => {
+      if (v.name.trim()) {
+        varsRecord[v.name.trim()] = {
+          description: v.description,
+          required: v.required,
+          defaultValue: v.defaultValue || undefined,
+        };
+      }
     });
 
     const input: CreatePromptTemplateInput = {
@@ -145,7 +145,9 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">
-          {initialTemplate ? t('editTemplate', { ns: 'prompts' }) : t('newTemplate', { ns: 'prompts' })}
+          {initialTemplate
+            ? t('editTemplate', { ns: 'prompts' })
+            : t('newTemplate', { ns: 'prompts' })}
         </Typography>
         <IconButton onClick={onClose} size="small" disabled={saving}>
           <CloseIcon fontSize="small" />
@@ -200,7 +202,7 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
                 mt: 1,
                 p: 1,
                 border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 1
+                borderRadius: 1,
               }}
             >
               <TextField
@@ -218,20 +220,16 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
               />
               <FormControlLabel
                 control={
-                    <Switch
-                        size="small"
-                        checked={v.required}
-                        onChange={(e) => handleUpdateVariable(index, { required: e.target.checked })}
-                    />
+                  <Switch
+                    size="small"
+                    checked={v.required}
+                    onChange={(e) => handleUpdateVariable(index, { required: e.target.checked })}
+                  />
                 }
                 label={<Typography variant="caption">{t('required', { ns: 'common' })}</Typography>}
               />
 
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => handleRemoveVariable(index)}
-              >
+              <IconButton size="small" color="error" onClick={() => handleRemoveVariable(index)}>
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Box>

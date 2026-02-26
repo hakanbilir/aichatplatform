@@ -19,14 +19,14 @@ export async function runModeration(ctx: SafetyContext) {
   const provider = getModerationProvider();
   const result = await provider.moderate(ctx.content, {
     orgId: ctx.orgId,
-    userId: ctx.userId
+    userId: ctx.userId,
   });
 
   if (!result.flagged || result.categories.length === 0) {
     return {
       action: 'allow' as const,
       categories: [],
-      reason: undefined
+      reason: undefined,
     };
   }
 
@@ -44,8 +44,8 @@ export async function runModeration(ctx: SafetyContext) {
       action: decision.action,
       reason: decision.reason,
       contentSnippet: ctx.content.slice(0, 512),
-      isSevere
-    }
+      isSevere,
+    },
   });
 
   // Optional: emitEvent('safety.moderation_incident', ...)
@@ -71,14 +71,14 @@ export async function userMessageSafetyGuard(request: FastifyRequest, reply: Fas
     conversationId,
     userId: user?.userId,
     source: 'user',
-    content
+    content,
   });
 
   if (decision.action === 'block') {
     return reply.code(403).send({
       error: 'MESSAGE_BLOCKED_BY_SAFETY',
       reason: decision.reason,
-      categories: decision.categories
+      categories: decision.categories,
     });
   }
 
@@ -87,7 +87,7 @@ export async function userMessageSafetyGuard(request: FastifyRequest, reply: Fas
     // The calling handler may decide to surface this in the UI.
     (request as any).safetyWarning = {
       reason: decision.reason,
-      categories: decision.categories
+      categories: decision.categories,
     };
   }
 }

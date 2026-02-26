@@ -6,12 +6,14 @@ describe('Superadmin Password Policy Security', () => {
     const weakData = {
       email: 'test@example.com',
       password: 'password123',
-      name: 'Test User'
+      name: 'Test User',
     };
     const result = createUserSchema.safeParse(weakData);
     expect(result.success).toBe(false);
     if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Password must contain at least one uppercase letter');
+      expect(result.error.issues[0].message).toBe(
+        'Password must contain at least one uppercase letter',
+      );
     }
   });
 
@@ -22,7 +24,7 @@ describe('Superadmin Password Policy Security', () => {
     const result = updateUserPasswordSchema.safeParse(weakData);
     expect(result.success).toBe(false);
     if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Password must be at least 8 characters');
+      expect(result.error.issues[0].message).toBe('Password must be at least 8 characters');
     }
   });
 
@@ -30,13 +32,13 @@ describe('Superadmin Password Policy Security', () => {
     const strongData = {
       email: 'test@example.com',
       password: 'Password123!',
-      name: 'Test User'
+      name: 'Test User',
     };
     const result = createUserSchema.safeParse(strongData);
     expect(result.success).toBe(true);
   });
 
-   it('should accept strong passwords for update password', () => {
+  it('should accept strong passwords for update password', () => {
     const strongData = {
       password: 'Password123!',
     };

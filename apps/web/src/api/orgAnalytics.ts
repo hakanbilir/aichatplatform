@@ -60,7 +60,7 @@ export interface OrgAnalyticsResult {
 export async function fetchOrgAnalytics(
   token: string,
   orgId: string,
-  windowDays?: number
+  windowDays?: number,
 ): Promise<OrgAnalyticsResult> {
   const params = new URLSearchParams();
   if (windowDays && windowDays > 0) {
@@ -72,7 +72,7 @@ export async function fetchOrgAnalytics(
   return apiRequest<OrgAnalyticsResult>(
     `/orgs/${orgId}/analytics${suffix}`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
@@ -82,7 +82,7 @@ export async function streamOrgAnalytics(
   windowDays: number,
   onData: (data: OrgAnalyticsResult) => void,
   onError: (error: Error) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<void> {
   const params = new URLSearchParams();
   if (windowDays) params.set('windowDays', String(windowDays));
@@ -94,6 +94,6 @@ export async function streamOrgAnalytics(
     onData,
     onError,
     token,
-    signal
+    signal,
   );
 }

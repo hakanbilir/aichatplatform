@@ -3,10 +3,7 @@
 import { ModerationResult } from './types';
 
 export interface ModerationProvider {
-  moderate(
-    text: string,
-    context?: { orgId?: string; userId?: string }
-  ): Promise<ModerationResult>;
+  moderate(text: string, context?: { orgId?: string; userId?: string }): Promise<ModerationResult>;
 }
 
 let provider: ModerationProvider | null = null;

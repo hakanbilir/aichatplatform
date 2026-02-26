@@ -10,7 +10,7 @@ const fs = require('fs');
 const envPath = path.join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const match = line.match(/^([^=]+)=(.*)$/);
     if (match) {
       process.env[match[1].trim()] = match[2].trim();
@@ -20,18 +20,18 @@ if (fs.existsSync(envPath)) {
 
 async function createSuperadmin() {
   const prisma = new PrismaClient();
-  
+
   try {
     const email = 'admin@aitrainer.com';
     const name = 'Admin User';
     const password = 'Admin123!';
-    
+
     // Check if user already exists
     // Kullanıcı zaten var mı kontrol et
     const existing = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
-    
+
     if (existing) {
       if (existing.isSuperadmin) {
         console.log('✅ Superadmin already exists:', existing.email);
@@ -43,7 +43,7 @@ async function createSuperadmin() {
         // Süperadmin'e yükselt
         const updated = await prisma.user.update({
           where: { id: existing.id },
-          data: { isSuperadmin: true }
+          data: { isSuperadmin: true },
         });
         console.log('✅ User upgraded to superadmin:', updated.email);
         console.log('   ID:', updated.id);
@@ -51,11 +51,11 @@ async function createSuperadmin() {
         return;
       }
     }
-    
+
     // Hash password
     // Şifreyi hash'le
     const passwordHash = await argon2.hash(password);
-    
+
     // Create superadmin user
     // Süperadmin kullanıcı oluştur
     const user = await prisma.user.create({
@@ -63,10 +63,10 @@ async function createSuperadmin() {
         email,
         name,
         passwordHash,
-        isSuperadmin: true
-      }
+        isSuperadmin: true,
+      },
     });
-    
+
     console.log('✅ Superadmin created successfully!');
     console.log('   ID:', user.id);
     console.log('   Email:', user.email);
@@ -81,4 +81,3 @@ async function createSuperadmin() {
 }
 
 createSuperadmin();
-

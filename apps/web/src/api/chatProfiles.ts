@@ -26,7 +26,7 @@ export interface ChatProfileDto {
 export async function fetchChatProfiles(
   token: string,
   orgId: string,
-  onlyShared = false
+  onlyShared = false,
 ): Promise<{ profiles: ChatProfileDto[] }> {
   const search = new URLSearchParams();
   if (onlyShared) search.set('onlyShared', 'true');
@@ -34,7 +34,7 @@ export async function fetchChatProfiles(
   return apiRequest<{ profiles: ChatProfileDto[] }>(
     `/orgs/${orgId}/chat-profiles${search.toString() ? `?${search.toString()}` : ''}`,
     { method: 'GET' },
-    token
+    token,
   );
 }
 
@@ -45,15 +45,15 @@ export async function createChatProfile(
     name: string;
     modelProvider: string;
     modelName: string;
-  }
+  },
 ): Promise<{ profile: ChatProfileDto }> {
   return apiRequest<{ profile: ChatProfileDto }>(
     `/orgs/${orgId}/chat-profiles`,
     {
       method: 'POST',
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
@@ -61,26 +61,26 @@ export async function updateChatProfile(
   token: string,
   orgId: string,
   profileId: string,
-  input: Partial<ChatProfileDto>
+  input: Partial<ChatProfileDto>,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/chat-profiles/${profileId}`,
     {
       method: 'PATCH',
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     },
-    token
+    token,
   );
 }
 
 export async function deleteChatProfile(
   token: string,
   orgId: string,
-  profileId: string
+  profileId: string,
 ): Promise<void> {
   await apiRequest<{ ok: boolean }>(
     `/orgs/${orgId}/chat-profiles/${profileId}`,
     { method: 'DELETE' },
-    token
+    token,
   );
 }

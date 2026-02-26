@@ -15,24 +15,24 @@ export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
  * id, createdAt ve meta opsiyoneldir ve DB'ye kaydedildiğinde doldurulabilir.
  */
 export interface ChatMessage {
-    id?: string;
-    role: ChatRole;
-    content: string;
-    /**
-     * Optional display name (e.g., function/tool name for tool role).
-     * Opsiyonel görünen ad (ör. tool rolü için fonksiyon/tool adı).
-     */
-    name?: string;
-    /**
-     * Metadata for internal use (e.g., references, tool call info, debug info).
-     * Dahili kullanım için metadata (ör. referanslar, tool çağrı bilgisi, debug bilgisi).
-     */
-    meta?: Record<string, unknown>;
-    /**
-     * Optional ISO timestamp.
-     * Opsiyonel ISO zaman damgası.
-     */
-    createdAt?: string;
+  id?: string;
+  role: ChatRole;
+  content: string;
+  /**
+   * Optional display name (e.g., function/tool name for tool role).
+   * Opsiyonel görünen ad (ör. tool rolü için fonksiyon/tool adı).
+   */
+  name?: string;
+  /**
+   * Metadata for internal use (e.g., references, tool call info, debug info).
+   * Dahili kullanım için metadata (ör. referanslar, tool çağrı bilgisi, debug bilgisi).
+   */
+  meta?: Record<string, unknown>;
+  /**
+   * Optional ISO timestamp.
+   * Opsiyonel ISO zaman damgası.
+   */
+  createdAt?: string;
 }
 /**
  * JSON Schema-like definition for a tool's parameters.
@@ -46,14 +46,14 @@ export type JsonSchema = unknown;
  * LLM'in kullanmak isteyebileceği çağrılabilir tool (fonksiyon).
  */
 export interface ToolDefinition {
-    name: string;
-    description: string;
-    parameters: JsonSchema;
-    /**
-     * If false, tool is disabled (per org or globally).
-     * false ise, tool devre dışıdır (org bazında veya global olarak).
-     */
-    enabled: boolean;
+  name: string;
+  description: string;
+  parameters: JsonSchema;
+  /**
+   * If false, tool is disabled (per org or globally).
+   * false ise, tool devre dışıdır (org bazında veya global olarak).
+   */
+  enabled: boolean;
 }
 /**
  * A tool call request from the LLM.
@@ -62,54 +62,54 @@ export interface ToolDefinition {
  * Şimdilik daha sonra somut tool çağrılarına eşlenebilecek genel bir yapı.
  */
 export interface ToolCall {
-    toolName: string;
-    /** Raw arguments JSON as produced by the LLM. */
-    /** LLM tarafından üretilen ham argümanlar JSON'u. */
-    argsJson: string;
+  toolName: string;
+  /** Raw arguments JSON as produced by the LLM. */
+  /** LLM tarafından üretilen ham argümanlar JSON'u. */
+  argsJson: string;
 }
 /**
  * The result of executing a tool.
  * Bir tool'un çalıştırılmasının sonucu.
  */
 export interface ToolResult {
-    toolName: string;
-    /**
-     * The raw JSON-serializable result returned by the tool.
-     * Tool tarafından döndürülen ham JSON-serializable sonuç.
-     */
-    data: unknown;
-    /**
-     * Optional error message if tool execution failed.
-     * Tool çalıştırması başarısız olursa opsiyonel hata mesajı.
-     */
-    error?: string;
+  toolName: string;
+  /**
+   * The raw JSON-serializable result returned by the tool.
+   * Tool tarafından döndürülen ham JSON-serializable sonuç.
+   */
+  data: unknown;
+  /**
+   * Optional error message if tool execution failed.
+   * Tool çalıştırması başarısız olursa opsiyonel hata mesajı.
+   */
+  error?: string;
 }
 export interface LlmModel {
-    /**
-     * The ID used when calling the model (e.g., "llama3.1").
-     * Model çağrılırken kullanılan ID (ör. "llama3.1").
-     */
-    id: string;
-    /**
-     * Human-friendly display name.
-     * İnsan dostu görünen ad.
-     */
-    displayName: string;
-    /**
-     * Short family identifier (e.g., "llama", "qwen").
-     * Kısa aile tanımlayıcısı (ör. "llama", "qwen").
-     */
-    family?: string;
-    /**
-     * Approximate context window in tokens.
-     * Token cinsinden yaklaşık context penceresi.
-     */
-    contextWindowTokens?: number;
-    /**
-     * Is this model suitable as a default general-purpose chat model?
-     * Bu model varsayılan genel amaçlı chat modeli olarak uygun mu?
-     */
-    isDefault?: boolean;
+  /**
+   * The ID used when calling the model (e.g., "llama3.1").
+   * Model çağrılırken kullanılan ID (ör. "llama3.1").
+   */
+  id: string;
+  /**
+   * Human-friendly display name.
+   * İnsan dostu görünen ad.
+   */
+  displayName: string;
+  /**
+   * Short family identifier (e.g., "llama", "qwen").
+   * Kısa aile tanımlayıcısı (ör. "llama", "qwen").
+   */
+  family?: string;
+  /**
+   * Approximate context window in tokens.
+   * Token cinsinden yaklaşık context penceresi.
+   */
+  contextWindowTokens?: number;
+  /**
+   * Is this model suitable as a default general-purpose chat model?
+   * Bu model varsayılan genel amaçlı chat modeli olarak uygun mu?
+   */
+  isDefault?: boolean;
 }
 /**
  * Parameters for a chat completion request.
@@ -119,39 +119,39 @@ export interface LlmModel {
  * Tool'lar opsiyoneldir ve orchestrator tarafından entegre edilecektir.
  */
 export interface ChatCompletionParams {
-    model: string;
-    messages: ChatMessage[];
-    temperature?: number;
-    topP?: number;
-    maxTokens?: number;
-    /**
-     * Tools available for this request.
-     * Bu istek için mevcut tool'lar.
-     */
-    tools?: ToolDefinition[];
+  model: string;
+  messages: ChatMessage[];
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+  /**
+   * Tools available for this request.
+   * Bu istek için mevcut tool'lar.
+   */
+  tools?: ToolDefinition[];
 }
 /**
  * Token usage metadata for a request/response cycle.
  * Bir istek/yanıt döngüsü için token kullanım metadata'sı.
  */
 export interface TokenUsage {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 }
 /**
  * Non-streaming chat completion response.
  * Streaming olmayan chat completion yanıtı.
  */
 export interface ChatCompletionResponse {
-    model: string;
-    message: ChatMessage;
-    usage?: TokenUsage;
-    /**
-     * Optional raw provider-specific metadata.
-     * Opsiyonel ham provider-spesifik metadata.
-     */
-    providerMeta?: Record<string, unknown>;
+  model: string;
+  message: ChatMessage;
+  usage?: TokenUsage;
+  /**
+   * Optional raw provider-specific metadata.
+   * Opsiyonel ham provider-spesifik metadata.
+   */
+  providerMeta?: Record<string, unknown>;
 }
 export type ChatStreamEventType = 'start' | 'token' | 'end' | 'error';
 /**
@@ -159,32 +159,32 @@ export type ChatStreamEventType = 'start' | 'token' | 'end' | 'error';
  * Chat completion sırasında yayınlanan tek bir streaming event'i.
  */
 export interface ChatStreamEvent {
-    type: ChatStreamEventType;
-    /**
-     * For `token` events, this is the incremental token content.
-     * `token` event'leri için, bu artımlı token içeriğidir.
-     */
-    token?: string;
-    /**
-     * For `end` events, the final accumulated message (if available).
-     * `end` event'leri için, son birikmiş mesaj (varsa).
-     */
-    finalMessage?: ChatMessage;
-    /**
-     * Optional error message for `error` events.
-     * `error` event'leri için opsiyonel hata mesajı.
-     */
-    error?: string;
-    /**
-     * Optional usage details (usually provided at the end).
-     * Opsiyonel kullanım detayları (genellikle sonunda sağlanır).
-     */
-    usage?: TokenUsage;
-    /**
-     * Provider-specific metadata, if any.
-     * Provider-spesifik metadata, varsa.
-     */
-    providerMeta?: Record<string, unknown>;
+  type: ChatStreamEventType;
+  /**
+   * For `token` events, this is the incremental token content.
+   * `token` event'leri için, bu artımlı token içeriğidir.
+   */
+  token?: string;
+  /**
+   * For `end` events, the final accumulated message (if available).
+   * `end` event'leri için, son birikmiş mesaj (varsa).
+   */
+  finalMessage?: ChatMessage;
+  /**
+   * Optional error message for `error` events.
+   * `error` event'leri için opsiyonel hata mesajı.
+   */
+  error?: string;
+  /**
+   * Optional usage details (usually provided at the end).
+   * Opsiyonel kullanım detayları (genellikle sonunda sağlanır).
+   */
+  usage?: TokenUsage;
+  /**
+   * Provider-specific metadata, if any.
+   * Provider-spesifik metadata, varsa.
+   */
+  providerMeta?: Record<string, unknown>;
 }
 /**
  * Supported formats for conversation exports.

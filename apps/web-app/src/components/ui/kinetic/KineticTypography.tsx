@@ -34,7 +34,9 @@ export const KineticTypography: React.FC<KineticTypographyProps> = ({
           const centerX = rect.left + rect.width / 2;
           const centerY = rect.top + rect.height / 2;
 
-          const dist = Math.sqrt(Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2));
+          const dist = Math.sqrt(
+            Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2),
+          );
 
           const maxDist = 500;
           const weight = Math.max(300, 700 - (Math.min(dist, maxDist) / maxDist) * 400);

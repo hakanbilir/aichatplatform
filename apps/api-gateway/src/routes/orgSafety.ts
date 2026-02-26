@@ -10,16 +10,11 @@ import { assertOrgPermission } from '../rbac/guards';
 const safetyConfigSchema = z.object({
   moderateUserMessages: z.boolean().optional(),
   moderateAssistantMessages: z.boolean().optional(),
-  categoryActions: z
-    .record(z.string(), z.enum(['block', 'warn', 'log_only', 'allow']))
-    .optional(),
-  allowedDomains: z.array(z.string().url()).optional()
+  categoryActions: z.record(z.string(), z.enum(['block', 'warn', 'log_only', 'allow'])).optional(),
+  allowedDomains: z.array(z.string().url()).optional(),
 });
 
-export default async function orgSafetyRoutes(
-  app: FastifyInstance,
-  _opts: FastifyPluginOptions
-) {
+export default async function orgSafetyRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   app.get('/orgs/:orgId/safety', { preHandler: [app.authenticate] }, async (request, reply) => {
     const payload = request.user as JwtPayload;
     const orgId = (request.params as any).orgId as string;
@@ -27,7 +22,7 @@ export default async function orgSafetyRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:settings:read'
+      'org:settings:read',
     );
 
     const cfg = await prisma.orgSafetyConfig.findUnique({ where: { orgId } });
@@ -41,7 +36,7 @@ export default async function orgSafetyRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:settings:write'
+      'org:settings:write',
     );
 
     const parsed = safetyConfigSchema.safeParse(request.body);
@@ -61,15 +56,15 @@ export default async function orgSafetyRoutes(
             ? parsed.data.moderateAssistantMessages
             : undefined,
         categoryActions: parsed.data.categoryActions ?? undefined,
-        allowedDomains: parsed.data.allowedDomains ?? undefined
+        allowedDomains: parsed.data.allowedDomains ?? undefined,
       },
       create: {
         orgId,
         moderateUserMessages: parsed.data.moderateUserMessages ?? true,
         moderateAssistantMessages: parsed.data.moderateAssistantMessages ?? false,
         categoryActions: parsed.data.categoryActions ?? {},
-        allowedDomains: parsed.data.allowedDomains ?? []
-      }
+        allowedDomains: parsed.data.allowedDomains ?? [],
+      },
     });
 
     return reply.send({ config: cfg });

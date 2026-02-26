@@ -4,7 +4,7 @@ import { prisma } from '@ai-chat/db';
 import { FastifyRequest } from 'fastify';
 
 export async function validateScimBearerToken(
-  req: FastifyRequest
+  req: FastifyRequest,
 ): Promise<{ orgId: string; connectionId: string } | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -15,7 +15,7 @@ export async function validateScimBearerToken(
 
   const connection = await prisma.scimConnection.findUnique({
     where: { bearerToken: token },
-    include: { org: true }
+    include: { org: true },
   });
 
   if (!connection || !connection.isEnabled) {
@@ -24,6 +24,6 @@ export async function validateScimBearerToken(
 
   return {
     orgId: connection.orgId,
-    connectionId: connection.id
+    connectionId: connection.id,
   };
 }

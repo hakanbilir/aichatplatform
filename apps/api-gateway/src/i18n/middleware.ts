@@ -11,10 +11,7 @@ declare module 'fastify' {
   }
 }
 
-async function i18nMiddleware(
-  app: FastifyInstance,
-  _opts: FastifyPluginOptions,
-): Promise<void> {
+async function i18nMiddleware(app: FastifyInstance, _opts: FastifyPluginOptions): Promise<void> {
   // Add i18n to request context
   // İstek bağlamına i18n ekle
   app.addHook('onRequest', async (request: FastifyRequest, _reply: FastifyReply) => {
@@ -54,4 +51,3 @@ async function i18nMiddleware(
 export default fp(i18nMiddleware, {
   name: 'i18n-middleware',
 });
-

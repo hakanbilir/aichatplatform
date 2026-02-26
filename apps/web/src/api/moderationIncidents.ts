@@ -27,7 +27,7 @@ export interface ModerationIncidentsResponse {
 export async function fetchModerationIncidents(
   token: string,
   orgId: string,
-  params: { page?: number; pageSize?: number; source?: string; severeOnly?: boolean } = {}
+  params: { page?: number; pageSize?: number; source?: string; severeOnly?: boolean } = {},
 ): Promise<ModerationIncidentsResponse> {
   const searchParams = new URLSearchParams();
   if (params.page) searchParams.set('page', String(params.page));
@@ -40,6 +40,6 @@ export async function fetchModerationIncidents(
   return apiRequest<ModerationIncidentsResponse>(
     `/orgs/${orgId}/safety/incidents${query ? `?${query}` : ''}`,
     { method: 'GET' },
-    token
+    token,
   );
 }

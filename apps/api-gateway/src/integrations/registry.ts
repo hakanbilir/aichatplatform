@@ -37,7 +37,8 @@ export function listIntegrationProviders(): IntegrationProviderDefinition[] {
   return PROVIDERS.slice();
 }
 
-export function getIntegrationProvider(key: IntegrationProviderKey): IntegrationProviderDefinition | undefined {
+export function getIntegrationProvider(
+  key: IntegrationProviderKey,
+): IntegrationProviderDefinition | undefined {
   return PROVIDERS.find((p) => p.key === key);
 }
-

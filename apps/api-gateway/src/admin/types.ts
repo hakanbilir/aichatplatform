@@ -17,4 +17,3 @@ export interface OrgInvitationDto {
   createdAt: string;
   expiresAt: string | null;
 }
-

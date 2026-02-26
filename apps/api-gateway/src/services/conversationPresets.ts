@@ -21,15 +21,15 @@ export async function createConversationPreset(input: ConversationPresetInput) {
       description: input.description ?? null,
       uiConfig: input.uiConfig ?? {},
       systemPrompt: input.systemPrompt,
-      config: input.config
-    }
+      config: input.config,
+    },
   });
 }
 
 export async function listConversationPresets(orgId: string) {
   return prisma.conversationPreset.findMany({
     where: { orgId },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { createdAt: 'asc' },
   });
 }
 
@@ -42,14 +42,14 @@ export async function updateConversationPreset(
     uiConfig: any;
     systemPrompt: string;
     config: any;
-  }>
+  }>,
 ) {
   return prisma.conversationPreset.updateMany({
     where: {
       id: presetId,
-      orgId
+      orgId,
     },
-    data
+    data,
   });
 }
 
@@ -57,8 +57,7 @@ export async function deleteConversationPreset(orgId: string, presetId: string) 
   await prisma.conversationPreset.deleteMany({
     where: {
       id: presetId,
-      orgId
-    }
+      orgId,
+    },
   });
 }
-

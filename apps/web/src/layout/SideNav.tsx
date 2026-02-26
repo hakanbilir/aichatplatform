@@ -30,7 +30,17 @@ interface SideNavProps {
   onCreateConversation: () => void;
 }
 
-const NavItem = ({ to, icon, label, onClick }: { to: string, icon: React.ReactNode, label: string, onClick?: () => void }) => (
+const NavItem = ({
+  to,
+  icon,
+  label,
+  onClick,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+}) => (
   <NavLink
     to={to}
     onClick={onClick}
@@ -45,18 +55,23 @@ const NavItem = ({ to, icon, label, onClick }: { to: string, icon: React.ReactNo
       fontSize: '0.85rem',
       fontWeight: 500,
       transition: 'all 0.2s ease',
-      marginBottom: '2px'
+      marginBottom: '2px',
     })}
     className="nav-item"
   >
-    <Box component="span" sx={{ display: 'flex', mr: 1.5, opacity: 0.9, '& > svg': { fontSize: 18 } }}>
+    <Box
+      component="span"
+      sx={{ display: 'flex', mr: 1.5, opacity: 0.9, '& > svg': { fontSize: 18 } }}
+    >
       {icon}
     </Box>
     {label}
   </NavLink>
 );
 
-export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation: _onCreateConversation }) => {
+export const SideNav: React.FC<SideNavProps> = ({
+  onCreateConversation: _onCreateConversation,
+}) => {
   const { t } = useTranslation(['chat', 'common']);
   const theme = useTheme();
   const isMobile = useIsMobile();
@@ -174,7 +189,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation: _onCreat
             label={t('nav.prompts', { ns: 'common' })}
             onClick={handleNavClick}
           />
-           <NavItem
+          <NavItem
             to={`/app/orgs/${orgId}/chat-profiles`}
             icon={<BadgeIcon />}
             label={t('nav.profiles', { ns: 'common' })}
@@ -182,7 +197,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation: _onCreat
           />
 
           <Box mt={1} mb={0.5}>
-             <KineticTypography
+            <KineticTypography
               variant="caption"
               sx={{
                 opacity: 0.5,
@@ -235,7 +250,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation: _onCreat
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
           fontWeight: 600,
-          px: 0.5
+          px: 0.5,
         }}
       >
         {t('conversation.recent', { ns: 'chat' })}
@@ -298,7 +313,7 @@ export const SideNav: React.FC<SideNavProps> = ({ onCreateConversation: _onCreat
               width: 280,
               boxSizing: 'border-box',
               border: 'none',
-              bgcolor: 'transparent'
+              bgcolor: 'transparent',
             },
           }}
         >

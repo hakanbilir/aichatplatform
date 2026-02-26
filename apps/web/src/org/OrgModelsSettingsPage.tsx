@@ -11,7 +11,7 @@ import {
   FormControlLabel,
   Switch,
   TextField,
-  Typography
+  Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -40,7 +40,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
       setModels(res.models);
     } catch (err) {
       console.error(err);
-      setError("Failed to load models.");
+      setError('Failed to load models.');
     }
   }, [token, orgId]);
 
@@ -71,14 +71,14 @@ export const OrgModelsSettingsPage: React.FC = () => {
         maxOutputTokens: editing.maxOutputTokens ?? undefined,
         inputPriceMicros: editing.inputPriceMicros ?? undefined,
         outputPriceMicros: editing.outputPriceMicros ?? undefined,
-        metadata: editing.metadata ?? undefined
+        metadata: editing.metadata ?? undefined,
       });
 
       setEditing(null);
       await load();
     } catch (err) {
       console.error(err);
-      setError("Failed to save model changes.");
+      setError('Failed to save model changes.');
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
         gap: 2,
         height: '100%',
         backgroundImage: gradientBg,
-        backgroundColor: 'background.default'
+        backgroundColor: 'background.default',
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -124,7 +124,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
               '& table': { width: '100%', borderCollapse: 'collapse' },
               '& th, & td': { padding: '6px 8px', fontSize: 13 },
               '& th': { textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)' },
-              '& tr:nth-of-type(even)': { backgroundColor: 'action.hover' }
+              '& tr:nth-of-type(even)': { backgroundColor: 'action.hover' },
             }}
           >
             <table>
@@ -172,7 +172,9 @@ export const OrgModelsSettingsPage: React.FC = () => {
                     </td>
                     <td>
                       {m.contextWindow && (
-                        <Typography variant="caption">{m.contextWindow.toLocaleString()}</Typography>
+                        <Typography variant="caption">
+                          {m.contextWindow.toLocaleString()}
+                        </Typography>
                       )}
                     </td>
                     <td>
@@ -197,7 +199,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
             bottom: 16,
             right: 16,
             width: 420,
-            boxShadow: 8
+            boxShadow: 8,
           }}
         >
           <Typography variant="subtitle1" gutterBottom>
@@ -228,9 +230,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
               <Switch
                 checked={editing.isEnabled}
                 onChange={(e) =>
-                  setEditing((prev) =>
-                    prev ? { ...prev, isEnabled: e.target.checked } : prev
-                  )
+                  setEditing((prev) => (prev ? { ...prev, isEnabled: e.target.checked } : prev))
                 }
                 disabled={loading}
               />
@@ -242,9 +242,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
               <Switch
                 checked={editing.isDefault}
                 onChange={(e) =>
-                  setEditing((prev) =>
-                    prev ? { ...prev, isDefault: e.target.checked } : prev
-                  )
+                  setEditing((prev) => (prev ? { ...prev, isDefault: e.target.checked } : prev))
                 }
                 disabled={loading}
               />
@@ -256,7 +254,12 @@ export const OrgModelsSettingsPage: React.FC = () => {
             <Button size="small" onClick={() => setEditing(null)} disabled={loading}>
               Cancel
             </Button>
-            <Button size="small" variant="contained" onClick={() => void handleSave()} disabled={loading}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => void handleSave()}
+              disabled={loading}
+            >
               {loading ? 'Saving...' : 'Save'}
             </Button>
           </Box>

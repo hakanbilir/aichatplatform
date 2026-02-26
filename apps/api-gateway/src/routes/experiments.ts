@@ -10,7 +10,7 @@ import { assertOrgPermission } from '../rbac/guards';
 const createExperimentSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 });
 
 const addVariantSchema = z.object({
@@ -18,7 +18,7 @@ const addVariantSchema = z.object({
   description: z.string().optional(),
   chatProfileId: z.string().optional(),
   systemPrompt: z.string().optional(),
-  config: z.record(z.any()).optional()
+  config: z.record(z.any()).optional(),
 });
 
 const addInputsSchema = z.object({
@@ -26,15 +26,12 @@ const addInputsSchema = z.object({
     z.object({
       key: z.string().min(1),
       content: z.string().min(1),
-      metadata: z.record(z.any()).optional()
-    })
-  )
+      metadata: z.record(z.any()).optional(),
+    }),
+  ),
 });
 
-export default async function experimentsRoutes(
-  app: FastifyInstance,
-  _opts: FastifyPluginOptions
-) {
+export default async function experimentsRoutes(app: FastifyInstance, _opts: FastifyPluginOptions) {
   // List experiments
   app.get('/orgs/:orgId/experiments', { preHandler: [app.authenticate] }, async (req, reply) => {
     const payload = req.user as JwtPayload;
@@ -43,7 +40,7 @@ export default async function experimentsRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:experiments:read'
+      'org:experiments:read',
     );
 
     const experiments = await prisma.experiment.findMany({
@@ -52,8 +49,8 @@ export default async function experimentsRoutes(
       include: {
         variants: true,
         inputs: true,
-        runs: true
-      }
+        runs: true,
+      },
     });
 
     return reply.send({ experiments });
@@ -67,7 +64,7 @@ export default async function experimentsRoutes(
     await assertOrgPermission(
       { id: payload.userId, isSuperadmin: payload.isSuperadmin },
       orgId,
-      'org:experiments:write'
+      'org:experiments:write',
     );
 
     const parsed = createExperimentSchema.safeParse(req.body);
@@ -81,8 +78,8 @@ export default async function experimentsRoutes(
         createdById: payload.userId,
         name: parsed.data.name,
         description: parsed.data.description ?? null,
-        metadata: parsed.data.metadata ?? {}
-      }
+        metadata: parsed.data.metadata ?? {},
+      },
     });
 
     // Optional: emitEvent('experiment.created', ...)
@@ -101,7 +98,7 @@ export default async function experimentsRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:experiments:write'
+        'org:experiments:write',
       );
 
       const parsed = addVariantSchema.safeParse(req.body);
@@ -117,12 +114,12 @@ export default async function experimentsRoutes(
           chatProfileId: parsed.data.chatProfileId ?? null,
           systemPrompt: parsed.data.systemPrompt ?? null,
           config: parsed.data.config ?? {},
-          createdById: payload.userId
-        }
+          createdById: payload.userId,
+        },
       });
 
       return reply.code(201).send({ variant: v });
-    }
+    },
   );
 
   // Add inputs
@@ -136,7 +133,7 @@ export default async function experimentsRoutes(
       await assertOrgPermission(
         { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        'org:experiments:write'
+        'org:experiments:write',
       );
 
       const parsed = addInputsSchema.safeParse(req.body);
@@ -150,11 +147,11 @@ export default async function experimentsRoutes(
           key: i.key,
           content: i.content,
           metadata: i.metadata ?? {},
-          createdById: payload.userId
-        }))
+          createdById: payload.userId,
+        })),
       });
 
       return reply.code(201).send({ ok: true });
-    }
+    },
   );
 }

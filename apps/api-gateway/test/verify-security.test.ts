@@ -23,7 +23,7 @@ describe('Security Verification', () => {
       method: 'GET',
       url: '/',
       remoteAddress: '127.0.0.1',
-      headers: { 'x-forwarded-for': '10.0.0.1' }
+      headers: { 'x-forwarded-for': '10.0.0.1' },
     });
 
     // Req 2: User A (Expect 200 due to bypass)
@@ -31,11 +31,13 @@ describe('Security Verification', () => {
       method: 'GET',
       url: '/',
       remoteAddress: '127.0.0.1',
-      headers: { 'x-forwarded-for': '10.0.0.1' }
+      headers: { 'x-forwarded-for': '10.0.0.1' },
     });
 
     if (resVulnerable.statusCode !== 200) {
-        console.warn("⚠️ Warning: Vulnerability reproduction failed. Simulation might be inaccurate.");
+      console.warn(
+        '⚠️ Warning: Vulnerability reproduction failed. Simulation might be inaccurate.',
+      );
     }
 
     // We expect 200 because without trustProxy, Fastify uses remoteAddress (127.0.0.1) which is allowListed
@@ -46,7 +48,7 @@ describe('Security Verification', () => {
     // 2. Verify that WITH trustProxy, vulnerability is fixed
     // This matches the current production code
     const appSecure = fastify({
-      trustProxy: true
+      trustProxy: true,
     });
 
     await appSecure.register(fastifyRateLimit, {
@@ -62,7 +64,7 @@ describe('Security Verification', () => {
       method: 'GET',
       url: '/',
       remoteAddress: '127.0.0.1',
-      headers: { 'x-forwarded-for': '10.0.0.2' }
+      headers: { 'x-forwarded-for': '10.0.0.2' },
     });
 
     // Req 2: User B (Expect 429)
@@ -70,7 +72,7 @@ describe('Security Verification', () => {
       method: 'GET',
       url: '/',
       remoteAddress: '127.0.0.1',
-      headers: { 'x-forwarded-for': '10.0.0.2' }
+      headers: { 'x-forwarded-for': '10.0.0.2' },
     });
 
     expect(resSecure.statusCode).toBe(429);

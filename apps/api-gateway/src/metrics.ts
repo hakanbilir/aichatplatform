@@ -67,4 +67,3 @@ export async function getMetrics(): Promise<string> {
 export function getMetricsContentType(): string {
   return registry.contentType;
 }
-

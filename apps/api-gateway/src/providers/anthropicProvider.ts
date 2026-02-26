@@ -15,8 +15,8 @@ export class AnthropicProvider implements ModelProvider {
   private parseDataUrl(dataUrl: string): { mediaType: string; data: string } {
     const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!matches) {
-       // Fallback for raw base64 or other formats
-       return { mediaType: 'image/jpeg', data: dataUrl };
+      // Fallback for raw base64 or other formats
+      return { mediaType: 'image/jpeg', data: dataUrl };
     }
     return { mediaType: matches[1], data: matches[2] };
   }
@@ -33,7 +33,7 @@ export class AnthropicProvider implements ModelProvider {
         continue;
       }
 
-      const role = m.role === 'tool' ? 'user' : (m.role === 'assistant' ? 'assistant' : 'user');
+      const role = m.role === 'tool' ? 'user' : m.role === 'assistant' ? 'assistant' : 'user';
 
       let content: any;
       if (typeof m.content === 'string') {
@@ -41,7 +41,7 @@ export class AnthropicProvider implements ModelProvider {
       } else {
         content = m.content.map((part) => {
           if (part.type === 'text') {
-             return { type: 'text', text: part.text };
+            return { type: 'text', text: part.text };
           }
           const { mediaType, data } = this.parseDataUrl(part.data);
           return {
@@ -49,8 +49,8 @@ export class AnthropicProvider implements ModelProvider {
             source: {
               type: 'base64',
               media_type: mediaType,
-              data: data
-            }
+              data: data,
+            },
           };
         });
       }
@@ -60,7 +60,10 @@ export class AnthropicProvider implements ModelProvider {
     return { system, messages: mappedMessages };
   }
 
-  async chat(messages: ProviderMessage[], options: ProviderChatOptions): Promise<ProviderChatResult> {
+  async chat(
+    messages: ProviderMessage[],
+    options: ProviderChatOptions,
+  ): Promise<ProviderChatResult> {
     const apiKey = this.getApiKey();
     const { system, messages: anthropicMessages } = this.mapMessages(messages);
 
@@ -78,7 +81,7 @@ export class AnthropicProvider implements ModelProvider {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(body),
     });
@@ -88,7 +91,7 @@ export class AnthropicProvider implements ModelProvider {
       throw new Error(`Anthropic chat failed with status ${response.status}: ${text}`);
     }
 
-    const json = await response.json() as any;
+    const json = (await response.json()) as any;
     const content = json.content?.[0]?.text || '';
     const usage = json.usage;
 
@@ -102,7 +105,10 @@ export class AnthropicProvider implements ModelProvider {
     };
   }
 
-  async *chatStream(messages: ProviderMessage[], options: ProviderChatOptions): AsyncGenerator<ChatStreamEvent, void, unknown> {
+  async *chatStream(
+    messages: ProviderMessage[],
+    options: ProviderChatOptions,
+  ): AsyncGenerator<ChatStreamEvent, void, unknown> {
     const apiKey = this.getApiKey();
     const { system, messages: anthropicMessages } = this.mapMessages(messages);
 
@@ -120,7 +126,7 @@ export class AnthropicProvider implements ModelProvider {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(body),
     });
@@ -160,31 +166,30 @@ export class AnthropicProvider implements ModelProvider {
 
           const jsonStr = trimmed.slice(6);
           try {
-             const chunk = JSON.parse(jsonStr);
+            const chunk = JSON.parse(jsonStr);
 
-             if (chunk.type === 'message_start') {
-                 if (chunk.message?.usage) {
-                     inputTokens += chunk.message.usage.input_tokens || 0;
-                 }
-             }
+            if (chunk.type === 'message_start') {
+              if (chunk.message?.usage) {
+                inputTokens += chunk.message.usage.input_tokens || 0;
+              }
+            }
 
-             if (chunk.type === 'content_block_delta') {
-                 if (chunk.delta?.type === 'text_delta') {
-                     yield {
-                         type: 'token',
-                         token: chunk.delta.text
-                     };
-                 }
-             }
+            if (chunk.type === 'content_block_delta') {
+              if (chunk.delta?.type === 'text_delta') {
+                yield {
+                  type: 'token',
+                  token: chunk.delta.text,
+                };
+              }
+            }
 
-             if (chunk.type === 'message_delta') {
-                 if (chunk.usage) {
-                     outputTokens = chunk.usage.output_tokens || 0;
-                 }
-             }
-
+            if (chunk.type === 'message_delta') {
+              if (chunk.usage) {
+                outputTokens = chunk.usage.output_tokens || 0;
+              }
+            }
           } catch {
-             // Ignore parse errors for non-JSON data lines
+            // Ignore parse errors for non-JSON data lines
           }
         }
       }
@@ -195,12 +200,12 @@ export class AnthropicProvider implements ModelProvider {
     }
 
     yield {
-        type: 'end',
-        usage: {
-            promptTokens: inputTokens,
-            completionTokens: outputTokens,
-            totalTokens: inputTokens + outputTokens
-        }
+      type: 'end',
+      usage: {
+        promptTokens: inputTokens,
+        completionTokens: outputTokens,
+        totalTokens: inputTokens + outputTokens,
+      },
     };
   }
 }

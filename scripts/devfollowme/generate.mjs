@@ -20,7 +20,8 @@ const IGNORE_DIRS = new Set([
   '.vscode',
 ]);
 
-const DEFAULT_SECTION = '- Bulgu yok. Bu bölüm otomatik tarama ile veri bulamadı; manuel gözden geçirme önerilir.';
+const DEFAULT_SECTION =
+  '- Bulgu yok. Bu bölüm otomatik tarama ile veri bulamadı; manuel gözden geçirme önerilir.';
 
 const toPosix = (value) => value.split(path.sep).join('/');
 const sortUnique = (items) => [...new Set(items)].sort((a, b) => a.localeCompare(b));
@@ -82,7 +83,8 @@ function detectPackageManager(rootPackageJson) {
 
 function detectMonorepoTool(rootPackageJson, allFiles) {
   const hasTurboScript = Boolean(
-    rootPackageJson?.scripts && Object.values(rootPackageJson.scripts).some((value) => String(value).includes('turbo run')),
+    rootPackageJson?.scripts &&
+    Object.values(rootPackageJson.scripts).some((value) => String(value).includes('turbo run')),
   );
   if (hasTurboScript || allFiles.includes('turbo.json')) return 'turbo';
   if (allFiles.includes('nx.json')) return 'nx';
@@ -95,8 +97,10 @@ async function detectNodeVersion(rootPackageJson) {
     const value = (await fs.readFile(path.join(ROOT, '.nvmrc'), 'utf8')).trim();
     return { source: '.nvmrc', value: value || 'unknown' };
   }
-  if (rootPackageJson?.volta?.node) return { source: 'package.json#volta.node', value: rootPackageJson.volta.node };
-  if (rootPackageJson?.engines?.node) return { source: 'package.json#engines.node', value: rootPackageJson.engines.node };
+  if (rootPackageJson?.volta?.node)
+    return { source: 'package.json#volta.node', value: rootPackageJson.volta.node };
+  if (rootPackageJson?.engines?.node)
+    return { source: 'package.json#engines.node', value: rootPackageJson.engines.node };
   return { source: 'not-found', value: 'unknown' };
 }
 
@@ -126,23 +130,36 @@ async function buildProfile() {
     });
   }
 
-  const ciWorkflows = sortUnique(allFiles.filter((file) => file.startsWith('.github/workflows/') && file.endsWith('.yml')));
+  const ciWorkflows = sortUnique(
+    allFiles.filter((file) => file.startsWith('.github/workflows/') && file.endsWith('.yml')),
+  );
   const docsFiles = sortUnique(
     allFiles.filter(
-      (file) => file === 'README.md' || file.startsWith('docs/') || file === 'PM2_GUIDE.md' || file === 'security.md',
+      (file) =>
+        file === 'README.md' ||
+        file.startsWith('docs/') ||
+        file === 'PM2_GUIDE.md' ||
+        file === 'security.md',
     ),
   );
 
   const dockerFiles = sortUnique(
     allFiles.filter((file) => {
       const base = path.basename(file);
-      return base.startsWith('Dockerfile') || (base.startsWith('docker-compose') && (file.endsWith('.yml') || file.endsWith('.yaml')));
+      return (
+        base.startsWith('Dockerfile') ||
+        (base.startsWith('docker-compose') && (file.endsWith('.yml') || file.endsWith('.yaml')))
+      );
     }),
   );
 
-  const pm2Files = sortUnique(allFiles.filter((file) => path.basename(file).startsWith('ecosystem.config.')));
+  const pm2Files = sortUnique(
+    allFiles.filter((file) => path.basename(file).startsWith('ecosystem.config.')),
+  );
 
-  const expoDependency = workspacePackages.some((pkg) => 'expo' in pkg.dependencies || 'expo' in pkg.devDependencies);
+  const expoDependency = workspacePackages.some(
+    (pkg) => 'expo' in pkg.dependencies || 'expo' in pkg.devDependencies,
+  );
   const mobileSignals = {
     iosDir: allFiles.some((file) => file.startsWith('ios/')),
     androidDir: allFiles.some((file) => file.startsWith('android/')),
@@ -219,7 +236,9 @@ function buildMarkdown(profile, template) {
       const importantScripts = scriptEntries
         .filter(([name]) => ['dev', 'build', 'start', 'lint', 'test', 'typecheck'].includes(name))
         .map(([name, command]) => `\`${name}\` → \`${command}\``);
-      const scriptPreview = importantScripts.length ? importantScripts.join(' | ') : 'önemli script bulunamadı.';
+      const scriptPreview = importantScripts.length
+        ? importantScripts.join(' | ')
+        : 'önemli script bulunamadı.';
       return `\`${pkg.name}\` (${pkg.path}): ${scriptPreview}`;
     })
     .sort((a, b) => a.localeCompare(b));
@@ -242,10 +261,16 @@ function buildMarkdown(profile, template) {
 
   const opsSection = [
     '### PM2',
-    formatList(repo.pm2Files.map((file) => `\`${file}\``), '- PM2 ecosystem dosyası tespit edilmedi.'),
+    formatList(
+      repo.pm2Files.map((file) => `\`${file}\``),
+      '- PM2 ecosystem dosyası tespit edilmedi.',
+    ),
     '',
     '### Docker',
-    formatList(repo.dockerFiles.map((file) => `\`${file}\``), '- Dockerfile veya docker-compose dosyası tespit edilmedi.'),
+    formatList(
+      repo.dockerFiles.map((file) => `\`${file}\``),
+      '- Dockerfile veya docker-compose dosyası tespit edilmedi.',
+    ),
     '',
     '### Mobil sinyaller',
     mobileDetectionText,
@@ -253,7 +278,10 @@ function buildMarkdown(profile, template) {
 
   const envSection = [
     '### Güvenli okunan env dosyaları',
-    formatList(repo.envExamples.map((file) => `\`${file}\``), '- Örnek env dosyası bulunamadı.'),
+    formatList(
+      repo.envExamples.map((file) => `\`${file}\``),
+      '- Örnek env dosyası bulunamadı.',
+    ),
     '',
     '### Bilinçli olarak okunmayan env dosyaları',
     formatList(
@@ -264,25 +292,42 @@ function buildMarkdown(profile, template) {
 
   const ciSection = [
     '### CI workflow dosyaları',
-    formatList(repo.ciWorkflows.map((file) => `\`${file}\``), '- CI workflow dosyası bulunamadı.'),
+    formatList(
+      repo.ciWorkflows.map((file) => `\`${file}\``),
+      '- CI workflow dosyası bulunamadı.',
+    ),
     '',
     '### Dokümantasyon kaynakları',
-    formatList(repo.docsFiles.map((file) => `\`${file}\``), '- Dokümantasyon dosyası bulunamadı.'),
+    formatList(
+      repo.docsFiles.map((file) => `\`${file}\``),
+      '- Dokümantasyon dosyası bulunamadı.',
+    ),
     '',
     '- Bu doküman `docs:devfollowme:check` adımıyla drift kontrolüne tabidir.',
   ].join('\n');
 
   const unknowns = [];
   if (!repo.dockerFiles.length) {
-    unknowns.push('- Konteyner dağıtımı için Docker tanımı bulunamadı; ihtiyaç varsa Dockerfile eklenmeli.');
+    unknowns.push(
+      '- Konteyner dağıtımı için Docker tanımı bulunamadı; ihtiyaç varsa Dockerfile eklenmeli.',
+    );
   }
-  if (!repo.mobileSignals.iosDir && !repo.mobileSignals.androidDir && !repo.mobileSignals.appJson && !repo.mobileSignals.reactNativeConfig) {
-    unknowns.push('- Mobil uygulama iskeleti tespit edilmedi; mobil hedef varsa klasör yapısı netleştirilmeli.');
+  if (
+    !repo.mobileSignals.iosDir &&
+    !repo.mobileSignals.androidDir &&
+    !repo.mobileSignals.appJson &&
+    !repo.mobileSignals.reactNativeConfig
+  ) {
+    unknowns.push(
+      '- Mobil uygulama iskeleti tespit edilmedi; mobil hedef varsa klasör yapısı netleştirilmeli.',
+    );
   }
   if (repo.monorepoTool === 'unknown') {
     unknowns.push('- Monorepo aracı otomatik tespit edilemedi; proje yapısı manuel doğrulanmalı.');
   }
-  const unknownsSection = unknowns.length ? unknowns.join('\n') : '- Kritik bilinmeyen bulunmadı; tespit edilen alanlar düzenli görünüyor.';
+  const unknownsSection = unknowns.length
+    ? unknowns.join('\n')
+    : '- Kritik bilinmeyen bulunmadı; tespit edilen alanlar düzenli görünüyor.';
 
   const followMeSection = [
     '1. `npm run docs:devfollowme` komutunu çalıştırarak dokümanı güncelle.',
@@ -320,6 +365,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(`Generator failed: ${error instanceof Error ? error.stack : String(error)}\n`);
+  process.stderr.write(
+    `Generator failed: ${error instanceof Error ? error.stack : String(error)}\n`,
+  );
   process.exit(1);
 });

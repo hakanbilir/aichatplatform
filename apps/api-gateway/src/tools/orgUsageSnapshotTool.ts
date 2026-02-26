@@ -16,7 +16,8 @@ export interface OrgUsageSnapshotResult {
 
 export const orgUsageSnapshotTool: ToolDefinition<OrgUsageSnapshotArgs, OrgUsageSnapshotResult> = {
   name: 'org.usageSnapshot',
-  description: "Returns the organization's usage and quota snapshot for the given window (e.g. 30 days).",
+  description:
+    "Returns the organization's usage and quota snapshot for the given window (e.g. 30 days).",
   argsSchema: {
     type: 'object',
     properties: {
@@ -43,4 +44,3 @@ export const orgUsageSnapshotTool: ToolDefinition<OrgUsageSnapshotArgs, OrgUsage
     };
   },
 };
-

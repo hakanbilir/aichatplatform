@@ -7,7 +7,7 @@ import {
   ConversationSearchRequest,
   ConversationSearchResponse,
   ConversationSearchHit,
-  ConversationSearchHitMessageSnippet
+  ConversationSearchHitMessageSnippet,
 } from './types';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -18,7 +18,10 @@ function clampPageSize(size: number | undefined): number {
   return Math.min(size, MAX_PAGE_SIZE);
 }
 
-function buildFilterWhere(orgId: string, filters?: ConversationSearchFilters): Record<string, unknown> {
+function buildFilterWhere(
+  orgId: string,
+  filters?: ConversationSearchFilters,
+): Record<string, unknown> {
   const where: Record<string, any> = { orgId };
 
   if (!filters) return where;
@@ -45,7 +48,7 @@ function buildFilterWhere(orgId: string, filters?: ConversationSearchFilters): R
   if (filters.hasTools !== undefined) {
     where.metadata = {
       path: ['hasTools'],
-      equals: filters.hasTools
+      equals: filters.hasTools,
     } as any;
   }
 
@@ -53,7 +56,7 @@ function buildFilterWhere(orgId: string, filters?: ConversationSearchFilters): R
     where.metadata = {
       ...(where.metadata as any),
       path: ['hasRag'],
-      equals: filters.hasRag
+      equals: filters.hasRag,
     } as any;
   }
 
@@ -61,7 +64,7 @@ function buildFilterWhere(orgId: string, filters?: ConversationSearchFilters): R
     where.metadata = {
       ...(where.metadata as any),
       path: ['hasFiles'],
-      equals: filters.hasFiles
+      equals: filters.hasFiles,
     } as any;
   }
 
@@ -74,7 +77,7 @@ function createSnippet(text: string, maxLength: number): string {
 }
 
 export async function searchConversations(
-  req: ConversationSearchRequest
+  req: ConversationSearchRequest,
 ): Promise<ConversationSearchResponse> {
   const pageSize = clampPageSize(req.pageSize);
   const offset = (req.page <= 0 ? 0 : req.page) * pageSize;
@@ -88,40 +91,51 @@ export async function searchConversations(
     const conversations = await prisma.conversation.findMany({
       where: conversationWhere,
       select: {
-      id: true,
-      title: true,
-      metadata: true,
-      orgId: true,
-      model: true,
-      createdAt: true,
-      updatedAt: true,
-      lastActivityAt: true
-    },
+        id: true,
+        title: true,
+        metadata: true,
+        orgId: true,
+        model: true,
+        createdAt: true,
+        updatedAt: true,
+        lastActivityAt: true,
+      },
       orderBy: req.sort === 'recent' ? { updatedAt: 'desc' } : { createdAt: 'desc' },
       skip: offset,
-      take: pageSize
+      take: pageSize,
     });
 
-    const hits: ConversationSearchHit[] = conversations.map((conv: { id: string; title: string; metadata: unknown; orgId: string | null; model: string; createdAt: Date; updatedAt: Date; lastActivityAt: Date }) => {
-      const metadata: any = conv.metadata || {};
-      return {
-        conversationId: conv.id,
-        conversationTitle: conv.title,
-        modelId: conv.model,
-        createdAt: conv.createdAt.toISOString(),
-        updatedAt: conv.updatedAt.toISOString(),
-        hasTools: Boolean(metadata.hasTools),
-        hasRag: Boolean(metadata.hasRag),
-        hasFiles: Boolean(metadata.hasFiles),
-        messages: []
-      };
-    });
+    const hits: ConversationSearchHit[] = conversations.map(
+      (conv: {
+        id: string;
+        title: string;
+        metadata: unknown;
+        orgId: string | null;
+        model: string;
+        createdAt: Date;
+        updatedAt: Date;
+        lastActivityAt: Date;
+      }) => {
+        const metadata: any = conv.metadata || {};
+        return {
+          conversationId: conv.id,
+          conversationTitle: conv.title,
+          modelId: conv.model,
+          createdAt: conv.createdAt.toISOString(),
+          updatedAt: conv.updatedAt.toISOString(),
+          hasTools: Boolean(metadata.hasTools),
+          hasRag: Boolean(metadata.hasRag),
+          hasFiles: Boolean(metadata.hasFiles),
+          messages: [],
+        };
+      },
+    );
 
     return {
       total,
       page: req.page,
       pageSize,
-      hits
+      hits,
     };
   }
 
@@ -141,8 +155,14 @@ export async function searchConversations(
     LIMIT 500
     `,
     req.orgId,
-    tsQuery
-  )) as Array<{ id: string; conversationId: string; role: string; createdAt: Date; content: string }>;
+    tsQuery,
+  )) as Array<{
+    id: string;
+    conversationId: string;
+    role: string;
+    createdAt: Date;
+    content: string;
+  }>;
 
   const byConversation = new Map<string, ConversationSearchHitMessageSnippet[]>();
 
@@ -153,7 +173,7 @@ export async function searchConversations(
       messageId: msg.id,
       role: msg.role,
       createdAt: new Date(msg.createdAt).toISOString(),
-      snippet: createSnippet(msg.content, 200)
+      snippet: createSnippet(msg.content, 200),
     });
     byConversation.set(msg.conversationId, list);
   }
@@ -166,7 +186,7 @@ export async function searchConversations(
       total: 0,
       page: req.page,
       pageSize,
-      hits: []
+      hits: [],
     };
   }
 
@@ -178,33 +198,43 @@ export async function searchConversations(
   const conversations = await prisma.conversation.findMany({
     where: {
       ...conversationWhere,
-      id: { in: pagedIds }
+      id: { in: pagedIds },
     },
-    orderBy: req.sort === 'recent' ? { updatedAt: 'desc' } : { createdAt: 'desc' }
+    orderBy: req.sort === 'recent' ? { updatedAt: 'desc' } : { createdAt: 'desc' },
   });
 
-    const hits: ConversationSearchHit[] = conversations.map((conv: { id: string; title: string; metadata: unknown; orgId: string | null; model: string; createdAt: Date; updatedAt: Date; lastActivityAt: Date }) => {
-    const metadata: any = conv.metadata || {};
-    const snippets = byConversation.get(conv.id) || [];
+  const hits: ConversationSearchHit[] = conversations.map(
+    (conv: {
+      id: string;
+      title: string;
+      metadata: unknown;
+      orgId: string | null;
+      model: string;
+      createdAt: Date;
+      updatedAt: Date;
+      lastActivityAt: Date;
+    }) => {
+      const metadata: any = conv.metadata || {};
+      const snippets = byConversation.get(conv.id) || [];
 
-    return {
-      conversationId: conv.id,
-      conversationTitle: conv.title,
-      modelId: conv.model,
-      createdAt: conv.createdAt.toISOString(),
-      updatedAt: conv.updatedAt.toISOString(),
-      hasTools: Boolean(metadata.hasTools),
-      hasRag: Boolean(metadata.hasRag),
-      hasFiles: Boolean(metadata.hasFiles),
-      messages: snippets
-    };
-  });
+      return {
+        conversationId: conv.id,
+        conversationTitle: conv.title,
+        modelId: conv.model,
+        createdAt: conv.createdAt.toISOString(),
+        updatedAt: conv.updatedAt.toISOString(),
+        hasTools: Boolean(metadata.hasTools),
+        hasRag: Boolean(metadata.hasRag),
+        hasFiles: Boolean(metadata.hasFiles),
+        messages: snippets,
+      };
+    },
+  );
 
   return {
     total,
     page: req.page,
     pageSize,
-    hits
+    hits,
   };
 }
-

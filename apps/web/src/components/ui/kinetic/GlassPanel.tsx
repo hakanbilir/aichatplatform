@@ -27,10 +27,10 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
 
   const handleMouseMoveCombined = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isSpecular) {
-        handleSpecularMove(e);
+      handleSpecularMove(e);
     }
     if (onMouseMove) {
-        onMouseMove(e);
+      onMouseMove(e);
     }
   };
 
@@ -62,7 +62,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
           width: '100%',
           height: '100%',
           // Ensure border radius matches if overridden
-          borderRadius: 'inherit'
+          borderRadius: 'inherit',
         }}
       />
 
@@ -74,7 +74,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
           height: '100%',
           width: '100%',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
         }}
       >
         {children}

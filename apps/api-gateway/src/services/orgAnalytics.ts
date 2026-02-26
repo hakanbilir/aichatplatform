@@ -47,15 +47,13 @@ export interface OrgAnalyticsResult {
   byDay: OrgAnalyticsDailyUsageItem[];
 }
 
-export async function getOrgAnalytics(
-  options: OrgAnalyticsOptions
-): Promise<OrgAnalyticsResult> {
+export async function getOrgAnalytics(options: OrgAnalyticsOptions): Promise<OrgAnalyticsResult> {
   const windowDays = options.windowDays && options.windowDays > 0 ? options.windowDays : 30;
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
 
   const org = await prisma.organization.findUnique({
     where: { id: options.orgId },
-    select: { id: true, name: true }
+    select: { id: true, name: true },
   });
 
   if (!org) {
@@ -70,11 +68,11 @@ export async function getOrgAnalytics(
     where: {
       role: 'ASSISTANT',
       createdAt: {
-        gte: since
+        gte: since,
       },
       conversation: {
-        orgId: org.id
-      }
+        orgId: org.id,
+      },
     },
     select: {
       id: true,
@@ -82,17 +80,17 @@ export async function getOrgAnalytics(
       conversationId: true,
       conversation: {
         select: {
-          model: true
-        }
+          model: true,
+        },
       },
-      meta: true
-    }
+      meta: true,
+    },
   });
 
   const totals = {
     chatTurns: 0,
     chatTurnsWithTools: 0,
-    chatTurnsWithoutTools: 0
+    chatTurnsWithoutTools: 0,
   };
 
   const byModelMap = new Map<string, number>();
@@ -136,15 +134,15 @@ export async function getOrgAnalytics(
     where: {
       role: 'TOOL',
       createdAt: {
-        gte: since
+        gte: since,
       },
       conversation: {
-        orgId: org.id
-      }
+        orgId: org.id,
+      },
     },
     select: {
-      meta: true
-    }
+      meta: true,
+    },
   });
 
   for (const msg of toolMessages) {
@@ -172,15 +170,15 @@ export async function getOrgAnalytics(
     where: {
       role: 'USER',
       createdAt: {
-        gte: since
+        gte: since,
       },
       conversation: {
-        orgId: org.id
-      }
+        orgId: org.id,
+      },
     },
     _count: {
-      _all: true
-    }
+      _all: true,
+    },
   });
 
   for (const row of userMessages) {
@@ -212,11 +210,6 @@ export async function getOrgAnalytics(
     byModel,
     byTool,
     byUser,
-    byDay
+    byDay,
   };
 }
-
-
-
-
-

@@ -26,7 +26,7 @@ export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, topR
         alignItems: 'center',
         justifyContent: 'center',
         p: 2,
-        position: 'relative'
+        position: 'relative',
       }}
     >
       {topRightElement && (
@@ -45,7 +45,7 @@ export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, topR
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            p: 0 // Padding handled by children or inner container
+            p: 0, // Padding handled by children or inner container
           }}
         >
           {children}
@@ -59,14 +59,12 @@ export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, topR
             minHeight: 200,
             display: { xs: 'none', md: 'flex' },
             flexDirection: 'column',
-            justifyContent: 'center'
+            justifyContent: 'center',
           }}
         >
           <CardContent sx={{ textAlign: 'center' }}>
             <AutoAwesomeIcon sx={{ fontSize: 40, mb: 2, color: 'primary.main' }} />
-            <KineticTypography variant="h6">
-              Agentic Intelligence
-            </KineticTypography>
+            <KineticTypography variant="h6">Agentic Intelligence</KineticTypography>
             <Typography variant="body2" color="text.secondary">
               Powered by next-gen models.
             </Typography>
@@ -79,41 +77,37 @@ export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, topR
           sx={{
             gridColumn: 'span 1',
             minHeight: 200,
-             display: { xs: 'none', md: 'flex' },
+            display: { xs: 'none', md: 'flex' },
             flexDirection: 'column',
-            justifyContent: 'center'
+            justifyContent: 'center',
           }}
         >
           <CardContent sx={{ textAlign: 'center' }}>
             <SpeedIcon sx={{ fontSize: 40, mb: 2, color: 'secondary.main' }} />
-             <KineticTypography variant="h6">
-              Kinetic Speed
-            </KineticTypography>
+            <KineticTypography variant="h6">Kinetic Speed</KineticTypography>
             <Typography variant="body2" color="text.secondary">
               Real-time streaming & interactions.
             </Typography>
           </CardContent>
         </GlassPanel>
 
-         {/* Feature 3: Security */}
+        {/* Feature 3: Security */}
         <GlassPanel
           refractive={!isEcoMode}
           sx={{
             gridColumn: { xs: 'span 1', md: 'span 2' },
-             display: { xs: 'none', md: 'flex' },
+            display: { xs: 'none', md: 'flex' },
             minHeight: 150,
-            alignItems: 'center'
+            alignItems: 'center',
           }}
         >
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <SecurityIcon sx={{ fontSize: 30, color: 'success.main' }} />
             <Box>
-                <KineticTypography variant="h6">
-                Enterprise Grade Security
-                </KineticTypography>
-                <Typography variant="body2" color="text.secondary">
+              <KineticTypography variant="h6">Enterprise Grade Security</KineticTypography>
+              <Typography variant="body2" color="text.secondary">
                 Your data is encrypted and protected.
-                </Typography>
+              </Typography>
             </Box>
           </CardContent>
         </GlassPanel>

@@ -9,10 +9,13 @@ import { StorageService } from '@ai-chat/config';
 import { JwtPayload } from '../auth/types';
 import { assertOrgPermission } from '../rbac/guards';
 
-
 const createDatasetBodySchema = z.object({
   name: z.string().min(1).max(200),
-  slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-z0-9-]+$/),
   description: z.string().max(1000).optional(),
   type: z.enum(['SFT', 'PREFERENCE', 'CLASSIFICATION', 'RAG_DOCS']),
   projectId: z.string().min(1).optional(), // Optional: will create/find default project if not provided
@@ -20,7 +23,12 @@ const createDatasetBodySchema = z.object({
 
 const updateDatasetBodySchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/).optional(),
+  slug: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
   description: z.string().max(1000).optional(),
   type: z.enum(['SFT', 'PREFERENCE', 'CLASSIFICATION', 'RAG_DOCS']).optional(),
 });
@@ -75,7 +83,8 @@ async function getContext(request: any): Promise<{ orgId: string; projectId: str
     return { orgId: membership.orgId, projectId };
   }
 
-  const projectId = (request.headers['x-project-id'] as string) || await getOrCreateDefaultProject(orgId);
+  const projectId =
+    (request.headers['x-project-id'] as string) || (await getOrCreateDefaultProject(orgId));
   return { orgId, projectId };
 }
 
@@ -167,7 +176,9 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
 
     const parseBody = createDatasetBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: 'Invalid dataset data', details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({ error: 'Invalid dataset data', details: parseBody.error.format() });
     }
 
     // Use provided projectId or context projectId
@@ -231,7 +242,9 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
 
     const parseBody = updateDatasetBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply.code(400).send({ error: 'Invalid update data', details: parseBody.error.format() });
+      return reply
+        .code(400)
+        .send({ error: 'Invalid update data', details: parseBody.error.format() });
     }
 
     // Verify dataset exists
@@ -251,7 +264,12 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
     // If slug is being updated, check for conflicts
     if (parseBody.data.slug && parseBody.data.slug !== existing.slug) {
       const slugConflict = await prisma.dataset.findFirst({
-        where: { projectId, slug: parseBody.data.slug, deletedAt: null, id: { not: parsedParams.data.id } },
+        where: {
+          projectId,
+          slug: parseBody.data.slug,
+          deletedAt: null,
+          id: { not: parsedParams.data.id },
+        },
       });
 
       if (slugConflict) {
@@ -306,275 +324,298 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
   });
 
   // Create dataset version
-  app.post('/api/v1/datasets/:datasetId/versions', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.post(
+    '/api/v1/datasets/:datasetId/versions',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({ datasetId: z.string().min(1) });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid dataset ID' });
-    }
+      const paramsSchema = z.object({ datasetId: z.string().min(1) });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid dataset ID' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:settings:write',
-    );
-
-    // Verify dataset exists
-    const dataset = await prisma.dataset.findFirst({
-      where: {
-        id: parsedParams.data.datasetId,
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        projectId,
-        deletedAt: null,
-      },
-    });
+        'org:settings:write',
+      );
 
-    if (!dataset) {
-      return reply.code(404).send({ error: 'Dataset not found' });
-    }
+      // Verify dataset exists
+      const dataset = await prisma.dataset.findFirst({
+        where: {
+          id: parsedParams.data.datasetId,
+          orgId,
+          projectId,
+          deletedAt: null,
+        },
+      });
 
-    const parseBody = createVersionBodySchema.safeParse(request.body);
-    if (!parseBody.success) {
-      return reply.code(400).send({ error: 'Invalid version data', details: parseBody.error.format() });
-    }
+      if (!dataset) {
+        return reply.code(404).send({ error: 'Dataset not found' });
+      }
 
-    // Get next version number
-    const latestVersion = await prisma.datasetVersion.findFirst({
-      where: { datasetId: parsedParams.data.datasetId },
-      orderBy: { versionNumber: 'desc' },
-    });
+      const parseBody = createVersionBodySchema.safeParse(request.body);
+      if (!parseBody.success) {
+        return reply
+          .code(400)
+          .send({ error: 'Invalid version data', details: parseBody.error.format() });
+      }
 
-    const versionNumber = parseBody.data.versionNumber || (latestVersion ? latestVersion.versionNumber + 1 : 1);
+      // Get next version number
+      const latestVersion = await prisma.datasetVersion.findFirst({
+        where: { datasetId: parsedParams.data.datasetId },
+        orderBy: { versionNumber: 'desc' },
+      });
 
-    // Check if version already exists
-    const existing = await prisma.datasetVersion.findUnique({
-      where: {
-        datasetId_versionNumber: {
+      const versionNumber =
+        parseBody.data.versionNumber || (latestVersion ? latestVersion.versionNumber + 1 : 1);
+
+      // Check if version already exists
+      const existing = await prisma.datasetVersion.findUnique({
+        where: {
+          datasetId_versionNumber: {
+            datasetId: parsedParams.data.datasetId,
+            versionNumber,
+          },
+        },
+      });
+
+      if (existing) {
+        return reply.code(409).send({ error: `Version ${versionNumber} already exists` });
+      }
+
+      const version = await prisma.datasetVersion.create({
+        data: {
           datasetId: parsedParams.data.datasetId,
           versionNumber,
+          status: 'DRAFT',
+          ...(parseBody.data.description
+            ? { metadata: { description: parseBody.data.description } }
+            : {}),
         },
-      },
-    });
+      });
 
-    if (existing) {
-      return reply.code(409).send({ error: `Version ${versionNumber} already exists` });
-    }
-
-    const version = await prisma.datasetVersion.create({
-      data: {
-        datasetId: parsedParams.data.datasetId,
-        versionNumber,
-        status: 'DRAFT',
-        ...(parseBody.data.description ? { metadata: { description: parseBody.data.description } } : {}),
-      },
-    });
-
-    return reply.code(201).send(version);
-  });
+      return reply.code(201).send(version);
+    },
+  );
 
   // Get dataset version
-  app.get('/api/v1/datasets/:datasetId/versions/:versionId', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.get(
+    '/api/v1/datasets/:datasetId/versions/:versionId',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({
-      datasetId: z.string().min(1),
-      versionId: z.string().min(1),
-    });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid parameters' });
-    }
+      const paramsSchema = z.object({
+        datasetId: z.string().min(1),
+        versionId: z.string().min(1),
+      });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid parameters' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:read',
-    );
-
-    // Verify dataset exists
-    const dataset = await prisma.dataset.findFirst({
-      where: {
-        id: parsedParams.data.datasetId,
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
         orgId,
-        projectId,
-        deletedAt: null,
-      },
-    });
+        'org:read',
+      );
 
-    if (!dataset) {
-      return reply.code(404).send({ error: 'Dataset not found' });
-    }
+      // Verify dataset exists
+      const dataset = await prisma.dataset.findFirst({
+        where: {
+          id: parsedParams.data.datasetId,
+          orgId,
+          projectId,
+          deletedAt: null,
+        },
+      });
 
-    const version = await prisma.datasetVersion.findFirst({
-      where: {
-        id: parsedParams.data.versionId,
-        datasetId: parsedParams.data.datasetId,
-      },
-      include: {
-        files: true,
-      },
-    });
+      if (!dataset) {
+        return reply.code(404).send({ error: 'Dataset not found' });
+      }
 
-    if (!version) {
-      return reply.code(404).send({ error: 'Dataset version not found' });
-    }
+      const version = await prisma.datasetVersion.findFirst({
+        where: {
+          id: parsedParams.data.versionId,
+          datasetId: parsedParams.data.datasetId,
+        },
+        include: {
+          files: true,
+        },
+      });
 
-    return reply.send(version);
-  });
+      if (!version) {
+        return reply.code(404).send({ error: 'Dataset version not found' });
+      }
+
+      return reply.send(version);
+    },
+  );
 
   // Get upload URL
-  app.get('/api/v1/datasets/:datasetId/versions/:versionId/upload-url', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.get(
+    '/api/v1/datasets/:datasetId/versions/:versionId/upload-url',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({
-      datasetId: z.string().min(1),
-      versionId: z.string().min(1),
-    });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid parameters' });
-    }
+      const paramsSchema = z.object({
+        datasetId: z.string().min(1),
+        versionId: z.string().min(1),
+      });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid parameters' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:settings:write',
-    );
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'org:settings:write',
+      );
 
-    const querySchema = z.object({ fileName: z.string().min(1) });
-    const parsedQuery = querySchema.safeParse(request.query);
-    if (!parsedQuery.success) {
-      return reply.code(400).send({ error: 'fileName query parameter required' });
-    }
+      const querySchema = z.object({ fileName: z.string().min(1) });
+      const parsedQuery = querySchema.safeParse(request.query);
+      if (!parsedQuery.success) {
+        return reply.code(400).send({ error: 'fileName query parameter required' });
+      }
 
-    // Verify dataset and version exist
-    const dataset = await prisma.dataset.findFirst({
-      where: {
-        id: parsedParams.data.datasetId,
+      // Verify dataset and version exist
+      const dataset = await prisma.dataset.findFirst({
+        where: {
+          id: parsedParams.data.datasetId,
+          orgId,
+          projectId,
+          deletedAt: null,
+        },
+      });
+
+      if (!dataset) {
+        return reply.code(404).send({ error: 'Dataset not found' });
+      }
+
+      const version = await prisma.datasetVersion.findFirst({
+        where: {
+          id: parsedParams.data.versionId,
+          datasetId: parsedParams.data.datasetId,
+        },
+      });
+
+      if (!version) {
+        return reply.code(404).send({ error: 'Dataset version not found' });
+      }
+
+      const storageKey = storageService.getStoragePath(
         orgId,
         projectId,
-        deletedAt: null,
-      },
-    });
+        parsedParams.data.datasetId,
+        parsedParams.data.versionId,
+        parsedQuery.data.fileName,
+      );
 
-    if (!dataset) {
-      return reply.code(404).send({ error: 'Dataset not found' });
-    }
+      const uploadUrl = await storageService.getUploadSignedUrl(storageKey, 3600);
 
-    const version = await prisma.datasetVersion.findFirst({
-      where: {
-        id: parsedParams.data.versionId,
-        datasetId: parsedParams.data.datasetId,
-      },
-    });
-
-    if (!version) {
-      return reply.code(404).send({ error: 'Dataset version not found' });
-    }
-
-    const storageKey = storageService.getStoragePath(
-      orgId,
-      projectId,
-      parsedParams.data.datasetId,
-      parsedParams.data.versionId,
-      parsedQuery.data.fileName,
-    );
-
-    const uploadUrl = await storageService.getUploadSignedUrl(storageKey, 3600);
-
-    return reply.send({
-      uploadUrl,
-      storageKey,
-      expiresIn: 3600,
-    });
-  });
+      return reply.send({
+        uploadUrl,
+        storageKey,
+        expiresIn: 3600,
+      });
+    },
+  );
 
   // Finalize dataset version
-  app.post('/api/v1/datasets/:datasetId/versions/:versionId/finalize', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const payload = request.user as JwtPayload;
-    const { orgId, projectId } = await getContext(request);
+  app.post(
+    '/api/v1/datasets/:datasetId/versions/:versionId/finalize',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const payload = request.user as JwtPayload;
+      const { orgId, projectId } = await getContext(request);
 
-    const paramsSchema = z.object({
-      datasetId: z.string().min(1),
-      versionId: z.string().min(1),
-    });
-    const parsedParams = paramsSchema.safeParse(request.params);
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: 'Invalid parameters' });
-    }
+      const paramsSchema = z.object({
+        datasetId: z.string().min(1),
+        versionId: z.string().min(1),
+      });
+      const parsedParams = paramsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: 'Invalid parameters' });
+      }
 
-    await assertOrgPermission(
-      { id: payload.userId, isSuperadmin: payload.isSuperadmin },
-      orgId,
-      'org:settings:write',
-    );
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'org:settings:write',
+      );
 
-    const parseBody = finalizeVersionBodySchema.safeParse(request.body);
-    if (!parseBody.success) {
-      return reply.code(400).send({ error: 'Invalid file info', details: parseBody.error.format() });
-    }
+      const parseBody = finalizeVersionBodySchema.safeParse(request.body);
+      if (!parseBody.success) {
+        return reply
+          .code(400)
+          .send({ error: 'Invalid file info', details: parseBody.error.format() });
+      }
 
-    // Verify dataset and version exist
-    const dataset = await prisma.dataset.findFirst({
-      where: {
-        id: parsedParams.data.datasetId,
+      // Verify dataset and version exist
+      const dataset = await prisma.dataset.findFirst({
+        where: {
+          id: parsedParams.data.datasetId,
+          orgId,
+          projectId,
+          deletedAt: null,
+        },
+      });
+
+      if (!dataset) {
+        return reply.code(404).send({ error: 'Dataset not found' });
+      }
+
+      const version = await prisma.datasetVersion.findFirst({
+        where: {
+          id: parsedParams.data.versionId,
+          datasetId: parsedParams.data.datasetId,
+        },
+      });
+
+      if (!version) {
+        return reply.code(404).send({ error: 'Dataset version not found' });
+      }
+
+      const storageKey = storageService.getStoragePath(
         orgId,
         projectId,
-        deletedAt: null,
-      },
-    });
+        parsedParams.data.datasetId,
+        parsedParams.data.versionId,
+        parseBody.data.fileName,
+      );
 
-    if (!dataset) {
-      return reply.code(404).send({ error: 'Dataset not found' });
-    }
+      // Create DatasetFile record
+      const datasetFile = await prisma.datasetFile.create({
+        data: {
+          datasetVersionId: parsedParams.data.versionId,
+          storageUri: `s3://${process.env.S3_BUCKET || 'aitrainer-datasets'}/${storageKey}`,
+          fileName: parseBody.data.fileName,
+          fileSizeBytes: parseBody.data.fileSizeBytes,
+          ...(parseBody.data.mimeType ? { mimeType: parseBody.data.mimeType } : {}),
+        },
+      });
 
-    const version = await prisma.datasetVersion.findFirst({
-      where: {
-        id: parsedParams.data.versionId,
-        datasetId: parsedParams.data.datasetId,
-      },
-    });
+      // Update version to set primary file and status
+      const updatedVersion = await prisma.datasetVersion.update({
+        where: { id: parsedParams.data.versionId },
+        data: {
+          primaryFileId: datasetFile.id,
+          status: 'READY',
+        },
+        include: {
+          files: true,
+        },
+      });
 
-    if (!version) {
-      return reply.code(404).send({ error: 'Dataset version not found' });
-    }
-
-    const storageKey = storageService.getStoragePath(
-      orgId,
-      projectId,
-      parsedParams.data.datasetId,
-      parsedParams.data.versionId,
-      parseBody.data.fileName,
-    );
-
-    // Create DatasetFile record
-    const datasetFile = await prisma.datasetFile.create({
-      data: {
-        datasetVersionId: parsedParams.data.versionId,
-        storageUri: `s3://${process.env.S3_BUCKET || 'aitrainer-datasets'}/${storageKey}`,
-        fileName: parseBody.data.fileName,
-        fileSizeBytes: parseBody.data.fileSizeBytes,
-        ...(parseBody.data.mimeType ? { mimeType: parseBody.data.mimeType } : {}),
-      },
-    });
-
-    // Update version to set primary file and status
-    const updatedVersion = await prisma.datasetVersion.update({
-      where: { id: parsedParams.data.versionId },
-      data: {
-        primaryFileId: datasetFile.id,
-        status: 'READY',
-      },
-      include: {
-        files: true,
-      },
-    });
-
-    return reply.send(updatedVersion);
-  });
+      return reply.send(updatedVersion);
+    },
+  );
 }

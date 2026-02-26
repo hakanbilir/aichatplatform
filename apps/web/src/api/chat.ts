@@ -80,7 +80,8 @@ export async function streamMessage(
   retryCount: number = 0,
 ): Promise<void> {
   // Use relative path in production to avoid CORS issues / CORS sorunlarını önlemek için üretimde göreli yol kullan
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
   const url = `${API_BASE_URL}/conversations/${conversationId}/stream`;
 
   let attempt = 0;
@@ -101,7 +102,7 @@ export async function streamMessage(
       if (!response.ok) {
         // Retry on 5xx errors
         if (response.status >= 500 && attempt < retryCount) {
-           throw new Error(`HTTP ${response.status}`);
+          throw new Error(`HTTP ${response.status}`);
         }
 
         // Non-retryable error
@@ -149,7 +150,6 @@ export async function streamMessage(
 
       // Success, break retry loop
       return;
-
     } catch (err) {
       const isAbort = (err as Error).name === 'AbortError' || signal?.aborted;
       if (isAbort) return;
@@ -158,7 +158,7 @@ export async function streamMessage(
         attempt++;
         // Exponential backoff: 1s, 2s, 4s...
         const delay = 1000 * Math.pow(2, attempt - 1);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
 

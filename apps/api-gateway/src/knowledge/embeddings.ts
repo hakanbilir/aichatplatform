@@ -21,7 +21,7 @@ export function getDefaultEmbeddingProvider(): {
   const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
 
   const config: EmbeddingProviderConfig = {
-    model
+    model,
   };
 
   const provider: EmbeddingProvider = {
@@ -39,20 +39,22 @@ export function getDefaultEmbeddingProvider(): {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model,
-            input: texts
-          })
+            input: texts,
+          }),
         });
 
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'Unknown error');
-          throw new Error(`OpenAI embeddings API error: ${response.status} ${response.statusText} - ${errorText}`);
+          throw new Error(
+            `OpenAI embeddings API error: ${response.status} ${response.statusText} - ${errorText}`,
+          );
         }
 
-        const data = await response.json() as {
+        const data = (await response.json()) as {
           data: Array<{ embedding: number[] }>;
           model: string;
           usage?: { prompt_tokens: number; total_tokens: number };
@@ -60,16 +62,15 @@ export function getDefaultEmbeddingProvider(): {
 
         // OpenAI returns embeddings in the same order as input texts
         // OpenAI, giriş metinleriyle aynı sırada embedding'leri döndürür
-        return data.data.map(item => item.embedding);
+        return data.data.map((item) => item.embedding);
       } catch (err) {
         if (err instanceof Error) {
           throw err;
         }
         throw new Error(`Failed to generate embeddings: ${String(err)}`);
       }
-    }
+    },
   };
 
   return { provider, config };
 }
-

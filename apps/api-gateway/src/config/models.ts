@@ -137,4 +137,3 @@ export function getModelConfig(effectiveId: string): ModelConfig {
     supportsTools: false,
   };
 }
-

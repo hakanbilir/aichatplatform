@@ -168,4 +168,3 @@ export const BarChart: React.FC<BarChartProps> = ({
     </Box>
   );
 };
-

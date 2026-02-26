@@ -34,22 +34,24 @@ export function useConversationStream() {
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
-               const jsonStr = line.substring(6);
-               try {
-                 const event = JSON.parse(jsonStr);
+              const jsonStr = line.substring(6);
+              try {
+                const event = JSON.parse(jsonStr);
 
-                 if (event.type === 'conversation.created') {
-                    // Dispatch window event to refresh lists (SideNav, Dashboard)
-                    // This makes the static lists "Kinetic" by updating in real-time
-                    window.dispatchEvent(new CustomEvent('conversation-created', {
-                        detail: event.context?.conversationId
-                    }));
-                 }
+                if (event.type === 'conversation.created') {
+                  // Dispatch window event to refresh lists (SideNav, Dashboard)
+                  // This makes the static lists "Kinetic" by updating in real-time
+                  window.dispatchEvent(
+                    new CustomEvent('conversation-created', {
+                      detail: event.context?.conversationId,
+                    }),
+                  );
+                }
 
-                 // Future: handle conversation.updated, message.created, etc.
-               } catch {
-                 // ignore parse errors or heartbeats
-               }
+                // Future: handle conversation.updated, message.created, etc.
+              } catch {
+                // ignore parse errors or heartbeats
+              }
             }
           }
         }
@@ -57,7 +59,7 @@ export function useConversationStream() {
         console.error('Conversation stream error', err);
         // Simple retry logic
         if (active) {
-            setTimeout(connect, 5000);
+          setTimeout(connect, 5000);
         }
       }
     };

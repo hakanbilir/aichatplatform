@@ -9,7 +9,7 @@ export async function findOrProvisionUserFromSso(
   email: string,
   name: string | null,
   idpGroups: string[],
-  connectionId: string
+  connectionId: string,
 ) {
   let user = await prisma.user.findUnique({ where: { email } });
 
@@ -24,14 +24,14 @@ export async function findOrProvisionUserFromSso(
       data: {
         email,
         name: name || email.split('@')[0],
-        passwordHash: '' // SSO users don't have passwords
-      }
+        passwordHash: '', // SSO users don't have passwords
+      },
     });
   }
 
   // Ensure org membership
   const membership = await prisma.orgMember.findUnique({
-    where: { userId_orgId: { userId: user.id, orgId } }
+    where: { userId_orgId: { userId: user.id, orgId } },
   });
 
   if (!membership) {
@@ -50,8 +50,8 @@ export async function findOrProvisionUserFromSso(
       data: {
         userId: user.id,
         orgId,
-        role: role as any
-      }
+        role: role as any,
+      },
     });
   }
 
@@ -65,8 +65,8 @@ export async function findOrProvisionUserFromSso(
       email,
       status: 'success',
       ip: undefined,
-      userAgent: undefined
-    }
+      userAgent: undefined,
+    },
   });
 
   return user;

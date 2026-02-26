@@ -37,7 +37,7 @@ export interface AuditLogQuery {
 export async function fetchAuditLog(
   token: string,
   orgId: string,
-  query: AuditLogQuery
+  query: AuditLogQuery,
 ): Promise<AuditLogResponse> {
   const params = new URLSearchParams();
 
@@ -50,7 +50,6 @@ export async function fetchAuditLog(
   return apiRequest<AuditLogResponse>(
     `/orgs/${orgId}/audit-log?${params.toString()}`,
     { method: 'GET' },
-    token
+    token,
   );
 }
-

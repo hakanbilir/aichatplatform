@@ -1,5 +1,6 @@
 // Use relative path in production to avoid CORS issues / CORS sorunlarını önlemek için üretimde göreli yol kullan
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
 
 export interface ApiError {
   status: number;
@@ -7,12 +8,17 @@ export interface ApiError {
   details?: unknown;
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  options: RequestInit = {},
+  token?: string | null,
+): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
 
   // Get current language from localStorage for Accept-Language header
   // Accept-Language başlığı için localStorage'dan mevcut dili al
-  const currentLang = typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') || 'tr' : 'tr';
+  const currentLang =
+    typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') || 'tr' : 'tr';
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -52,13 +58,14 @@ export async function apiStreamRequest<T>(
   onData: (data: T) => void,
   onError: (error: Error) => void,
   token?: string | null,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<void> {
   const url = `${API_BASE_URL}${path}`;
-  const currentLang = typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') || 'tr' : 'tr';
+  const currentLang =
+    typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') || 'tr' : 'tr';
 
   const headers: HeadersInit = {
-    'Accept': 'text/event-stream',
+    Accept: 'text/event-stream',
     'Accept-Language': currentLang,
   };
 

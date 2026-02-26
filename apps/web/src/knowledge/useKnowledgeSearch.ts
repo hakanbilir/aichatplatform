@@ -22,7 +22,7 @@ export function useKnowledgeSearch(orgId: string | null) {
       const chunks = await retrieveKnowledgeChunks(token, orgId, {
         spaceId,
         query,
-        limit
+        limit,
       });
       setResults(chunks);
     } catch (err) {
@@ -40,7 +40,6 @@ export function useKnowledgeSearch(orgId: string | null) {
     results,
     loading,
     error,
-    search
+    search,
   };
 }
-

@@ -1,4 +1,3 @@
-
 import { describe, it, expect, mock } from 'bun:test';
 import fastify from 'fastify';
 import conversationsRoutes from '../src/routes/conversations';
@@ -16,7 +15,7 @@ mock.module('@ai-chat/db', () => {
           return Promise.resolve([]);
         }),
       },
-    }
+    },
   };
 });
 
@@ -30,8 +29,12 @@ mock.module('../src/rbac/guards', () => {
 
 // Mock dependencies
 mock.module('../src/events/emitter', () => ({ emitEvent: mock(() => Promise.resolve()) }));
-mock.module('../src/llm/modelRegistryService', () => ({ resolveModelForOrg: mock(() => Promise.resolve()) }));
-mock.module('../src/promptStudio/render', () => ({ renderSystemPromptFromProfile: mock(() => Promise.resolve('')) }));
+mock.module('../src/llm/modelRegistryService', () => ({
+  resolveModelForOrg: mock(() => Promise.resolve()),
+}));
+mock.module('../src/promptStudio/render', () => ({
+  renderSystemPromptFromProfile: mock(() => Promise.resolve('')),
+}));
 
 describe('Conversations List Limit', () => {
   const setupApp = async () => {
@@ -44,9 +47,9 @@ describe('Conversations List Limit', () => {
 
     // Mock i18n
     app.decorateRequest('i18n', {
-        getter() {
-            return { t: (key: string) => key };
-        }
+      getter() {
+        return { t: (key: string) => key };
+      },
     });
 
     await app.register(conversationsRoutes);

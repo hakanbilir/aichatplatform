@@ -1,5 +1,14 @@
 import React from 'react';
-import { Box, CardContent, List, ListItem, ListItemButton, ListItemText, Typography, Skeleton } from '@mui/material';
+import {
+  Box,
+  CardContent,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Typography,
+  Skeleton,
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -56,7 +65,7 @@ export const DashboardBentoGrid: React.FC = () => {
           minHeight: 300,
           cursor: 'pointer',
           transition: 'transform 0.2s',
-          '&:hover': { transform: 'scale(1.01)' }
+          '&:hover': { transform: 'scale(1.01)' },
         }}
         onClick={handleNewChat}
       >
@@ -69,7 +78,7 @@ export const DashboardBentoGrid: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            mb: 2
+            mb: 2,
           }}
         >
           <AddIcon sx={{ fontSize: 40 }} />
@@ -83,24 +92,25 @@ export const DashboardBentoGrid: React.FC = () => {
       </GlassPanel>
 
       {/* Recent Conversations (List Tile) */}
-      <GlassPanel refractive={!isEcoMode} sx={{ gridColumn: 'span 1', gridRow: 'span 2', minHeight: 300 }}>
+      <GlassPanel
+        refractive={!isEcoMode}
+        sx={{ gridColumn: 'span 1', gridRow: 'span 2', minHeight: 300 }}
+      >
         <CardContent>
           <Box display="flex" alignItems="center" gap={1} mb={2}>
             <ChatIcon color="primary" />
-            <KineticTypography variant="h6">
-              {t('dashboard.recent', 'Recent')}
-            </KineticTypography>
+            <KineticTypography variant="h6">{t('dashboard.recent', 'Recent')}</KineticTypography>
           </Box>
           <List dense>
             {loadingRecent ? (
-               Array.from(new Array(3)).map((_, i) => (
-                 <ListItem key={i} disablePadding>
-                   <Box sx={{ width: '100%', p: 1 }}>
-                     <Skeleton variant="text" width="80%" />
-                     <Skeleton variant="text" width="40%" height={12} />
-                   </Box>
-                 </ListItem>
-               ))
+              Array.from(new Array(3)).map((_, i) => (
+                <ListItem key={i} disablePadding>
+                  <Box sx={{ width: '100%', p: 1 }}>
+                    <Skeleton variant="text" width="80%" />
+                    <Skeleton variant="text" width="40%" height={12} />
+                  </Box>
+                </ListItem>
+              ))
             ) : recentConversations && recentConversations.length > 0 ? (
               recentConversations.map((c) => (
                 <ListItem key={c.id} disablePadding>
@@ -110,33 +120,40 @@ export const DashboardBentoGrid: React.FC = () => {
                   >
                     <ListItemText
                       primary={c.title || t('conversation.untitled', 'Untitled Chat')}
-                      secondary={c.updatedAt ? new Date(c.updatedAt).toLocaleString(undefined, {
-                        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-                      }) : ''}
+                      secondary={
+                        c.updatedAt
+                          ? new Date(c.updatedAt).toLocaleString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })
+                          : ''
+                      }
                       primaryTypographyProps={{ noWrap: true }}
                     />
                   </ListItemButton>
                 </ListItem>
               ))
             ) : (
-               <ListItem>
-                 <Typography variant="body2" color="text.secondary">
-                   {t('dashboard.noRecent', 'No recent conversations')}
-                 </Typography>
-               </ListItem>
+              <ListItem>
+                <Typography variant="body2" color="text.secondary">
+                  {t('dashboard.noRecent', 'No recent conversations')}
+                </Typography>
+              </ListItem>
             )}
 
             {orgId && (
               <ListItem disablePadding>
-                 <ListItemButton
-                   sx={{ borderRadius: 2, justifyContent: 'center' }}
-                   onClick={() => navigate(`/app/orgs/${orgId}/inbox`)}
-                 >
-                   <Typography variant="caption" color="primary">
-                     {t('dashboard.viewAll', 'View All')}
-                   </Typography>
-                 </ListItemButton>
-               </ListItem>
+                <ListItemButton
+                  sx={{ borderRadius: 2, justifyContent: 'center' }}
+                  onClick={() => navigate(`/app/orgs/${orgId}/inbox`)}
+                >
+                  <Typography variant="caption" color="primary">
+                    {t('dashboard.viewAll', 'View All')}
+                  </Typography>
+                </ListItemButton>
+              </ListItem>
             )}
           </List>
         </CardContent>
@@ -154,13 +171,21 @@ export const DashboardBentoGrid: React.FC = () => {
             </Box>
 
             {loadingTemplates ? (
-               <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(150px, 1fr))" gap={2}>
-                 {Array.from(new Array(3)).map((_, i) => (
-                   <Skeleton key={i} variant="rectangular" height={60} sx={{ borderRadius: 2 }} />
-                 ))}
-               </Box>
+              <Box
+                display="grid"
+                gridTemplateColumns="repeat(auto-fit, minmax(150px, 1fr))"
+                gap={2}
+              >
+                {Array.from(new Array(3)).map((_, i) => (
+                  <Skeleton key={i} variant="rectangular" height={60} sx={{ borderRadius: 2 }} />
+                ))}
+              </Box>
             ) : templates && templates.length > 0 ? (
-              <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(150px, 1fr))" gap={2}>
+              <Box
+                display="grid"
+                gridTemplateColumns="repeat(auto-fit, minmax(150px, 1fr))"
+                gap={2}
+              >
                 {templates.slice(0, 6).map((template) => (
                   <SpecularButton
                     key={template.id}
@@ -170,10 +195,10 @@ export const DashboardBentoGrid: React.FC = () => {
                       textAlign: 'left',
                       p: 2,
                       borderColor: 'rgba(255,255,255,0.1)',
-                      height: '100%'
+                      height: '100%',
                     }}
                     onClick={() => {
-                        navigate(`/app/orgs/${orgId}/prompt-templates`);
+                      navigate(`/app/orgs/${orgId}/prompt-templates`);
                     }}
                   >
                     {template.name}
@@ -181,9 +206,9 @@ export const DashboardBentoGrid: React.FC = () => {
                 ))}
               </Box>
             ) : (
-                <Typography variant="body2" color="text.secondary">
-                   {t('dashboard.noTemplates', 'No templates found')}
-                </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t('dashboard.noTemplates', 'No templates found')}
+              </Typography>
             )}
           </CardContent>
         </GlassPanel>

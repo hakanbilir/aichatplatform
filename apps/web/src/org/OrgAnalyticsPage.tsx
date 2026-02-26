@@ -50,7 +50,7 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
 
   const timeSeriesData = useMemo(() => {
     if (!data?.byDay) return [];
-    
+
     return data.byDay.map((item) => {
       // Parse YYYY-MM-DD
       const date = new Date(item.date);
@@ -133,7 +133,10 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
         <Box display="flex" alignItems="center" gap={1.5}>
           <QueryStatsIcon sx={{ fontSize: '1.5rem', color: 'primary.main' }} />
           <Box>
-            <KineticTypography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+            <KineticTypography
+              variant="h5"
+              sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}
+            >
               {t('title')}
             </KineticTypography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
@@ -218,7 +221,7 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
               label={t('withoutTools') || 'Without Tools'}
               icon={<ChatIcon sx={{ fontSize: '1.5rem', opacity: 0.8 }} />}
               secondaryValue={`${Math.round(
-                ((totals?.chatTurnsWithoutTools ?? 0) / (totals?.chatTurns || 1)) * 100
+                ((totals?.chatTurnsWithoutTools ?? 0) / (totals?.chatTurns || 1)) * 100,
               )}% of total`}
               gradientVariant={4}
             />
@@ -254,7 +257,9 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
               {data.byModel.length === 0 ? (
                 <EmptyState
                   message={t('noDataInWindow')}
-                  description={t('noModelUsageData') || 'No model usage data available for this period'}
+                  description={
+                    t('noModelUsageData') || 'No model usage data available for this period'
+                  }
                 />
               ) : (
                 <>
@@ -280,16 +285,13 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
               )}
             </Panel>
 
-            <Panel
-              title={t('topTools')}
-              subtitle={t('callsPerTool')}
-              collapsible
-              defaultExpanded
-            >
+            <Panel title={t('topTools')} subtitle={t('callsPerTool')} collapsible defaultExpanded>
               {data.byTool.length === 0 ? (
                 <EmptyState
                   message={t('noToolCallsInWindow')}
-                  description={t('noToolUsageData') || 'No tool usage data available for this period'}
+                  description={
+                    t('noToolUsageData') || 'No tool usage data available for this period'
+                  }
                 />
               ) : (
                 <>
@@ -317,16 +319,13 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
           </DashboardLayout>
 
           {/* Top users panel / En aktif kullanıcılar paneli */}
-          <Panel
-            title={t('topUsers')}
-            subtitle={t('activityRanking')}
-            collapsible
-            defaultExpanded
-          >
+          <Panel title={t('topUsers')} subtitle={t('activityRanking')} collapsible defaultExpanded>
             {data.byUser.length === 0 ? (
               <EmptyState
                 message={t('noActiveUsersInWindow')}
-                description={t('noUserActivityData') || 'No user activity data available for this period'}
+                description={
+                  t('noUserActivityData') || 'No user activity data available for this period'
+                }
               />
             ) : (
               <DataGrid
@@ -342,8 +341,3 @@ export const OrgAnalyticsPage: React.FC<OrgAnalyticsPageProps> = ({ orgId }) => 
     </Box>
   );
 };
-
-
-
-
-
