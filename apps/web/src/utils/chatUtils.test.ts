@@ -29,9 +29,19 @@ describe('cleanMessageContent', () => {
     expect(cleanMessageContent(input)).toBe('<think>thought without end');
   });
 
-  test('trims whitespace', () => {
+  test('trims whitespace by default', () => {
     const input = '   Hello world   ';
     expect(cleanMessageContent(input)).toBe('Hello world');
+  });
+
+  test('preserves whitespace when shouldTrim is false', () => {
+    const input = '   Hello world   ';
+    expect(cleanMessageContent(input, false)).toBe('   Hello world   ');
+  });
+
+  test('removes think tags but preserves whitespace when shouldTrim is false', () => {
+    const input = '   <think>thought</think>   Hello world   ';
+    expect(cleanMessageContent(input, false)).toBe('      Hello world   ');
   });
 });
 

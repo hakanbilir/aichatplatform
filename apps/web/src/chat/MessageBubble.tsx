@@ -19,6 +19,7 @@ interface MessageBubbleProps {
   meta?: any;
   thinkingText?: string;
   isThinking?: boolean;
+  isStreaming?: boolean;
 }
 
 // Optimized with React.memo to prevent re-renders of list items during streaming
@@ -29,6 +30,7 @@ const MessageBubbleComponent = ({
   meta,
   thinkingText,
   isThinking,
+  isStreaming,
 }: MessageBubbleProps) => {
   const { t } = useTranslation('chat');
   const { isEcoMode } = useEcoMode();
@@ -79,8 +81,9 @@ const MessageBubbleComponent = ({
   // Optimized: useMemo prevents expensive regex operations on every render
   const cleanContent = useMemo(() => {
     if (artifact) return '';
-    return cleanMessageContent(content);
-  }, [content, artifact]);
+    // Skip trimming for streaming messages to preserve trailing spaces (UX) and avoid allocation
+    return cleanMessageContent(content, !isStreaming);
+  }, [content, artifact, isStreaming]);
 
   const renderContent = () => {
     if (artifact) {

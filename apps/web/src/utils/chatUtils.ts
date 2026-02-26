@@ -1,13 +1,19 @@
 /**
  * Removes <think> tags from message content.
  * Optimized to skip regex if tag is not present.
+ *
+ * @param content The message content.
+ * @param shouldTrim Whether to trim whitespace from the result. Defaults to true.
+ *                   Pass false for streaming messages to preserve trailing spaces (better UX)
+ *                   and avoid allocation overhead.
  */
-export function cleanMessageContent(content: string): string {
+export function cleanMessageContent(content: string, shouldTrim = true): string {
   // Optimization: If content doesn't contain <think>, skip the expensive regex
   if (!content.includes('<think>')) {
-    return content.trim();
+    return shouldTrim ? content.trim() : content;
   }
-  return content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  const cleaned = content.replace(/<think>[\s\S]*?<\/think>/g, '');
+  return shouldTrim ? cleaned.trim() : cleaned;
 }
 
 /**
