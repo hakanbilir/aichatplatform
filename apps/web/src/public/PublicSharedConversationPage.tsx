@@ -1,6 +1,6 @@
 // apps/web/src/public/PublicSharedConversationPage.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Box,
   Dialog,
@@ -37,6 +37,15 @@ export const PublicSharedConversationPage: React.FC = () => {
   const [passphrase, setPassphrase] = useState('');
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [needsPassphrase, setNeedsPassphrase] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (needsPassphrase && passphraseDialogOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    }
+  }, [needsPassphrase, passphraseDialogOpen]);
 
   useEffect(() => {
     if (!slug) return;
@@ -233,8 +242,7 @@ export const PublicSharedConversationPage: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <TextField
-            // eslint-disable-next-line jsx-a11y/no-autofocus
-            autoFocus
+            inputRef={inputRef}
             label={t('passphrase')}
             type={showPassphrase ? 'text' : 'password'}
             fullWidth

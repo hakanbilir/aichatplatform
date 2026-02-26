@@ -15,8 +15,7 @@ interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'tool';
   content: string;
   images?: string[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  meta?: any;
+  meta?: unknown;
   thinkingText?: string;
   isThinking?: boolean;
   isStreaming?: boolean;
@@ -62,9 +61,9 @@ const MessageBubbleComponent = ({
       // I need to find the generate_ui result in the array.
 
       const results = Array.isArray(json) ? json : [json];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const uiResult = results.find(
-        (r: any) => r.tool === 'generate_ui' && r.result?.status === 'generated',
+        (r: { tool?: string; result?: { status?: string; type?: string; code?: string } }) =>
+          r.tool === 'generate_ui' && r.result?.status === 'generated',
       );
 
       if (uiResult) {
@@ -76,7 +75,9 @@ const MessageBubbleComponent = ({
     return null;
   }, [isTool, content]);
 
-  const thought = thinkingText || (meta && meta.thought);
+  const thought =
+    thinkingText ||
+    (meta && typeof meta === 'object' && 'thought' in meta ? (meta as { thought: string }).thought : undefined);
 
   // Optimized: useMemo prevents expensive regex operations on every render
   const cleanContent = useMemo(() => {

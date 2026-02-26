@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ListItemButton,
   ListItemText,
@@ -27,11 +27,15 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
     const { t } = useTranslation('chat');
     const [localTitle, setLocalTitle] = useState(item.title || '');
     const [isReady, setIsReady] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
       if (isEditing) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocalTitle(item.title || '');
+        // Focus the input
+        setTimeout(() => inputRef.current?.focus(), 50);
+
         // Delay enabling blur save to prevent race condition with menu close focus restoration
         const timer = setTimeout(() => setIsReady(true), 200);
         return () => clearTimeout(timer);
@@ -78,8 +82,7 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
       >
         {isEditing ? (
           <TextField
-            // eslint-disable-next-line jsx-a11y/no-autofocus
-            autoFocus
+            inputRef={inputRef}
             size="small"
             value={localTitle}
             onClick={(e) => e.stopPropagation()}
