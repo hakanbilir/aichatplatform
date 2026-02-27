@@ -86,8 +86,19 @@ const OrgSsoSettingsPage = lazy(() =>
 const OrgScimSettingsPage = lazy(() =>
   import('./org/OrgScimSettingsPage').then((m) => ({ default: m.OrgScimSettingsPage })),
 );
+const LandingPage = lazy(() =>
+  import('./components/landing/LandingPage').then((m) => ({ default: m.LandingPage })),
+);
 
 const router = createBrowserRouter([
+  {
+    path: '/',
+    element: (
+      <Suspense fallback={<LoadingState fullWidth />}>
+        <LandingPage />
+      </Suspense>
+    ),
+  },
   {
     path: '/auth/login',
     element: (
