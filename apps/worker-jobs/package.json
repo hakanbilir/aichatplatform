@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "bun run dist/main.js",
     "lint": "eslint src --ext .ts",
-    "test": "echo \"no tests yet\"",
+    "test": "bun test ./test",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
   },
