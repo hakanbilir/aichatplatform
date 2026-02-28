@@ -174,6 +174,7 @@ export const OrgBillingPage: React.FC = () => {
                   variant={subscription?.planId === p.id ? 'outlined' : 'contained'}
                   disabled={subscription?.planId === p.id}
                   onClick={() => void handleChangePlan(p.id)}
+                  data-ai-action="void-changeplan-p-id"
                 >
                   {subscription?.planId === p.id
                     ? t('billing.currentPlan')

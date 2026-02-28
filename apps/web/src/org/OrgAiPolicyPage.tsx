@@ -91,7 +91,7 @@ export const OrgAiPolicyPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
+        <Button variant="contained" onClick={handleSave} disabled={saving} data-ai-action="save">
           {saving ? t('saving', { ns: 'common' }) : t('saveChanges', { ns: 'common' })}
         </Button>
       </Box>

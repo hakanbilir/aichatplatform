@@ -321,6 +321,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
             size="small"
             onClick={handleSave}
             disabled={saving || !conversationId || loading}
+            data-ai-action="save"
           >
             {saving ? t('settings.saving') : t('settings.save')}
           </Button>

@@ -168,11 +168,18 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
       </DialogContent>
       <DialogActions>
         {!publicUrl && (
-          <Button onClick={handleCreateLink} disabled={loading} variant="contained">
+          <Button
+            onClick={handleCreateLink}
+            disabled={loading}
+            variant="contained"
+            data-ai-action="createlink"
+          >
             {loading ? t('share.creating') : t('share.createLink')}
           </Button>
         )}
-        <Button onClick={onClose}>{t('close', { ns: 'common' })}</Button>
+        <Button onClick={onClose} data-ai-action="onclose">
+          {t('close', { ns: 'common' })}
+        </Button>
       </DialogActions>
     </Dialog>
   );

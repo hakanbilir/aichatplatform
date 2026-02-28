@@ -102,6 +102,7 @@ export const OrgSsoSettingsPage: React.FC = () => {
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
           disabled={loading}
+          data-ai-action="setdialogopen-true"
         >
           New connection
         </Button>
@@ -165,10 +166,18 @@ export const OrgSsoSettingsPage: React.FC = () => {
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+          <Button
+            onClick={() => setDialogOpen(false)}
+            disabled={loading}
+            data-ai-action="setdialogopen-false"
+          >
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
+          <Button
+            onClick={handleCreate}
+            disabled={!newName.trim() || loading}
+            data-ai-action="create"
+          >
             Create
           </Button>
         </DialogActions>

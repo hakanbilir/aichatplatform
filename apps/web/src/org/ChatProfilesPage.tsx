@@ -155,6 +155,7 @@ export const ChatProfilesPage: React.FC = () => {
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
           disabled={loading}
+          data-ai-action="setdialogopen-true"
         >
           New profile
         </Button>
@@ -193,7 +194,12 @@ export const ChatProfilesPage: React.FC = () => {
                   <Typography variant="caption" color="text.secondary">
                     {p.modelProvider} · {p.modelName}
                   </Typography>
-                  <Button size="small" onClick={() => void handleDelete(p.id)} disabled={loading}>
+                  <Button
+                    size="small"
+                    onClick={() => void handleDelete(p.id)}
+                    disabled={loading}
+                    data-ai-action="void-delete-p-id"
+                  >
                     Delete
                   </Button>
                 </Box>
@@ -293,12 +299,17 @@ export const ChatProfilesPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+          <Button
+            onClick={() => setDialogOpen(false)}
+            disabled={loading}
+            data-ai-action="setdialogopen-false"
+          >
             Cancel
           </Button>
           <Button
             onClick={handleCreate}
             disabled={!name.trim() || !modelProvider || !modelName || loading}
+            data-ai-action="create"
           >
             Create
           </Button>

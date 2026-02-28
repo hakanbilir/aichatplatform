@@ -78,6 +78,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
             textTransform: 'none',
             borderRadius: 2,
           }}
+          data-ai-action="onretry"
         >
           {retryLabel}
         </Button>

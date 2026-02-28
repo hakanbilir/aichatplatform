@@ -120,6 +120,7 @@ export const OrgMembersPage: React.FC = () => {
           size="small"
           startIcon={<PersonAddIcon />}
           onClick={() => setDialogOpen(true)}
+          data-ai-action="setdialogopen-true"
         >
           {t('members.inviteMember')}
         </Button>
@@ -261,8 +262,15 @@ export const OrgMembersPage: React.FC = () => {
           </Select>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>{t('cancel', { ns: 'common' })}</Button>
-          <Button onClick={handleInvite} disabled={!inviteEmail} variant="contained">
+          <Button onClick={() => setDialogOpen(false)} data-ai-action="setdialogopen-false">
+            {t('cancel', { ns: 'common' })}
+          </Button>
+          <Button
+            onClick={handleInvite}
+            disabled={!inviteEmail}
+            variant="contained"
+            data-ai-action="invite"
+          >
             {t('members.sendInvite')}
           </Button>
         </DialogActions>

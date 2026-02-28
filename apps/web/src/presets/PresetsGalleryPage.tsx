@@ -95,6 +95,7 @@ export const PresetsGalleryPage: React.FC = () => {
           size="small"
           startIcon={<AddIcon />}
           onClick={() => handleOpenEditor()}
+          data-ai-action="openeditor"
         >
           {t('newPreset')}
         </Button>

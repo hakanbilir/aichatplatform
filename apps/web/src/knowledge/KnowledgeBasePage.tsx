@@ -143,6 +143,7 @@ export const KnowledgeBasePage: React.FC = () => {
             size="small"
             startIcon={<AddIcon />}
             onClick={() => setCreateSpaceOpen(true)}
+            data-ai-action="setcreatespaceopen-true"
           >
             {t('createSpace')}
           </Button>
@@ -151,6 +152,7 @@ export const KnowledgeBasePage: React.FC = () => {
             size="small"
             startIcon={<CloudUploadIcon />}
             onClick={handleOpenIngestDialog}
+            data-ai-action="openingestdialog"
           >
             {t('ingestText')}
           </Button>
@@ -270,6 +272,7 @@ export const KnowledgeBasePage: React.FC = () => {
                   size="small"
                   onClick={() => search.search(8)}
                   disabled={search.loading || !search.query.trim()}
+                  data-ai-action="search-search-8"
                 >
                   {search.loading
                     ? t('searching', { ns: 'common' })
@@ -372,10 +375,18 @@ export const KnowledgeBasePage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateSpaceOpen(false)}>
+          <Button
+            onClick={() => setCreateSpaceOpen(false)}
+            data-ai-action="setcreatespaceopen-false"
+          >
             {t('createSpaceDialog.cancel', { ns: 'knowledge' })}
           </Button>
-          <Button onClick={handleCreateSpace} variant="contained" disabled={!newSpaceName.trim()}>
+          <Button
+            onClick={handleCreateSpace}
+            variant="contained"
+            disabled={!newSpaceName.trim()}
+            data-ai-action="createspace"
+          >
             {t('createSpaceDialog.create')}
           </Button>
         </DialogActions>
@@ -421,13 +432,18 @@ export const KnowledgeBasePage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIngestDialogOpen(false)} disabled={ingesting}>
+          <Button
+            onClick={() => setIngestDialogOpen(false)}
+            disabled={ingesting}
+            data-ai-action="setingestdialogopen-false"
+          >
             {t('ingestDialog.cancel')}
           </Button>
           <Button
             onClick={handleIngest}
             variant="contained"
             disabled={ingesting || !ingestSpaceId || !ingestTitle.trim() || !ingestText.trim()}
+            data-ai-action="ingest"
           >
             {ingesting ? t('ingestDialog.ingesting') : t('ingestDialog.ingest')}
           </Button>

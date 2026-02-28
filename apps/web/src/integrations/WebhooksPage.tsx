@@ -88,6 +88,7 @@ export const WebhooksPage: React.FC = () => {
           size="small"
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
+          data-ai-action="setdialogopen-true"
         >
           {t('newWebhook')}
         </Button>
@@ -210,8 +211,15 @@ export const WebhooksPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>{t('cancel', { ns: 'common' })}</Button>
-          <Button variant="contained" onClick={handleCreate} disabled={!name.trim() || !url.trim()}>
+          <Button onClick={() => setDialogOpen(false)} data-ai-action="setdialogopen-false">
+            {t('cancel', { ns: 'common' })}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleCreate}
+            disabled={!name.trim() || !url.trim()}
+            data-ai-action="create"
+          >
             {t('create')}
           </Button>
         </DialogActions>

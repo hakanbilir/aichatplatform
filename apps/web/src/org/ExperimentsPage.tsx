@@ -122,6 +122,7 @@ export const ExperimentsPage: React.FC = () => {
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
           disabled={loading}
+          data-ai-action="setdialogopen-true"
         >
           New experiment
         </Button>
@@ -162,7 +163,12 @@ export const ExperimentsPage: React.FC = () => {
                   {exp.runs?.length || 0} runs
                 </Typography>
               </Box>
-              <Button size="small" onClick={() => void handleRun(exp.id)} disabled={loading}>
+              <Button
+                size="small"
+                onClick={() => void handleRun(exp.id)}
+                disabled={loading}
+                data-ai-action="void-run-exp-id"
+              >
                 Run
               </Button>
             </Box>
@@ -191,10 +197,18 @@ export const ExperimentsPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+          <Button
+            onClick={() => setDialogOpen(false)}
+            disabled={loading}
+            data-ai-action="setdialogopen-false"
+          >
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
+          <Button
+            onClick={handleCreate}
+            disabled={!newName.trim() || loading}
+            data-ai-action="create"
+          >
             Create
           </Button>
         </DialogActions>
