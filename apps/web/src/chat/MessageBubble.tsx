@@ -77,7 +77,9 @@ const MessageBubbleComponent = ({
 
   const thought =
     thinkingText ||
-    (meta && typeof meta === 'object' && 'thought' in meta ? (meta as { thought: string }).thought : undefined);
+    (meta && typeof meta === 'object' && 'thought' in meta
+      ? (meta as { thought: string }).thought
+      : undefined);
 
   // Optimized: useMemo prevents expensive regex operations on every render
   const cleanContent = useMemo(() => {

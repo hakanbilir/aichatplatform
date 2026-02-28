@@ -33,12 +33,10 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
       const parseBody = sendMessageBodySchema.safeParse(request.body);
       if (!parseBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidMessageData'),
-            details: parseBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidMessageData'),
+          details: parseBody.error.format(),
+        });
       }
 
       const { content, model, temperature, topP, maxTokens, images } = parseBody.data;
@@ -149,12 +147,10 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
 
       const parseBody = sendMessageBodySchema.safeParse(request.body);
       if (!parseBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidMessageData'),
-            details: parseBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidMessageData'),
+          details: parseBody.error.format(),
+        });
       }
 
       const { content, model, temperature, topP, maxTokens, images } = parseBody.data;

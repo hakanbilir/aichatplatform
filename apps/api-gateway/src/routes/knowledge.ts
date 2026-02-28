@@ -126,12 +126,10 @@ export default async function knowledgeRoutes(app: FastifyInstance, _opts: Fasti
 
       const parsed = retrieveQuerySchema.safeParse(request.query);
       if (!parsed.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidQueryParams'),
-            details: parsed.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidQueryParams'),
+          details: parsed.error.format(),
+        });
       }
 
       const chunks = await retrieveRelevantChunks({

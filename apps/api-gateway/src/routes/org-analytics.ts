@@ -41,12 +41,10 @@ export default async function orgAnalyticsRoutes(
 
     const parseQuery = usageQuerySchema.safeParse(request.query);
     if (!parseQuery.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidQueryParams'),
-          details: parseQuery.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidQueryParams'),
+        details: parseQuery.error.format(),
+      });
     }
 
     const days = parseQuery.data.days;
@@ -187,12 +185,10 @@ export default async function orgAnalyticsRoutes(
 
       const parsedQuery = querySchema.safeParse(request.query);
       if (!parsedQuery.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidQueryParams'),
-            details: parsedQuery.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidQueryParams'),
+          details: parsedQuery.error.format(),
+        });
       }
 
       await assertOrgPermission(
@@ -282,12 +278,10 @@ export default async function orgAnalyticsRoutes(
 
     const parsedQuery = querySchema.safeParse(request.query);
     if (!parsedQuery.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidQueryParams'),
-          details: parsedQuery.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidQueryParams'),
+        details: parsedQuery.error.format(),
+      });
     }
 
     await assertOrgPermission(

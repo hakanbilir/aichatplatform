@@ -37,12 +37,10 @@ export default async function toolsRoutes(app: FastifyInstance, _opts: FastifyPl
 
     const parsedQuery = listQuerySchema.safeParse(request.query);
     if (!parsedQuery.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidQueryParams'),
-          details: parsedQuery.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidQueryParams'),
+        details: parsedQuery.error.format(),
+      });
     }
 
     const { conversationId, orgId } = parsedQuery.data;
@@ -94,12 +92,10 @@ export default async function toolsRoutes(app: FastifyInstance, _opts: FastifyPl
 
       const parsedBody = executeEnvelopeBodySchema.safeParse(request.body);
       if (!parsedBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidBody'),
-            details: parsedBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidBody'),
+          details: parsedBody.error.format(),
+        });
       }
 
       const { conversationId, orgId, toolCalls } = parsedBody.data;

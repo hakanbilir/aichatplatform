@@ -144,12 +144,10 @@ export default async function conversationsRoutes(
 
       const parsedQuery = listQuerySchema.safeParse(request.query);
       if (!parsedQuery.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidQuery'),
-            details: parsedQuery.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidQuery'),
+          details: parsedQuery.error.format(),
+        });
       }
 
       const { search, limit, cursor } = parsedQuery.data;
@@ -229,12 +227,10 @@ export default async function conversationsRoutes(
 
       const parsedBody = createOrgConversationBodySchema.safeParse(request.body);
       if (!parsedBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.validationError'),
-            details: parsedBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.validationError'),
+          details: parsedBody.error.format(),
+        });
       }
 
       await assertOrgPermission(
@@ -438,12 +434,10 @@ export default async function conversationsRoutes(
 
       const parseResult = createConversationBodySchema.safeParse(request.body);
       if (!parseResult.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidMessageData'),
-            details: parseResult.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidMessageData'),
+          details: parseResult.error.format(),
+        });
       }
 
       const { title, systemPrompt, model, temperature, topP, chatProfileId } = parseResult.data;
@@ -603,12 +597,10 @@ export default async function conversationsRoutes(
 
     const parseBody = updateConversationBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.validationError'),
-          details: parseBody.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.validationError'),
+        details: parseBody.error.format(),
+      });
     }
 
     const orgIds = await getUserOrgIds(payload.userId);

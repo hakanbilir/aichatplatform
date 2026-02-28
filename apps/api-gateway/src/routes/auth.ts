@@ -42,12 +42,10 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     async (request, reply) => {
       const parseResult = signupBodySchema.safeParse(request.body);
       if (!parseResult.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidSignupData'),
-            details: parseResult.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidSignupData'),
+          details: parseResult.error.format(),
+        });
       }
 
       const { email, password, name, orgName } = parseResult.data;
@@ -160,12 +158,10 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
     async (request, reply) => {
       const parseResult = loginBodySchema.safeParse(request.body);
       if (!parseResult.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidLoginData'),
-            details: parseResult.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidLoginData'),
+          details: parseResult.error.format(),
+        });
       }
 
       const { email, password } = parseResult.data;
@@ -414,12 +410,10 @@ export default async function authRoutes(app: FastifyInstance, _opts: FastifyPlu
   app.post('/api/v1/auth/refresh', async (request, reply) => {
     const parseResult = refreshTokenBodySchema.safeParse(request.body);
     if (!parseResult.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidRefreshToken'),
-          details: parseResult.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidRefreshToken'),
+        details: parseResult.error.format(),
+      });
     }
 
     const { refreshToken } = parseResult.data;

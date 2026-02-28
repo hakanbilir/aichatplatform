@@ -44,12 +44,10 @@ export default async function sharingRoutes(app: FastifyInstance, _opts: Fastify
 
       const bodyParsed = createShareBodySchema.safeParse(request.body);
       if (!bodyParsed.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidBody'),
-            details: bodyParsed.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidBody'),
+          details: bodyParsed.error.format(),
+        });
       }
 
       const conversation = await prisma.conversation.findFirst({
@@ -124,12 +122,10 @@ export default async function sharingRoutes(app: FastifyInstance, _opts: Fastify
 
       const bodyParsed = updateShareBodySchema.safeParse(request.body);
       if (!bodyParsed.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidBody'),
-            details: bodyParsed.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidBody'),
+          details: bodyParsed.error.format(),
+        });
       }
 
       const link = await prisma.conversationShareLink.findFirst({

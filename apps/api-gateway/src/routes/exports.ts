@@ -49,23 +49,19 @@ export default async function exportsRoutes(app: FastifyInstance, _opts: Fastify
       }
 
       if (!exportsAllowed) {
-        return reply
-          .code(403)
-          .send({
-            error:
-              request.i18n.t('errors.exportsDisabled') ||
-              'Exports are disabled for this organization',
-          });
+        return reply.code(403).send({
+          error:
+            request.i18n.t('errors.exportsDisabled') ||
+            'Exports are disabled for this organization',
+        });
       }
 
       const bodyParsed = exportBodySchema.safeParse(request.body);
       if (!bodyParsed.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidBody'),
-            details: bodyParsed.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidBody'),
+          details: bodyParsed.error.format(),
+        });
       }
 
       // Optional: ensure user can access this conversation specifically.

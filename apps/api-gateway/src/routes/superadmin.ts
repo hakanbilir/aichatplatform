@@ -90,12 +90,10 @@ export default async function superadminRoutes(app: FastifyInstance, _opts: Fast
 
     const query = paginationSchema.safeParse(request.query);
     if (!query.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidPaginationParams'),
-          details: query.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidPaginationParams'),
+        details: query.error.format(),
+      });
     }
 
     const { page, limit } = query.data;
@@ -250,12 +248,10 @@ export default async function superadminRoutes(app: FastifyInstance, _opts: Fast
 
     const parseBody = createUserSchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidUserData'),
-          details: parseBody.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidUserData'),
+        details: parseBody.error.format(),
+      });
     }
 
     const { email, name, password, isSuperadmin: isSuperadminFlag } = parseBody.data;
@@ -322,12 +318,10 @@ export default async function superadminRoutes(app: FastifyInstance, _opts: Fast
 
       const parseBody = updateUserSchema.safeParse(request.body);
       if (!parseBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidUserData'),
-            details: parseBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidUserData'),
+          details: parseBody.error.format(),
+        });
       }
 
       const updateData = parseBody.data;
@@ -457,12 +451,10 @@ export default async function superadminRoutes(app: FastifyInstance, _opts: Fast
 
       const parseBody = updateUserPasswordSchema.safeParse(request.body);
       if (!parseBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidPasswordData'),
-            details: parseBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidPasswordData'),
+          details: parseBody.error.format(),
+        });
       }
 
       const { password } = parseBody.data;
@@ -510,12 +502,10 @@ export default async function superadminRoutes(app: FastifyInstance, _opts: Fast
 
       const query = paginationSchema.safeParse(request.query);
       if (!query.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidPaginationParams'),
-            details: query.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidPaginationParams'),
+          details: query.error.format(),
+        });
       }
 
       const { page, limit } = query.data;
@@ -603,12 +593,10 @@ export default async function superadminRoutes(app: FastifyInstance, _opts: Fast
 
       const parseBody = updateOrgPlanSchema.safeParse(request.body);
       if (!parseBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidPlanData'),
-            details: parseBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidPlanData'),
+          details: parseBody.error.format(),
+        });
       }
 
       const { plan, monthlySoftLimitTokens, monthlyHardLimitTokens } = parseBody.data;
@@ -674,12 +662,10 @@ export default async function superadminRoutes(app: FastifyInstance, _opts: Fast
 
       const parseBody = assignFreeSubscriptionSchema.safeParse(request.body);
       if (!parseBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidSubscriptionData'),
-            details: parseBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidSubscriptionData'),
+          details: parseBody.error.format(),
+        });
       }
 
       const { orgId, monthlySoftLimitTokens, monthlyHardLimitTokens } = parseBody.data;
