@@ -1,11 +1,11 @@
 {
   "version": "2026.1.1",
-  "generatedAt": "2026-02-25T16:17:38.470Z",
+  "generatedAt": "2026-02-27T16:24:29.517Z",
   "auditStats": {
-    "filesScanned": 79,
+    "filesScanned": 80,
     "ariaLabelsFound": 25,
-    "glassComponentsDetected": 94,
-    "kineticTypographyUsage": 98,
+    "glassComponentsDetected": 104,
+    "kineticTypographyUsage": 110,
     "explicitTabIndices": 2,
     "explicitRoles": 7
   },
@@ -30,15 +30,24 @@
       "role": "region",
       "contrastRatio": "16.86:1 (White Text vs Glass on Dark)",
       "keyboardNavigation": "Pass through",
-      "attributes": ["data-eco-mode"]
+      "attributes": [
+        "data-eco-mode"
+      ]
     },
     "specular-button": {
       "role": "button",
       "contrastRatio": "> 7:1",
       "keyboardNavigation": "Focusable (Tab)",
-      "states": ["hover", "focus", "active"],
+      "states": [
+        "hover",
+        "focus",
+        "active"
+      ],
       "aria": {
-        "required": ["aria-label", "aria-pressed (if toggle)"]
+        "required": [
+          "aria-label",
+          "aria-pressed (if toggle)"
+        ]
       }
     },
     "bento-grid": {
