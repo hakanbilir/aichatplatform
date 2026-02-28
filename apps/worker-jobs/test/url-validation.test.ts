@@ -1,4 +1,17 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
+
+// Mock the DB module to prevent @prisma/client initialization errors in unit tests
+// This must be done before importing the module under test
+mock.module('@ai-chat/db', () => ({
+  prisma: {
+    webhookDelivery: {
+      findUnique: mock(),
+      update: mock(),
+      findMany: mock(),
+    },
+  },
+}));
+
 import { isValidWebhookUrl } from '../src/webhookDispatcher';
 
 describe('isValidWebhookUrl', () => {

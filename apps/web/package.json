@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
-    "test": "echo \"no tests yet\"",
+    "test": "bun test ./src",
     "generate-a11y-manifest": "bun scripts/generate-accessibility-manifest.ts",
     "typecheck": "tsc --noEmit"
   },
