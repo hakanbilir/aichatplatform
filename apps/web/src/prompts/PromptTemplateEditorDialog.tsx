@@ -235,20 +235,26 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
             </Box>
           ))}
           <Box mt={1}>
-            <Button variant="outlined" size="small" onClick={handleAddVariable}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleAddVariable}
+              data-ai-action="addvariable"
+            >
               {t('addVariable', { ns: 'prompts' })}
             </Button>
           </Box>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={saving}>
+        <Button onClick={onClose} disabled={saving} data-ai-action="onclose">
           {t('cancel', { ns: 'common' })}
         </Button>
         <Button
           onClick={handleSave}
           variant="contained"
           disabled={saving || !name.trim() || !systemPrompt.trim()}
+          data-ai-action="save"
         >
           {saving ? t('saving', { ns: 'prompts' }) : t('save', { ns: 'prompts' })}
         </Button>

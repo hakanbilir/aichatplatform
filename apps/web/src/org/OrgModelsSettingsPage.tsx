@@ -106,7 +106,12 @@ export const OrgModelsSettingsPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <Button size="small" startIcon={<RefreshIcon />} onClick={() => void load()}>
+        <Button
+          size="small"
+          startIcon={<RefreshIcon />}
+          onClick={() => void load()}
+          data-ai-action="void-load"
+        >
           Refresh
         </Button>
       </Box>
@@ -178,7 +183,12 @@ export const OrgModelsSettingsPage: React.FC = () => {
                       )}
                     </td>
                     <td>
-                      <Button size="small" onClick={() => startEdit(m)} disabled={loading}>
+                      <Button
+                        size="small"
+                        onClick={() => startEdit(m)}
+                        disabled={loading}
+                        data-ai-action="startedit-m"
+                      >
                         Edit
                       </Button>
                     </td>
@@ -251,7 +261,12 @@ export const OrgModelsSettingsPage: React.FC = () => {
           />
 
           <Box display="flex" justifyContent="flex-end" gap={1} mt={1.5}>
-            <Button size="small" onClick={() => setEditing(null)} disabled={loading}>
+            <Button
+              size="small"
+              onClick={() => setEditing(null)}
+              disabled={loading}
+              data-ai-action="setediting-null"
+            >
               Cancel
             </Button>
             <Button
@@ -259,6 +274,7 @@ export const OrgModelsSettingsPage: React.FC = () => {
               variant="contained"
               onClick={() => void handleSave()}
               disabled={loading}
+              data-ai-action="void-save"
             >
               {loading ? 'Saving...' : 'Save'}
             </Button>

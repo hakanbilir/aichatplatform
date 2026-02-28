@@ -137,6 +137,7 @@ export const OrgApiKeysPage: React.FC = () => {
             setNewToken(null);
             setDialogOpen(true);
           }}
+          data-ai-action="setnewtoken-null--------setdialogopen-true"
         >
           {t('apiKeys.newApiKey')}
         </Button>
@@ -261,6 +262,7 @@ export const OrgApiKeysPage: React.FC = () => {
                   variant="text"
                   startIcon={<ContentCopyIcon fontSize="small" />}
                   onClick={handleCopy}
+                  data-ai-action="copy"
                 >
                   {t('apiKeys.copy')}
                 </Button>
@@ -270,11 +272,18 @@ export const OrgApiKeysPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           {!newToken && (
-            <Button onClick={handleCreate} disabled={!name.trim()} variant="contained">
+            <Button
+              onClick={handleCreate}
+              disabled={!name.trim()}
+              variant="contained"
+              data-ai-action="create"
+            >
               {t('apiKeys.create')}
             </Button>
           )}
-          <Button onClick={() => setDialogOpen(false)}>{t('apiKeys.close')}</Button>
+          <Button onClick={() => setDialogOpen(false)} data-ai-action="setdialogopen-false">
+            {t('apiKeys.close')}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

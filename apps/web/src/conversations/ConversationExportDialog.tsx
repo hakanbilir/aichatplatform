@@ -136,6 +136,7 @@ export const ConversationExportDialog: React.FC<ConversationExportDialogProps> =
                   startIcon={<DownloadIcon />}
                   onClick={handleDownload}
                   fullWidth
+                  data-ai-action="download"
                 >
                   {t('export.download')}
                 </Button>
@@ -146,11 +147,18 @@ export const ConversationExportDialog: React.FC<ConversationExportDialogProps> =
       </DialogContent>
       <DialogActions>
         {!exportId && (
-          <Button onClick={handleStartExport} disabled={loading} variant="contained">
+          <Button
+            onClick={handleStartExport}
+            disabled={loading}
+            variant="contained"
+            data-ai-action="startexport"
+          >
             {loading ? t('export.exporting') : t('export.startExport')}
           </Button>
         )}
-        <Button onClick={onClose}>{t('close', { ns: 'common' })}</Button>
+        <Button onClick={onClose} data-ai-action="onclose">
+          {t('close', { ns: 'common' })}
+        </Button>
       </DialogActions>
     </Dialog>
   );

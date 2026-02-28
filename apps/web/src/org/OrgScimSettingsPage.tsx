@@ -122,7 +122,12 @@ export const OrgScimSettingsPage: React.FC = () => {
           </Box>
         </Box>
         {!connection && (
-          <Button variant="contained" onClick={() => setDialogOpen(true)} disabled={loading}>
+          <Button
+            variant="contained"
+            onClick={() => setDialogOpen(true)}
+            disabled={loading}
+            data-ai-action="setdialogopen-true"
+          >
             Create connection
           </Button>
         )}
@@ -156,7 +161,12 @@ export const OrgScimSettingsPage: React.FC = () => {
                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
                   <Typography variant="subtitle2">Bearer token</Typography>
                   <Box display="flex" gap={1}>
-                    <Button size="small" startIcon={<ContentCopyIcon />} onClick={copyToken}>
+                    <Button
+                      size="small"
+                      startIcon={<ContentCopyIcon />}
+                      onClick={copyToken}
+                      data-ai-action="copytoken"
+                    >
                       Copy
                     </Button>
                     <Button
@@ -164,6 +174,7 @@ export const OrgScimSettingsPage: React.FC = () => {
                       startIcon={<RefreshIcon />}
                       onClick={() => void handleRotate()}
                       disabled={loading}
+                      data-ai-action="void-rotate"
                     >
                       Rotate
                     </Button>
@@ -221,10 +232,18 @@ export const OrgScimSettingsPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>
+          <Button
+            onClick={() => setDialogOpen(false)}
+            disabled={loading}
+            data-ai-action="setdialogopen-false"
+          >
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!newName.trim() || loading}>
+          <Button
+            onClick={handleCreate}
+            disabled={!newName.trim() || loading}
+            data-ai-action="create"
+          >
             Create
           </Button>
         </DialogActions>

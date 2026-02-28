@@ -172,6 +172,7 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
                 startIcon={<AddIcon />}
                 variant="outlined"
                 onClick={onNewTemplate}
+                data-ai-action="onnewtemplate"
               >
                 {t('library.newTemplate')}
               </Button>
@@ -295,10 +296,11 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
               setSelectedTemplate(null);
               setVariables({});
             }}
+            data-ai-action="setapplydialogopen-false---------setselectedtemplate-null---------setvariables"
           >
             {t('cancel', { ns: 'common' })}
           </Button>
-          <Button variant="contained" onClick={handleApply}>
+          <Button variant="contained" onClick={handleApply} data-ai-action="apply">
             {t('library.applyToInput')}
           </Button>
         </DialogActions>

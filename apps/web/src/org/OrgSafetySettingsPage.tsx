@@ -173,7 +173,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <Button variant="contained" onClick={handleSave} disabled={loading}>
+        <Button variant="contained" onClick={handleSave} disabled={loading} data-ai-action="save">
           {loading ? 'Saving...' : 'Save changes'}
         </Button>
       </Box>
@@ -248,6 +248,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
                       variant={value === opt.value ? 'contained' : 'outlined'}
                       onClick={() => setCategoryAction(c.key, opt.value)}
                       disabled={loading}
+                      data-ai-action="setcategoryaction-c-key-opt-value"
                     >
                       {opt.label}
                     </Button>

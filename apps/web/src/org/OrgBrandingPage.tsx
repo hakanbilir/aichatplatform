@@ -130,6 +130,7 @@ export const OrgBrandingPage: React.FC = () => {
           startIcon={<SaveIcon />}
           onClick={handleSave}
           disabled={saving || loading}
+          data-ai-action="save"
         >
           {saving ? t('saving') : t('saveChanges', { ns: 'common' })}
         </Button>

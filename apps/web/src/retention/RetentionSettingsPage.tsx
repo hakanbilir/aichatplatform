@@ -191,6 +191,7 @@ export const RetentionSettingsPage: React.FC = () => {
                 startIcon={<SaveIcon />}
                 onClick={handleSave}
                 disabled={saving}
+                data-ai-action="save"
               >
                 {saving ? t('saving') : t('save')}
               </Button>

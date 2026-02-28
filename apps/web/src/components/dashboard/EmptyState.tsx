@@ -83,6 +83,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             textTransform: 'none',
             borderRadius: 2,
           }}
+          data-ai-action="onaction"
         >
           {actionLabel}
         </Button>

@@ -487,6 +487,7 @@ const ConversationListComponent: React.FC = () => {
                     },
                   }}
                   variant="outlined"
+                  data-ai-action="load--append-true-cursor-nextcursor"
                 >
                   {loadingMore ? t('sidebar.loading') : t('sidebar.loadMore')}
                 </Button>

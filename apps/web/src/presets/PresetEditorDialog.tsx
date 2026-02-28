@@ -344,19 +344,20 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
               <Chip key={tool} label={tool} onDelete={() => handleRemoveTool(tool)} size="small" />
             ))}
           </Box>
-          <Button variant="outlined" size="small" onClick={handleAddTool}>
+          <Button variant="outlined" size="small" onClick={handleAddTool} data-ai-action="addtool">
             {t('addTool') || 'Add Tool'}
           </Button>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={saving}>
+        <Button onClick={onClose} disabled={saving} data-ai-action="onclose">
           {t('cancel', { ns: 'common' })}
         </Button>
         <Button
           onClick={handleSave}
           variant="contained"
           disabled={saving || !name.trim() || !systemPrompt.trim()}
+          data-ai-action="save"
         >
           {saving ? t('saving', { ns: 'common' }) || 'Saving...' : t('save', { ns: 'common' })}
         </Button>
