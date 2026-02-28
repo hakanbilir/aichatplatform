@@ -155,12 +155,10 @@ export default async function conversationSettingsRoutes(
 
       const parsedBody = patchBodySchema.safeParse(request.body);
       if (!parsedBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidBody'),
-            details: parsedBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidBody'),
+          details: parsedBody.error.format(),
+        });
       }
 
       const { model, temperature, systemPrompt, toolsEnabled, kbConfig } = parsedBody.data;

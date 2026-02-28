@@ -59,12 +59,10 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
     const parseBody = createOrgBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidOrgData'),
-          details: parseBody.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidOrgData'),
+        details: parseBody.error.format(),
+      });
     }
 
     const { name, slug: providedSlug } = parseBody.data;
@@ -160,12 +158,10 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
     const parseBody = updateOrgBodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidOrgUpdate'),
-          details: parseBody.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidOrgUpdate'),
+        details: parseBody.error.format(),
+      });
     }
 
     await assertOrgPermission(
@@ -294,12 +290,10 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
     const parseBody = bodySchema.safeParse(request.body);
     if (!parseBody.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidMemberData'),
-          details: parseBody.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidMemberData'),
+        details: parseBody.error.format(),
+      });
     }
 
     const requesterRole = await assertOrgPermission(
@@ -377,12 +371,10 @@ export default async function orgRoutes(app: FastifyInstance, _opts: FastifyPlug
 
       const parseBody = bodySchema.safeParse(request.body);
       if (!parseBody.success) {
-        return reply
-          .code(400)
-          .send({
-            error: request.i18n.t('errors.invalidMemberUpdate'),
-            details: parseBody.error.format(),
-          });
+        return reply.code(400).send({
+          error: request.i18n.t('errors.invalidMemberUpdate'),
+          details: parseBody.error.format(),
+        });
       }
 
       const requesterRole = await assertOrgPermission(

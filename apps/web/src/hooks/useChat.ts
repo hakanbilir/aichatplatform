@@ -238,12 +238,17 @@ export function useChat({
     dispatch({ type: 'DELETE_MESSAGES_AFTER', index: userMsgIndex });
 
     try {
-      // Delete from backend if real IDs
+      // Delete from backend if real IDs (in parallel)
+      const deletePromises: Promise<void>[] = [];
       if (!lastMsg.id.startsWith('assistant-')) {
-        await deleteMessage(token, conversationId, lastMsg.id);
+        deletePromises.push(deleteMessage(token, conversationId, lastMsg.id));
       }
       if (!userMsg.id.startsWith('local-')) {
-        await deleteMessage(token, conversationId, userMsg.id);
+        deletePromises.push(deleteMessage(token, conversationId, userMsg.id));
+      }
+
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
       }
 
       // Resend
@@ -285,16 +290,18 @@ export function useChat({
       dispatch({ type: 'DELETE_MESSAGES_AFTER', index: msgIndex });
 
       try {
-        // Delete from backend in sequence
-        for (const msg of messagesToDelete) {
-          if (!msg.id.startsWith('local-') && !msg.id.startsWith('assistant-')) {
-            try {
-              await deleteMessage(token, conversationId, msg.id);
-            } catch (e) {
+        // Delete from backend in parallel to reduce latency
+        const deletePromises = messagesToDelete
+          .filter((msg) => !msg.id.startsWith('local-') && !msg.id.startsWith('assistant-'))
+          .map((msg) =>
+            deleteMessage(token, conversationId, msg.id).catch((e) => {
               console.warn('Failed to delete message', msg.id, e);
               // Continue anyway to try to resend
-            }
-          }
+            }),
+          );
+
+        if (deletePromises.length > 0) {
+          await Promise.all(deletePromises);
         }
 
         // Resend

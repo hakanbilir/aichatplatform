@@ -28,12 +28,10 @@ export default async function auditLogRoutes(app: FastifyInstance, _opts: Fastif
 
     const parsed = auditQuerySchema.safeParse(request.query);
     if (!parsed.success) {
-      return reply
-        .code(400)
-        .send({
-          error: request.i18n.t('errors.invalidQueryParams'),
-          details: parsed.error.format(),
-        });
+      return reply.code(400).send({
+        error: request.i18n.t('errors.invalidQueryParams'),
+        details: parsed.error.format(),
+      });
     }
 
     const { page, pageSize, type, userId, conversationId } = parsed.data;
