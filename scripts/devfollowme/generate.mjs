@@ -330,9 +330,9 @@ function buildMarkdown(profile, template) {
     : '- Kritik bilinmeyen bulunmadı; tespit edilen alanlar düzenli görünüyor.';
 
   const followMeSection = [
-    '1. `npm run docs:devfollowme` komutunu çalıştırarak dokümanı güncelle.',
+    '1. `bun run docs:devfollowme` komutunu çalıştırarak dokümanı güncelle.',
     '2. Üretilen içerikte “Bilinmeyenler” bölümünü insan gözüyle doğrula ve gerekirse kaynak dosya ekle.',
-    '3. CI öncesi `npm run docs:devfollowme:check` ile drift kontrolü yap.',
+    '3. CI öncesi `bun run docs:devfollowme:check` ile drift kontrolü yap.',
     '4. Yeni app/package eklendiğinde `package.json` scriptlerini tanımla; üretici bunları otomatik listeleyecektir.',
     '5. `.env` gerçek dosyalarına sır veya anahtar koyulsa dahi bu üretici içerik okumaz; yalnızca dosya adlarını raporlar.',
   ].join('\n');
