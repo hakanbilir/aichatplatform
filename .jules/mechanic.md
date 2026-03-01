@@ -21,3 +21,9 @@
 **Issue:** `apps/web` (Vite) was not being type-checked in CI, allowing type errors to merge. Enabling type-check revealed existing type errors in `apps/api-gateway` and `apps/worker-jobs`. Also, `bun test src` in `api-gateway` was picking up compiled tests in `dist`, causing duplicate/failing runs.
 **Learning:** Vite build skips `tsc` by default. Monorepos using `tsc` to build into `dist` need explicit exclusion of `dist` in test scripts if using globbing or broad patterns.
 **Fix:** Added `typecheck` to `ci` script. Fixed strict type errors in `api-gateway`/`worker-jobs`. Updated `api-gateway` test script to `bun test ./src` to ignore `dist`.
+
+## 2025-07-xx - Turborepo v2 Cache Path Mismatch and Mixed Package Managers
+
+**Issue:** The CI cache step for Turborepo used an outdated path (`node_modules/.cache/turbo`), failing to cache built artifacts since Turborepo v2 puts them in `.turbo/cache`. Also, `.github/workflows/docs-devfollowme.yml` and `package.json` had mixed usage of `npm run` and `bun run`, causing drift checks to be less optimal and triggering `npm notice` updates.
+**Learning:** Always verify cache paths match the tool version. Turborepo >= v2 caches to `.turbo/cache`. Ensuring consistent package manager usage prevents unexpected environments and warnings.
+**Fix:** Updated `path: node_modules/.cache/turbo` to `path: .turbo/cache` in `ci.yml`. Swapped `npm run` to `bun run` in `docs-devfollowme.yml` and `package.json` for consistency.

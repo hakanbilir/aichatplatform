@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAt": "2026-02-25T16:34:58.864Z",
+    "generatedAt": "2026-03-01T01:07:28.130Z",
     "generatorVersion": "1.0.0"
   },
   "repo": {
@@ -24,8 +24,8 @@
       "test": "turbo run test",
       "ci": "turbo run lint typecheck test build --continue",
       "format": "turbo run format",
-      "format:check": "prettier --check 'README.md' 'package.json' 'turbo.json' '.github/workflows/*.yml' 'docs/ai/**/*.md' --cache",
-      "format:write": "prettier --write 'README.md' 'package.json' 'turbo.json' '.github/workflows/*.yml' 'docs/ai/**/*.md' --cache",
+      "format:check": "prettier --check . --cache",
+      "format:write": "prettier --write . --cache",
       "clean": "turbo run clean",
       "db:migrate:dev": "bun run --filter=@ai-chat/db prisma:migrate:dev",
       "db:migrate:deploy": "bun run --filter=@ai-chat/db prisma:migrate:deploy",
@@ -37,7 +37,7 @@
       "security": "bun run audit:deps",
       "audit:deps": "bash ./scripts/security-checks.sh",
       "docs:devfollowme": "node ./scripts/devfollowme/generate.mjs",
-      "docs:devfollowme:check": "npm run docs:devfollowme && git diff --exit-code -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json"
+      "docs:devfollowme:check": "bun run docs:devfollowme && git diff --exit-code -I '^\\s*\"generatedAt\":' -I '^- \\*\\*Son Üretim:\\*\\*' -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json"
     },
     "workspacePackages": [
       {
@@ -114,7 +114,7 @@
           "build": "vite build",
           "preview": "vite preview",
           "lint": "eslint src --ext .ts,.tsx",
-          "test": "echo \"no tests yet\"",
+          "test": "bun test ./src",
           "generate-a11y-manifest": "bun scripts/generate-accessibility-manifest.ts",
           "typecheck": "tsc --noEmit"
         },
@@ -154,7 +154,7 @@
           "build": "tsc -p tsconfig.json",
           "start": "bun run dist/main.js",
           "lint": "eslint src --ext .ts",
-          "test": "echo \"no tests yet\"",
+          "test": "bun test ./test",
           "clean": "rm -rf dist",
           "typecheck": "tsc --noEmit"
         },
@@ -316,7 +316,13 @@
       "reactNativeConfig": false,
       "expoDependency": false
     },
-    "envExamples": [".env.example"],
-    "envIgnored": [".env.backup", ".env.development", "apps/api-gateway/.env.test"]
+    "envExamples": [
+      ".env.example"
+    ],
+    "envIgnored": [
+      ".env.backup",
+      ".env.development",
+      "apps/api-gateway/.env.test"
+    ]
   }
 }

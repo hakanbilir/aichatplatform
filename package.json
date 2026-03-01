@@ -34,7 +34,7 @@
     "security": "bun run audit:deps",
     "audit:deps": "bash ./scripts/security-checks.sh",
     "docs:devfollowme": "node ./scripts/devfollowme/generate.mjs",
-    "docs:devfollowme:check": "npm run docs:devfollowme && git diff --exit-code -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json"
+    "docs:devfollowme:check": "bun run docs:devfollowme && git diff --exit-code -I '^\\s*\"generatedAt\":' -I '^- \\*\\*Son Üretim:\\*\\*' -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.49.0",
