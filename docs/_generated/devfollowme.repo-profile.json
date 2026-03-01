@@ -316,13 +316,7 @@
       "reactNativeConfig": false,
       "expoDependency": false
     },
-    "envExamples": [
-      ".env.example"
-    ],
-    "envIgnored": [
-      ".env.backup",
-      ".env.development",
-      "apps/api-gateway/.env.test"
-    ]
+    "envExamples": [".env.example"],
+    "envIgnored": [".env.backup", ".env.development", "apps/api-gateway/.env.test"]
   }
 }

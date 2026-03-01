@@ -23,7 +23,7 @@ import { useEcoMode } from '../../hooks/useEcoMode';
 import { useRecentConversations } from '../../hooks/useRecentConversations';
 import { usePromptTemplates } from '../../hooks/usePromptTemplates';
 
-export const DashboardBentoGrid: React.FC = () => {
+const DashboardBentoGridComponent: React.FC = () => {
   const { t } = useTranslation('chat');
   const { isEcoMode } = useEcoMode();
   const navigate = useNavigate();
@@ -232,3 +232,7 @@ export const DashboardBentoGrid: React.FC = () => {
     </BentoGrid>
   );
 };
+
+// Optimized with React.memo to prevent unnecessary re-renders when parent state updates
+// (e.g., when ChatPage state changes while ChatView is empty).
+export const DashboardBentoGrid = React.memo(DashboardBentoGridComponent);
