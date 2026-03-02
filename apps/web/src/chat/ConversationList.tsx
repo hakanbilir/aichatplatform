@@ -104,18 +104,32 @@ const ConversationListComponent: React.FC = () => {
             allPersonalItemsRef.current = sourceItems;
           }
 
-          let filteredItems = sourceItems || [];
+          const baseItems = sourceItems || [];
 
-          // Client-side search for personal list
-          if (opts.search || search) {
-            const q = (opts.search ?? search).toLowerCase();
-            filteredItems = filteredItems.filter((c) => (c.title || '').toLowerCase().includes(q));
+          // Optimization: Single-pass filter to split pinned/unpinned and apply search
+          const allPinned: ConversationListItem[] = [];
+          const allUnpinned: ConversationListItem[] = [];
+
+          const rawSearch = opts.search ?? search;
+          const q = rawSearch ? rawSearch.toLowerCase() : null;
+
+          for (let i = 0; i < baseItems.length; i++) {
+            const c = baseItems[i];
+
+            // Apply search filter if active
+            if (q && !(c.title || '').toLowerCase().includes(q)) {
+              continue;
+            }
+
+            // Separate pinned vs unpinned
+            if (c.pinned) {
+              allPinned.push(c);
+            } else {
+              allUnpinned.push(c);
+            }
           }
 
           // Optimization: Client-side pagination for personal items to improve performance
-          // Separate pinned and unpinned items
-          const allPinned = filteredItems.filter((i) => i.pinned);
-          const allUnpinned = filteredItems.filter((i) => !i.pinned);
 
           // Pagination for unpinned items
           const LIMIT = 50;
