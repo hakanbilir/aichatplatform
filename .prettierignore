@@ -7,4 +7,4 @@ bun.lock
 pnpm-lock.yaml
 .turbo
 .bun
-public/accessibility-manifest.json
+apps/web/public/accessibility-manifest.json
