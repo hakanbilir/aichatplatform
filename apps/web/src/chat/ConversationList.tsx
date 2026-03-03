@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, useDeferredValue } from 'react';
 import {
   Box,
   Button,
@@ -44,6 +44,7 @@ const ConversationListComponent: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
+  const deferredSearch = useDeferredValue(search);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -110,7 +111,8 @@ const ConversationListComponent: React.FC = () => {
           const allPinned: ConversationListItem[] = [];
           const allUnpinned: ConversationListItem[] = [];
 
-          const rawSearch = opts.search ?? search;
+          // Optimization: Use deferredSearch to decouple typing from expensive list filtering
+          const rawSearch = opts.search ?? deferredSearch;
           const q = rawSearch ? rawSearch.toLowerCase() : null;
 
           for (let i = 0; i < baseItems.length; i++) {
@@ -162,8 +164,8 @@ const ConversationListComponent: React.FC = () => {
         }
       }
     },
-    [token, orgId, search],
-  ); // search dependency for client-side filtering logic if needed
+    [token, orgId, deferredSearch, search],
+  ); // deferredSearch dependency for client-side filtering logic if needed
 
   const handleClearSearch = useCallback(() => {
     setSearch('');
@@ -176,7 +178,7 @@ const ConversationListComponent: React.FC = () => {
     }, 500);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, token, orgId]);
+  }, [deferredSearch, token, orgId]);
 
   // Listen for creation events
   useEffect(() => {
