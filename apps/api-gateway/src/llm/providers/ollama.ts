@@ -97,9 +97,13 @@ export class OllamaChatProvider implements LlmChatProvider {
     const decoder = new TextDecoder('utf-8');
 
     try {
-      while (true) {
+      let isDone = false;
+      while (!isDone) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          isDone = true;
+          break;
+        }
         const chunkText = decoder.decode(value, { stream: true });
 
         // Ollama streams one JSON object per line
