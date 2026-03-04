@@ -155,15 +155,29 @@ const MessageInputComponent = forwardRef<MessageInputHandle, MessageInputProps>(
 
         if (imageFiles.length > 0) {
           e.preventDefault();
-          imageFiles.forEach((file) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              if (typeof reader.result === 'string') {
-                setImages((prev) => [...prev, reader.result as string]);
+          // Optimization: Batch state updates for multiple images
+          Promise.all(
+            imageFiles.map(
+              (file) =>
+                new Promise<string | null>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    resolve(typeof reader.result === 'string' ? reader.result : null);
+                  };
+                  reader.readAsDataURL(file);
+                }),
+            ),
+          )
+            .then((results) => {
+              const validImages = results.filter((res): res is string => res !== null);
+              if (validImages.length > 0) {
+                setImages((prev) => [...prev, ...validImages]);
               }
-            };
-            reader.readAsDataURL(file);
-          });
+              return null;
+            })
+            .catch((err) => {
+              console.error('Failed to read pasted images', err);
+            });
         }
       }
     };
@@ -209,15 +223,29 @@ const MessageInputComponent = forwardRef<MessageInputHandle, MessageInputProps>(
         const imageFiles = files.filter((file) => file.type.startsWith('image/'));
 
         if (imageFiles.length > 0) {
-          imageFiles.forEach((file) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              if (typeof reader.result === 'string') {
-                setImages((prev) => [...prev, reader.result as string]);
+          // Optimization: Batch state updates for multiple images
+          Promise.all(
+            imageFiles.map(
+              (file) =>
+                new Promise<string | null>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    resolve(typeof reader.result === 'string' ? reader.result : null);
+                  };
+                  reader.readAsDataURL(file);
+                }),
+            ),
+          )
+            .then((results) => {
+              const validImages = results.filter((res): res is string => res !== null);
+              if (validImages.length > 0) {
+                setImages((prev) => [...prev, ...validImages]);
               }
-            };
-            reader.readAsDataURL(file);
-          });
+              return null;
+            })
+            .catch((err) => {
+              console.error('Failed to read dropped images', err);
+            });
         }
       }
     };

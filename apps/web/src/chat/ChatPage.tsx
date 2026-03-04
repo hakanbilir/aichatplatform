@@ -211,7 +211,7 @@ export const ChatPage: React.FC = () => {
     [sendMessage, model, temperature, topP],
   );
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = useCallback(async () => {
     if (!token || !conversationId) return;
 
     setSaving(true);
@@ -228,9 +228,9 @@ export const ChatPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [token, conversationId, model, temperature, topP, refetchConversation]);
 
-  const handleResetSettings = () => {
+  const handleResetSettings = useCallback(() => {
     if (!conversation) return;
     const baseModel = conversation.model || 'llama3.1';
     const baseTemp = clampTemperature(conversation.temperature ?? 0.7);
@@ -239,7 +239,7 @@ export const ChatPage: React.FC = () => {
     setTemperature(baseTemp);
     setTopP(baseTopP);
     setDirty(false);
-  };
+  }, [conversation]);
 
   const handleChangeModel = useCallback((value: string) => {
     setModel(value);
