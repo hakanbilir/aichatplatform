@@ -326,7 +326,7 @@ export const KnowledgeBasePage: React.FC = () => {
                               Score: {chunk.score.toFixed(3)}
                             </Typography>
                             <IconButton size="small">
-                              {/* Placeholder for future actions (e.g. open full doc, pin, etc.) */}
+
                             </IconButton>
                           </Box>
                           <Typography
