@@ -7,3 +7,7 @@
 
 **Learning:** Iterating over an array of files and updating component state (`setImages`) inside individual asynchronous callbacks (`FileReader.onloadend`) triggers multiple, rapid state updates and re-renders, impacting performance during bulk actions like image drag-and-drop or pasting.
 **Action:** Use `Promise.all` to await all asynchronous file reads concurrently, and apply a single batched state update with the resolved results to minimize render cycles.
+
+## 2024-10-24 - React.memo for useSyncExternalStore consumers
+**Learning:** Components that subscribe to high-frequency external stores (like \`StreamStore\` via \`useSyncExternalStore\`) can still be re-rendered unnecessarily if their parent component re-renders.
+**Action:** Always wrap components that manage their own fast-changing state internally via external stores with \`React.memo()\` to isolate the rendering workload and prevent redundant renders triggered by the parent.

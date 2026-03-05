@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore } from 'react';
+import React, { useSyncExternalStore, memo } from 'react';
 
 import { StreamStore } from './StreamStore';
 import { MessageBubble } from './MessageBubble';
@@ -9,7 +9,10 @@ interface StreamedMessageProps {
   isThinking?: boolean;
 }
 
-export const StreamedMessage: React.FC<StreamedMessageProps> = ({
+// Optimized with React.memo to prevent unnecessary re-renders when parent updates.
+// StreamedMessage uses useSyncExternalStore to manage high-frequency streaming updates internally,
+// so we don't need it to re-render when ChatView or other parents re-render.
+const StreamedMessageComponent: React.FC<StreamedMessageProps> = ({
   streamStore,
   role,
   isThinking,
@@ -29,3 +32,5 @@ export const StreamedMessage: React.FC<StreamedMessageProps> = ({
     />
   );
 };
+
+export const StreamedMessage = memo(StreamedMessageComponent);
