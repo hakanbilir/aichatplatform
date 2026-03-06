@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 interface EcoModeContextType {
   isEcoMode: boolean;
@@ -26,7 +26,8 @@ export const EcoModeProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.setItem('eco-mode', String(isEcoMode));
   }, [isEcoMode]);
 
-  const toggleEcoMode = () => setIsEcoMode((prev) => !prev);
+  // Optimized with useCallback to prevent unnecessary re-renders of React.memo components consuming this context (e.g. ChatSettingsBar)
+  const toggleEcoMode = useCallback(() => setIsEcoMode((prev) => !prev), []);
 
   return (
     <EcoModeContext.Provider value={{ isEcoMode, toggleEcoMode }}>
