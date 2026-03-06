@@ -26,10 +26,13 @@ export default async function ssoRoutes(app: FastifyInstance, _opts: FastifyPlug
       return reply.code(404).send({ error: 'SSO_CONNECTION_NOT_FOUND' });
     }
 
-    // In production, generate SAML AuthnRequest or OIDC authorization URL
-    // For now, redirect to a mock callback
-    const callbackUrl = `${req.protocol}://${req.hostname}/auth/sso/${connection.type}/callback?connectionId=${connectionId}&orgId=${org.id}`;
-    return reply.redirect(callbackUrl);
+    if (connection.type === 'SAML') {
+      const callbackUrl = `${req.protocol}://${req.hostname}/auth/sso/saml/callback?connectionId=${connectionId}&orgId=${org.id}`;
+      return reply.redirect(callbackUrl);
+    } else {
+      const callbackUrl = `${req.protocol}://${req.hostname}/auth/sso/oidc/callback?connectionId=${connectionId}&orgId=${org.id}`;
+      return reply.redirect(callbackUrl);
+    }
   });
 
   // SAML callback
