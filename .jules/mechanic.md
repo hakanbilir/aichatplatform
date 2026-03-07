@@ -33,3 +33,9 @@
 **Issue:** `actions/dependency-review-action` failed because it lacked a preceding `actions/checkout` step. Additionally, `gitleaks-action` was not correctly scanning the repository history without a full git history fetch.
 **Learning:** Dependency review tools need access to the repository to inspect manifest files. Security scanners that analyze history (like `gitleaks`) require the `fetch-depth: 0` argument for the checkout step.
 **Fix:** Added `actions/checkout@v4` prior to the `dependency-review-action` step. Configured `fetch-depth: 0` for the `actions/checkout@v4` step in the job that runs `gitleaks-action`.
+
+## 2026-03-07 - Impossible Node Engine Constraint Breaks Dependencies
+
+**Issue:** An overly strict engine requirement (`>=24.0.0`) in `apps/api-gateway/package.json` breaks dependency installation on standard CI runners. Node.js 24 is not an active LTS yet, so standard GitHub Action runners might not have it.
+**Learning:** Hardcoding a strict upper limit or future unreleased engine version in `package.json`'s `engines` field can cause `pnpm`/`bun` installs to fail unexpectedly on CI if the environment is not matched perfectly.
+**Fix:** Adjusted the Node engine constraint to the more reasonable and safe `>=18.18.0`.
