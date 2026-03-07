@@ -12,3 +12,8 @@
 
 **Learning:** Components that subscribe to high-frequency external stores (like \`StreamStore\` via \`useSyncExternalStore\`) can still be re-rendered unnecessarily if their parent component re-renders.
 **Action:** Always wrap components that manage their own fast-changing state internally via external stores with \`React.memo()\` to isolate the rendering workload and prevent redundant renders triggered by the parent.
+
+## 2026-01-26 - Fix broken React.memo in ConversationList
+
+**Learning:** Declaring inline functions inside the component body, such as `handleMenuClose` and `handleBeginRename` in `ConversationList`, breaks the `React.memo` optimization of child components like `ConversationListItemView` by passing new references on every render, leading to unnecessary full-list updates.
+**Action:** Always wrap event handlers passed to `React.memo` child components in `useCallback` to maintain stable references across parent renders.
