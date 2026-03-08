@@ -23,11 +23,17 @@ function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps)
   // Debounce code updates for preview to prevent frequent re-renders and expensive operations
   // during streaming. We keep the raw 'code' for the Code tab for real-time updates.
   useEffect(() => {
+    // Optimization: conditionally skip the debounced code preview update when the preview tab
+    // (activeTab === 0) is not active, preventing unnecessary state updates and re-renders during streaming.
+    if (activeTab !== 0) {
+      return;
+    }
+
     const timer = setTimeout(() => {
       setDebouncedCode(code);
     }, 200);
     return () => clearTimeout(timer);
-  }, [code]);
+  }, [code, activeTab]);
 
   const handleCopy = async () => {
     try {
