@@ -28,6 +28,10 @@ import { ChatView } from './ChatView';
 import { MessageInput, MessageInputHandle } from './MessageInput';
 import { VoiceModeOverlay } from './VoiceModeOverlay';
 
+// Optimization: Use a constant reference for an empty array to prevent breaking React.memo
+// when the messages array is undefined (e.g., during initial load).
+const EMPTY_MESSAGES: any[] = [];
+
 function clampTemperature(value: number): number {
   if (Number.isNaN(value)) return 0.7;
   if (value < 0) return 0;
@@ -332,7 +336,7 @@ export const ChatPage: React.FC = () => {
         sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
       >
         <ChatView
-          messages={messages ?? []}
+          messages={messages ?? EMPTY_MESSAGES}
           streamingAssistantText={streamingText}
           toolStatus={toolStatus}
           streamStore={streamStore}
