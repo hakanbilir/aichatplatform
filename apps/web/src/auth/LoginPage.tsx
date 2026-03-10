@@ -76,6 +76,7 @@ export const LoginPage: React.FC = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     onMouseDown={(e) => e.preventDefault()}
                     edge="end"
+                    data-ai-action="setshowpassword"
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>

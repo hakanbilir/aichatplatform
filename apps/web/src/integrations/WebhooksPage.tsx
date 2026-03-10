@@ -146,7 +146,12 @@ export const WebhooksPage: React.FC = () => {
                         variant={wh.isEnabled ? 'filled' : 'outlined'}
                         onClick={() => update(wh.id, { isEnabled: !wh.isEnabled })}
                       />
-                      <IconButton size="small" onClick={() => remove(wh.id)} title={t('delete')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => remove(wh.id)}
+                        title={t('delete')}
+                        data-ai-action="remove"
+                      >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Box>

@@ -90,7 +90,7 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({
                 {t('tools.loading')}
               </Typography>
             )}
-            <IconButton size="small" onClick={onClose}>
+            <IconButton size="small" onClick={onClose} data-ai-action="onclose">
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
@@ -123,6 +123,7 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({
                     onClick={refetchTools}
                     disabled={loadingTools}
                     sx={{ opacity: loadingTools ? 0.5 : 1 }}
+                    data-ai-action="refetchtools"
                   >
                     <RefreshIcon fontSize="small" />
                   </IconButton>

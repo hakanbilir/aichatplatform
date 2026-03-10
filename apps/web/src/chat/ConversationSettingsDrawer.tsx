@@ -156,7 +156,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
               {t('settings.tuneBehavior')}
             </Typography>
           </Box>
-          <IconButton size="small" onClick={onClose}>
+          <IconButton size="small" onClick={onClose} data-ai-action="onclose">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>

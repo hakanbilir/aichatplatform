@@ -158,7 +158,7 @@ export const PresetEditorDialog: React.FC<PresetEditorDialogProps> = ({
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">{initialPreset ? t('editPreset') : t('newPreset')}</Typography>
-        <IconButton onClick={onClose} size="small" disabled={saving}>
+        <IconButton onClick={onClose} size="small" disabled={saving} data-ai-action="onclose">
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>

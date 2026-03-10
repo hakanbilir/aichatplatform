@@ -325,7 +325,7 @@ export const KnowledgeBasePage: React.FC = () => {
                             <Typography variant="caption" color="text.secondary">
                               Score: {chunk.score.toFixed(3)}
                             </Typography>
-                            <IconButton size="small"></IconButton>
+                            <IconButton size="small" data-ai-action="button-action"></IconButton>
                           </Box>
                           <Typography
                             variant="body2"

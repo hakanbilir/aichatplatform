@@ -97,6 +97,7 @@ export const Panel: React.FC<PanelProps> = ({
                     transition: 'transform 200ms ease',
                     transform: expanded ? 'rotate(0deg)' : 'rotate(180deg)',
                   }}
+                  data-ai-action="toggle"
                 >
                   {expanded ? (
                     <ExpandLessIcon fontSize="small" />

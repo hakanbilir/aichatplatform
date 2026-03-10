@@ -192,6 +192,7 @@ export function DataGrid<T extends Record<string, any>>({
                     size="small"
                     onClick={() => setSearchQuery('')}
                     sx={{ color: 'text.secondary' }}
+                    data-ai-action="setsearchquery"
                   >
                     <ClearIcon fontSize="small" />
                   </IconButton>

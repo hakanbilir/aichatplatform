@@ -205,6 +205,7 @@ const MessageBubbleComponent = ({
                   backdropFilter: 'blur(4px)',
                   '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
                 }}
+                data-ai-action="copy"
               >
                 {copied ? (
                   <CheckIcon fontSize="small" sx={{ fontSize: 16 }} />

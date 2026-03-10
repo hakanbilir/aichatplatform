@@ -185,6 +185,7 @@ export const ConversationInboxPage: React.FC = () => {
           size="small"
           onClick={() => runSearch({})}
           aria-label={t('refresh', { ns: 'common' })}
+          data-ai-action="runsearch"
         >
           <RefreshIcon fontSize="small" />
         </IconButton>
@@ -207,7 +208,11 @@ export const ConversationInboxPage: React.FC = () => {
             endAdornment: (
               <InputAdornment position="end">
                 <Tooltip title={t('advancedFilters')}>
-                  <IconButton size="small" aria-label={t('advancedFilters')}>
+                  <IconButton
+                    size="small"
+                    aria-label={t('advancedFilters')}
+                    data-ai-action="button-action"
+                  >
                     <FilterAltOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>

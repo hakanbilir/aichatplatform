@@ -151,6 +151,7 @@ function ArtifactRendererComponent({ title, type, code }: ArtifactRendererProps)
                   '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
                 }}
                 size="small"
+                data-ai-action="copy"
               >
                 {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
               </IconButton>

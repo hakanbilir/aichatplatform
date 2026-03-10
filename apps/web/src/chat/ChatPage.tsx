@@ -382,6 +382,7 @@ export const ChatPage: React.FC = () => {
             sx={{ opacity: 0.7 }}
             title={t('settings.promptLibrary')}
             aria-label={t('settings.promptLibrary')}
+            data-ai-action="setpromptlibraryopen"
           >
             <AutoAwesomeIcon fontSize="small" />
           </IconButton>

@@ -311,6 +311,7 @@ const MessageInputComponent = forwardRef<MessageInputHandle, MessageInputProps>(
                     height: 20,
                     '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
                   }}
+                  data-ai-action="removeimage"
                 >
                   <CloseIcon sx={{ fontSize: 14 }} />
                 </IconButton>

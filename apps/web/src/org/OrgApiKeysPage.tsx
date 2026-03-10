@@ -197,7 +197,11 @@ export const OrgApiKeysPage: React.FC = () => {
                   </Typography>
                 )}
                 <Tooltip title={t('apiKeys.deleteKey')}>
-                  <IconButton size="small" onClick={() => handleDelete(k.id)}>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDelete(k.id)}
+                    data-ai-action="delete"
+                  >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>

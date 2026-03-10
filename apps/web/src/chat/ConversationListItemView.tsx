@@ -129,6 +129,7 @@ export const ConversationListItemView = React.memo<ConversationListItemViewProps
                 aria-label={t('sidebar.moreActions')}
                 onClick={(e) => onMenuOpen(e, item.id)}
                 sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: 'white' } }}
+                data-ai-action="onmenuopen"
               >
                 <MoreVertIcon fontSize="small" />
               </IconButton>

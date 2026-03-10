@@ -69,7 +69,12 @@ export const AuditLogPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <IconButton size="small" onClick={handleRefresh} aria-label={t('refresh')}>
+        <IconButton
+          size="small"
+          onClick={handleRefresh}
+          aria-label={t('refresh')}
+          data-ai-action="refresh"
+        >
           <RefreshIcon fontSize="small" />
         </IconButton>
       </Box>
