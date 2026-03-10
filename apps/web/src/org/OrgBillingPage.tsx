@@ -196,7 +196,7 @@ export const OrgBillingPage: React.FC = () => {
         }}
       >
         <Box display="flex" justifyContent="flex-end" p={1}>
-          <IconButton onClick={handleClosePayment}>
+          <IconButton onClick={handleClosePayment} data-ai-action="closepayment">
             <CloseIcon />
           </IconButton>
         </Box>

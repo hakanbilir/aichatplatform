@@ -178,7 +178,11 @@ export const OrgMembersPage: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={() => handleToggleStatus(m)}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleToggleStatus(m)}
+                          data-ai-action="togglestatus"
+                        >
                           {m.status === 'active' ? (
                             <BlockIcon fontSize="small" />
                           ) : (

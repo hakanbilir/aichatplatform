@@ -91,6 +91,7 @@ const VoiceModeOverlayComponent: React.FC<VoiceModeOverlayProps> = ({
               color: 'white',
               '&:hover': { bgcolor: 'error.dark' },
             }}
+            data-ai-action="onstop"
           >
             <StopIcon sx={{ fontSize: 40 }} />
           </IconButton>

@@ -298,6 +298,7 @@ export const SideNav: React.FC<SideNavProps> = ({
             },
             transition: 'transform 200ms ease',
           }}
+          data-ai-action="drawertoggle"
         >
           <MenuIcon />
         </IconButton>
@@ -331,6 +332,7 @@ export const SideNav: React.FC<SideNavProps> = ({
                   backgroundColor: 'rgba(0,0,0,0.3)',
                 },
               }}
+              data-ai-action="drawertoggle"
             >
               <CloseIcon />
             </IconButton>

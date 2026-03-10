@@ -262,6 +262,7 @@ export const PublicSharedConversationPage: React.FC = () => {
                     onClick={() => setShowPassphrase(!showPassphrase)}
                     onMouseDown={(e) => e.preventDefault()}
                     edge="end"
+                    data-ai-action="setshowpassphrase"
                   >
                     {showPassphrase ? <VisibilityOff /> : <Visibility />}
                   </IconButton>

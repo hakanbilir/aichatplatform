@@ -175,6 +175,7 @@ export const PresetsGalleryPage: React.FC = () => {
                             backgroundColor: 'action.hover',
                           },
                         }}
+                        data-ai-action="editclick"
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>

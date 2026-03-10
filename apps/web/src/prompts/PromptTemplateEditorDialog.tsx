@@ -149,7 +149,7 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
             ? t('editTemplate', { ns: 'prompts' })
             : t('newTemplate', { ns: 'prompts' })}
         </Typography>
-        <IconButton onClick={onClose} size="small" disabled={saving}>
+        <IconButton onClick={onClose} size="small" disabled={saving} data-ai-action="onclose">
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -229,7 +229,12 @@ const PromptTemplateEditorDialogComponent: React.FC<PromptTemplateEditorDialogPr
                 label={<Typography variant="caption">{t('required', { ns: 'common' })}</Typography>}
               />
 
-              <IconButton size="small" color="error" onClick={() => handleRemoveVariable(index)}>
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleRemoveVariable(index)}
+                data-ai-action="removevariable"
+              >
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Box>

@@ -392,6 +392,7 @@ const ConversationListComponent: React.FC = () => {
                   onClick={handleClearSearch}
                   edge="end"
                   sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: 'white' } }}
+                  data-ai-action="clearsearch"
                 >
                   <CloseIcon fontSize="small" />
                 </IconButton>

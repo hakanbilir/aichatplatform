@@ -119,6 +119,7 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
                       onMouseDown={(e) => e.preventDefault()}
                       edge="end"
                       size="small"
+                      data-ai-action="setshowpassphrase"
                     >
                       {showPassphrase ? (
                         <VisibilityOff fontSize="small" />
@@ -158,7 +159,7 @@ export const ConversationShareDialog: React.FC<ConversationShareDialogProps> = (
                 {publicUrl}
               </Typography>
               <Tooltip title={t('share.copy')}>
-                <IconButton size="small" onClick={handleCopy}>
+                <IconButton size="small" onClick={handleCopy} data-ai-action="copy">
                   <ContentCopyIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

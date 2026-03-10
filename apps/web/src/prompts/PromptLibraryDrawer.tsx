@@ -146,7 +146,7 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
             <AutoAwesomeIcon fontSize="small" />
             <Typography variant="subtitle1">{t('library.title')}</Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton onClick={onClose} size="small" data-ai-action="onclose">
             <CloseIcon fontSize="small" />
           </IconButton>
         </DialogTitle>
@@ -211,6 +211,7 @@ const PromptLibraryDrawerComponent: React.FC<PromptLibraryDrawerProps> = ({
                             aria-label="edit"
                             size="small"
                             onClick={() => onEditTemplate(tpl)}
+                            data-ai-action="onedittemplate"
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
