@@ -1,5 +1,4 @@
 import { describe, it, expect, mock } from 'bun:test';
-
 // Mock the db module
 mock.module('@ai-chat/db', () => {
   return {
@@ -24,22 +23,18 @@ mock.module('@ai-chat/db', () => {
     },
   };
 });
-
 // Mock guards removed to prevent leakage
 // Instead we mock the DB findFirst call which getUserOrgRole uses
-
 import fastify from 'fastify';
-import orgRoutes from '../src/routes/orgs';
 
+import orgRoutes from '../src/routes/orgs';
 describe('IDOR Fix Verification', () => {
   it('should prevent updating member of another org', async () => {
     const app = fastify();
-
     // Mock authentication
     app.decorate('authenticate', async (req, reply) => {
       req.user = { userId: 'user1', isSuperadmin: false };
     });
-
     // Mock i18n
     // Use getter to avoid FST_ERR_DEC_REFERENCE_TYPE
     app.decorateRequest('i18n', {
@@ -47,50 +42,39 @@ describe('IDOR Fix Verification', () => {
         return { t: (key: string) => key };
       },
     });
-
     await app.register(orgRoutes);
-
     const response = await app.inject({
       method: 'PATCH',
       url: '/orgs/this_org/members/member_of_other_org',
       payload: { role: 'ADMIN' },
     });
-
     // After fix, it should return 404
     expect(response.statusCode).toBe(404);
-
     if (response.statusCode === 404) {
       console.log('✅ FIX VERIFIED: Request rejected with 404.');
     } else {
       console.log(`❌ FIX FAILED: Status ${response.statusCode}`);
     }
   });
-
   it('should prevent deleting member of another org', async () => {
     const app = fastify();
-
     // Mock authentication
     app.decorate('authenticate', async (req, reply) => {
       req.user = { userId: 'user1', isSuperadmin: false };
     });
-
     // Mock i18n
     app.decorateRequest('i18n', {
       getter() {
         return { t: (key: string) => key };
       },
     });
-
     await app.register(orgRoutes);
-
     const response = await app.inject({
       method: 'DELETE',
       url: '/orgs/this_org/members/member_of_other_org',
     });
-
     // After fix, it should return 404
     expect(response.statusCode).toBe(404);
-
     if (response.statusCode === 404) {
       console.log('✅ FIX VERIFIED (DELETE): Request rejected with 404.');
     }

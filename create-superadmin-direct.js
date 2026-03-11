@@ -1,9 +1,10 @@
 // Direct script to create superadmin user
 // Süperadmin kullanıcı oluşturmak için doğrudan script
-const { PrismaClient } = require('@prisma/client');
-const argon2 = require('argon2');
 const path = require('path');
 const fs = require('fs');
+
+const { PrismaClient } = require('@prisma/client');
+const argon2 = require('argon2');
 
 // Load .env file manually
 // .env dosyasını manuel olarak yükle
