@@ -45,5 +45,21 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      files: ['*.js', '*.cjs'],
+      rules: {
+        '@typescript-eslint/no-require-imports': 'off',
+        'node/no-extraneous-require': 'off'
+      }
+    },
+    {
+      files: ['scripts/**/*.ts', 'create-superadmin-direct.js'],
+      rules: {
+        'no-process-exit': 'off',
+        '@typescript-eslint/no-explicit-any': 'off'
+      }
+    }
+  ],
   ignorePatterns: ['dist/', 'build/', '.next/', 'node_modules/'],
 };

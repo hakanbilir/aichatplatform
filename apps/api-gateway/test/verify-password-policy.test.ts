@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'bun:test';
+
 import { signupBodySchema } from '../src/routes/auth';
 
 describe('Password Policy Verification', () => {

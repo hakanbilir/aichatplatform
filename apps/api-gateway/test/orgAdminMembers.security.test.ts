@@ -1,5 +1,4 @@
 import { describe, it, expect, mock } from 'bun:test';
-
 // Mock the db module
 mock.module('@ai-chat/db', () => {
   return {
@@ -23,7 +22,6 @@ mock.module('@ai-chat/db', () => {
     },
   };
 });
-
 // Mock guards
 mock.module('../src/rbac/guards', () => {
   return {
@@ -31,42 +29,35 @@ mock.module('../src/rbac/guards', () => {
     getUserOrgRole: mock(() => Promise.resolve('ADMIN')),
   };
 });
-
 // Mock email service
 mock.module('../src/services/email', () => {
   return {
     sendInvitationEmail: mock(() => Promise.resolve()),
   };
 });
-
 // Mock audit log
 mock.module('../src/services/audit', () => {
   return {
     writeAuditLog: mock(() => Promise.resolve()),
   };
 });
-
 import fastify from 'fastify';
-import orgAdminMembersRoutes from '../src/routes/orgAdminMembers';
 
+import orgAdminMembersRoutes from '../src/routes/orgAdminMembers';
 describe('Org Admin Members Security', () => {
   it('should reject invalid roles in invite', async () => {
     const app = fastify();
-
     // Mock authentication
     app.decorate('authenticate', async (req, reply) => {
       req.user = { userId: 'user1', isSuperadmin: false };
     });
-
     // Mock i18n
     app.decorateRequest('i18n', {
       getter() {
         return { t: (key: string) => key };
       },
     });
-
     await app.register(orgAdminMembersRoutes);
-
     const response = await app.inject({
       method: 'POST',
       url: '/orgs/org_id/admin/members/invite',
@@ -76,26 +67,20 @@ describe('Org Admin Members Security', () => {
         expiresInDays: 7,
       },
     });
-
     // Should be 400 Bad Request due to validation
     expect(response.statusCode).toBe(400);
   });
-
   it('should reject SUPERADMIN role in invite', async () => {
     const app = fastify();
-
     app.decorate('authenticate', async (req, reply) => {
       req.user = { userId: 'user1', isSuperadmin: false };
     });
-
     app.decorateRequest('i18n', {
       getter() {
         return { t: (key: string) => key };
       },
     });
-
     await app.register(orgAdminMembersRoutes);
-
     const response = await app.inject({
       method: 'POST',
       url: '/orgs/org_id/admin/members/invite',
@@ -105,29 +90,23 @@ describe('Org Admin Members Security', () => {
         expiresInDays: 7,
       },
     });
-
     // Should be 400 after fix (currently likely 201)
     if (response.statusCode === 201) {
       console.log('⚠️ Vulnerability confirmed: SUPERADMIN role accepted.');
     }
     expect(response.statusCode).toBe(400);
   });
-
   it('should reject invalid roles in update', async () => {
     const app = fastify();
-
     app.decorate('authenticate', async (req, reply) => {
       req.user = { userId: 'user1', isSuperadmin: false };
     });
-
     app.decorateRequest('i18n', {
       getter() {
         return { t: (key: string) => key };
       },
     });
-
     await app.register(orgAdminMembersRoutes);
-
     const response = await app.inject({
       method: 'PATCH',
       url: '/orgs/org_id/admin/members/user_2/role',
@@ -135,25 +114,19 @@ describe('Org Admin Members Security', () => {
         role: 'INVALID_ROLE',
       },
     });
-
     expect(response.statusCode).toBe(400);
   });
-
   it('should reject SUPERADMIN role in update', async () => {
     const app = fastify();
-
     app.decorate('authenticate', async (req, reply) => {
       req.user = { userId: 'user1', isSuperadmin: false };
     });
-
     app.decorateRequest('i18n', {
       getter() {
         return { t: (key: string) => key };
       },
     });
-
     await app.register(orgAdminMembersRoutes);
-
     const response = await app.inject({
       method: 'PATCH',
       url: '/orgs/org_id/admin/members/user_2/role',
@@ -161,7 +134,6 @@ describe('Org Admin Members Security', () => {
         role: 'SUPERADMIN',
       },
     });
-
     // Should be 400 after fix (currently likely 200)
     if (response.statusCode === 200) {
       console.log('⚠️ Vulnerability confirmed: SUPERADMIN role accepted in update.');

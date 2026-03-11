@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from 'bun:test';
 import fastify from 'fastify';
+
 import conversationsRoutes from '../src/routes/conversations';
 
 // Mock the db module

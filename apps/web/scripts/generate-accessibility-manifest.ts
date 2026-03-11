@@ -45,7 +45,7 @@ const auditStats = auditCodebase(srcDir);
 
 // Read CSS variables
 const themePath = path.join(srcDir, 'theme2026.css');
-let themeVars: Record<string, string> = {};
+const themeVars: Record<string, string> = {};
 
 if (fs.existsSync(themePath)) {
   const css = fs.readFileSync(themePath, 'utf-8');

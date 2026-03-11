@@ -1,7 +1,7 @@
 import { describe, it, expect, mock, beforeAll } from 'bun:test';
 import fastify from 'fastify';
-import { roleHasPermission, OrgRole, OrgPermission } from '../src/rbac/roles';
 
+import { roleHasPermission, OrgRole, OrgPermission } from '../src/rbac/roles';
 // Mock Guards explicitly to prevent leakage from other tests and use real roles logic
 mock.module('../src/rbac/guards', () => {
   return {
@@ -10,7 +10,6 @@ mock.module('../src/rbac/guards', () => {
       // Ideally we'd fetch from DB but we are mocking DB too.
       // So we use the same assumption as the DB mock.
       const role: OrgRole = 'VIEWER';
-
       if (!roleHasPermission(role, permission)) {
         const error = new Error('Forbidden');
         (error as any).statusCode = 403;
@@ -21,7 +20,6 @@ mock.module('../src/rbac/guards', () => {
     getUserOrgRole: mock(() => Promise.resolve('VIEWER')),
   };
 });
-
 // Mock DB
 mock.module('@ai-chat/db', () => {
   return {
@@ -46,7 +44,6 @@ mock.module('@ai-chat/db', () => {
     },
   };
 });
-
 // Mock Chat Engine
 mock.module('../src/services/chatEngine', () => {
   return {
@@ -58,40 +55,32 @@ mock.module('../src/services/chatEngine', () => {
     }),
   };
 });
-
 // Mock Events
 mock.module('../src/events/emitter', () => {
   return {
     emitEvent: mock(() => Promise.resolve()),
   };
 });
-
 import chatRoutes from '../src/routes/chat';
-
 describe('Chat Authorization Bypass Check', () => {
   it('should verify if VIEWER can send messages (Vulnerability Reproduction)', async () => {
     const app = fastify();
-
     // Mock authentication
     app.decorate('authenticate', async (req, reply) => {
       req.user = { userId: 'user1', isSuperadmin: false };
     });
-
     // Mock i18n
     app.decorateRequest('i18n', {
       getter() {
         return { t: (key: string) => key };
       },
     });
-
     await app.register(chatRoutes);
-
     const response = await app.inject({
       method: 'POST',
       url: '/conversations/conv1/messages',
       payload: { content: 'Hello' },
     });
-
     // Currently expect 200 because the vulnerability exists
     if (response.statusCode === 200) {
       console.log('🚨 VULNERABILITY REPRODUCED: VIEWER can send messages.');
@@ -100,7 +89,6 @@ describe('Chat Authorization Bypass Check', () => {
     } else {
       console.log(`ℹ️ Unexpected status: ${response.statusCode}`, response.body);
     }
-
     // In reproduction phase, we assert it IS 200 (proving the bug)
     // After fix, we will change this to 403.
     expect(response.statusCode).toBe(403);

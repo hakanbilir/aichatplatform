@@ -22,4 +22,12 @@ module.exports = {
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
   },
+  overrides: [
+    {
+      files: ['vite.config.ts'],
+      rules: {
+        'node/no-unpublished-import': 'off',
+      },
+    },
+  ],
 };
