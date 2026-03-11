@@ -18,7 +18,7 @@
       "outputs": []
     },
     "test": {
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "format": {
       "outputs": []

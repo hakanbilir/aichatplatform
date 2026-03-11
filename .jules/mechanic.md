@@ -39,3 +39,9 @@
 **Issue:** An overly strict engine requirement (`>=24.0.0`) in `apps/api-gateway/package.json` breaks dependency installation on standard CI runners. Node.js 24 is not an active LTS yet, so standard GitHub Action runners might not have it.
 **Learning:** Hardcoding a strict upper limit or future unreleased engine version in `package.json`'s `engines` field can cause `pnpm`/`bun` installs to fail unexpectedly on CI if the environment is not matched perfectly.
 **Fix:** Adjusted the Node engine constraint to the more reasonable and safe `>=18.18.0`.
+
+## 2026-03-10 - Turborepo Test Output Warnings
+
+**Issue:** Turborepo emitted "no output files found for task" warnings during CI pipelines for the `test` task.
+**Learning:** The `test` task was configured with `outputs: ["coverage/**"]`, but not all packages generate coverage by default.
+**Fix:** Updated the `test` task in `turbo.json` to `outputs: []` to prevent Turborepo from expecting missing output files.
