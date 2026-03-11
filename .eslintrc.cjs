@@ -54,9 +54,10 @@ module.exports = {
       }
     },
     {
-      files: ['scripts/**/*.ts', 'create-superadmin-direct.js'],
+      files: ['scripts/**/*.ts', 'scripts/**/*.mjs', 'create-superadmin-direct.js'],
       rules: {
         'no-process-exit': 'off',
+        'node/shebang': 'off',
         '@typescript-eslint/no-explicit-any': 'off'
       }
     }
