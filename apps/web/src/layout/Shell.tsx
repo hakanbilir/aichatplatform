@@ -7,6 +7,7 @@ import { LoadingState } from '../components/dashboard/LoadingState';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { useEcoMode } from '../hooks/useEcoMode';
 import { useConversationStream } from '../hooks/useConversationStream';
+import { RefractionFilter } from '../components/ui/RefractionFilter';
 
 import { SideNav } from './SideNav';
 import { TopBar } from './TopBar';
@@ -39,6 +40,8 @@ export const Shell: React.FC = () => {
         overflow: 'hidden',
       }}
     >
+      <RefractionFilter />
+
       {/* Header - Spans full width */}
       <Box sx={{ gridColumn: '1 / -1', zIndex: 10 }}>
         <TopBar />

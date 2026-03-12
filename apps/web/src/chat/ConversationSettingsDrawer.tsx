@@ -118,10 +118,22 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
       setTemperature(value);
     }
   }, []);
-  const handleChangeSystemPrompt = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSystemPrompt(e.target.value), []);
-  const handleChangeCodeExecution = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCodeExecution(e.target.checked), []);
-  const handleChangeWebSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setWebSearch(e.target.checked), []);
-  const handleChangeStructuredTools = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStructuredTools(e.target.checked), []);
+  const handleChangeSystemPrompt = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setSystemPrompt(e.target.value),
+    [],
+  );
+  const handleChangeCodeExecution = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setCodeExecution(e.target.checked),
+    [],
+  );
+  const handleChangeWebSearch = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setWebSearch(e.target.checked),
+    [],
+  );
+  const handleChangeStructuredTools = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setStructuredTools(e.target.checked),
+    [],
+  );
 
   const handleSave = async () => {
     if (!token || !conversationId) return;

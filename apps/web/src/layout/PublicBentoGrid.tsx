@@ -7,6 +7,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import { BentoGrid } from '../components/ui/kinetic/BentoGrid';
 import { GlassPanel } from '../components/ui/kinetic/GlassPanel';
 import { KineticTypography } from '../components/ui/kinetic/KineticTypography';
+import { RefractionFilter } from '../components/ui/RefractionFilter';
 import { useEcoMode } from '../hooks/useEcoMode';
 
 interface PublicBentoGridProps {
@@ -29,6 +30,8 @@ export const PublicBentoGrid: React.FC<PublicBentoGridProps> = ({ children, topR
         position: 'relative',
       }}
     >
+      <RefractionFilter />
+
       {topRightElement && (
         <Box position="absolute" top={16} right={16} zIndex={10}>
           {topRightElement}
