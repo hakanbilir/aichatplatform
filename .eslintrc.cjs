@@ -25,7 +25,14 @@ module.exports = {
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
       },
-      typescript: {},
+      typescript: {
+        alwaysTryTypes: true,
+        project: [
+          './tsconfig.base.json',
+          './apps/*/tsconfig.json',
+          './packages/*/tsconfig.json',
+        ]
+      },
     },
   },
   rules: {
@@ -54,9 +61,10 @@ module.exports = {
       },
     },
     {
-      files: ['scripts/**/*.ts', 'create-superadmin-direct.js'],
+      files: ['scripts/**/*.ts', 'scripts/**/*.mjs', 'create-superadmin-direct.js'],
       rules: {
         'no-process-exit': 'off',
+        'node/shebang': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
       },
     },
