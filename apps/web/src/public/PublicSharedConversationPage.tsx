@@ -15,7 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import { PublicSharedConversation, fetchPublicSharedConversation } from '../api/sharing';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -29,6 +29,7 @@ import { useEcoMode } from '../hooks/useEcoMode';
 export const PublicSharedConversationPage: React.FC = () => {
   const { t } = useTranslation(['public', 'common']);
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { isEcoMode } = useEcoMode();
   const [conversation, setConversation] = useState<PublicSharedConversation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -226,7 +227,7 @@ export const PublicSharedConversationPage: React.FC = () => {
 
       <Dialog
         open={passphraseDialogOpen}
-        onClose={() => {}}
+        onClose={() => navigate('/')}
         PaperProps={{
           component: GlassPanel, // Use GlassPanel as the Dialog Paper
           refractive: !isEcoMode,

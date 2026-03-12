@@ -112,12 +112,13 @@ export default async function conversationsRoutes(
 
     localEmitter.on('event', handleEvent);
 
-    request.raw.on('close', () => {
-      clearInterval(interval);
-      localEmitter.off('event', handleEvent);
-    });
-
-    return new Promise(() => {}); // Keep connection open
+    return new Promise<void>((resolve) => {
+      request.raw.on('close', () => {
+        clearInterval(interval);
+        localEmitter.off('event', handleEvent);
+        resolve();
+      });
+    }); // Keep connection open
   });
 
   // List conversations for an org (non-archived by default)
