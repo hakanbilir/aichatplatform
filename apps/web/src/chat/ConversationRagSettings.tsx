@@ -1,6 +1,6 @@
 // apps/web/src/chat/ConversationRagSettings.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Box, FormControlLabel, MenuItem, Select, Slider, Switch, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -22,7 +22,7 @@ interface ConversationRagSettingsProps {
   onChange: (value: ConversationRagSettings) => void;
 }
 
-export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps> = ({
+const ConversationRagSettingsPanelComponent: React.FC<ConversationRagSettingsProps> = ({
   conversationId,
   orgId,
   value,
@@ -44,36 +44,51 @@ export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  const handleSave = async (next: ConversationRagSettings) => {
-    if (!token) return;
-    setLocal(next);
-    onChange(next);
+  // Optimization: Stabilize callback references with useCallback to prevent unnecessary
+  // re-renders of the memoized ConversationRagSettingsPanel components when parent state changes.
+  // Impact: Reduces re-renders of the RAG settings controls when modified.
+  const handleSave = useCallback(
+    async (next: ConversationRagSettings) => {
+      if (!token) return;
+      setLocal(next);
+      onChange(next);
 
-    // Update conversation's kbConfig via settings endpoint
-    const kbConfig = {
-      rag: next,
-    };
+      // Update conversation's kbConfig via settings endpoint
+      const kbConfig = {
+        rag: next,
+      };
 
-    await updateConversationSettings(token, conversationId, {
-      kbConfig,
-    });
-  };
+      await updateConversationSettings(token, conversationId, {
+        kbConfig,
+      });
+    },
+    [token, conversationId, onChange],
+  );
 
-  const handleToggle = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
-    const next = { ...local, enabled: checked };
-    void handleSave(next);
-  };
+  const handleToggle = useCallback(
+    (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+      const next = { ...local, enabled: checked };
+      void handleSave(next);
+    },
+    [local, handleSave],
+  );
 
-  const handleSpaceChange = (spaceId: string | '') => {
-    const next = { ...local, spaceId: spaceId || null };
-    void handleSave(next);
-  };
+  const handleSpaceChange = useCallback(
+    (spaceId: string | '') => {
+      const next = { ...local, spaceId: spaceId || null };
+      void handleSave(next);
+    },
+    [local, handleSave],
+  );
 
-  const handleChunksChange = (_: React.SyntheticEvent | Event, value: number | number[]) => {
-    const maxChunks = Array.isArray(value) ? value[0] : value;
-    const next = { ...local, maxChunks };
-    void handleSave(next);
-  };
+  const handleChunksChange = useCallback(
+    (_: React.SyntheticEvent | Event, value: number | number[]) => {
+      const maxChunks = Array.isArray(value) ? value[0] : value;
+      const next = { ...local, maxChunks };
+      void handleSave(next);
+    },
+    [local, handleSave],
+  );
 
   return (
     <Box display="flex" flexDirection="column" gap={1.5}>
@@ -134,3 +149,5 @@ export const ConversationRagSettingsPanel: React.FC<ConversationRagSettingsProps
     </Box>
   );
 };
+
+export const ConversationRagSettingsPanel = React.memo(ConversationRagSettingsPanelComponent);
