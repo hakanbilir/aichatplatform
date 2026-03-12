@@ -14,7 +14,7 @@ module.exports = {
       files: ['test/**/*.ts'],
       rules: {
         'import/no-unresolved': ['error', { ignore: ['^bun:test$'] }],
-        '@typescript-eslint/no-unused-vars': 'off'
+        '@typescript-eslint/no-unused-vars': 'off',
       },
     },
   ],

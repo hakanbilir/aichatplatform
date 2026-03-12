@@ -1,6 +1,6 @@
 // apps/web/src/chat/ConversationSettingsDrawer.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -109,6 +109,20 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
     };
   }, [open, conversationId, token]);
 
+  // Optimization: Stabilize callback references with useCallback to prevent unnecessary
+  // re-renders of the memoized child components (like Slider, Switch, TextField) when parent state changes.
+  // Impact: Reduces re-renders of input controls when modifying settings in the drawer.
+  const handleChangeModel = useCallback((e: any) => setModel(e.target.value as string), []);
+  const handleChangeTemperature = useCallback((_: Event, value: number | number[]) => {
+    if (typeof value === 'number') {
+      setTemperature(value);
+    }
+  }, []);
+  const handleChangeSystemPrompt = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSystemPrompt(e.target.value), []);
+  const handleChangeCodeExecution = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCodeExecution(e.target.checked), []);
+  const handleChangeWebSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setWebSearch(e.target.checked), []);
+  const handleChangeStructuredTools = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStructuredTools(e.target.checked), []);
+
   const handleSave = async () => {
     if (!token || !conversationId) return;
 
@@ -189,7 +203,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                     labelId="drawer-model-select-label"
                     label={t('settings.modelKey')}
                     value={model}
-                    onChange={(e) => setModel(e.target.value)}
+                    onChange={handleChangeModel}
                   >
                     {models.length > 0 ? (
                       models.map((opt) => (
@@ -228,11 +242,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                 </Typography>
                 <Slider
                   value={temperature}
-                  onChange={(_, value) => {
-                    if (typeof value === 'number') {
-                      setTemperature(value);
-                    }
-                  }}
+                  onChange={handleChangeTemperature}
                   min={0}
                   max={2}
                   step={0.1}
@@ -255,7 +265,7 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                   minRows={4}
                   maxRows={10}
                   value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  onChange={handleChangeSystemPrompt}
                   placeholder={t('settings.systemPromptPlaceholder')}
                   sx={{ mt: 1 }}
                 />
@@ -267,26 +277,16 @@ const ConversationSettingsDrawerComponent: React.FC<ConversationSettingsDrawerPr
                   {t('settings.toolsIntegrations')}
                 </KineticTypography>
                 <FormControlLabel
-                  control={
-                    <Switch
-                      checked={codeExecution}
-                      onChange={(e) => setCodeExecution(e.target.checked)}
-                    />
-                  }
+                  control={<Switch checked={codeExecution} onChange={handleChangeCodeExecution} />}
                   label={t('settings.codeExecution')}
                 />
                 <FormControlLabel
-                  control={
-                    <Switch checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
-                  }
+                  control={<Switch checked={webSearch} onChange={handleChangeWebSearch} />}
                   label={t('settings.webSearch')}
                 />
                 <FormControlLabel
                   control={
-                    <Switch
-                      checked={structuredTools}
-                      onChange={(e) => setStructuredTools(e.target.checked)}
-                    />
+                    <Switch checked={structuredTools} onChange={handleChangeStructuredTools} />
                   }
                   label={t('settings.structuredTools')}
                 />
