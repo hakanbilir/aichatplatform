@@ -256,7 +256,9 @@ export default async function orgAnalyticsRoutes(
         reply.raw.end();
       }
 
-      return new Promise(() => {}); // Keep connection open until worker finishes
+      return new Promise<void>((resolve) => {
+        request.raw.on('close', resolve);
+      }); // Keep connection open until worker finishes
     },
   );
 
