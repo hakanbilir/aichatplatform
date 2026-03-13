@@ -12,18 +12,24 @@ export default async function aiContextRoutes(app: FastifyInstance, _opts: Fasti
   app.get('/ai-context', { preHandler: [app.authenticate] }, async (request, reply) => {
     const payload = request.user as JwtPayload;
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, email: true, name: true },
-    });
-
-    // Get recent conversations as a proxy for history/intent
-    const recentConversations = await prisma.conversation.findMany({
-      where: { userId: payload.userId },
-      take: 5,
-      orderBy: { updatedAt: 'desc' },
-      select: { id: true, title: true, model: true, updatedAt: true, orgId: true },
-    });
+    // ⚡ Bolt: Fetch user and recent conversations concurrently
+    // 💡 What: Used Promise.all to run independent database queries in parallel.
+    // 🎯 Why: Previously, these queries ran sequentially, causing the second query to wait for the first to complete.
+    // 📊 Impact: Reduces total database query latency by roughly the duration of the shorter query, making the /ai-context endpoint faster.
+    // 🔬 Measurement: Verify endpoint latency using a tool like Postman or the browser's Network tab.
+    const [user, recentConversations] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { id: true, email: true, name: true },
+      }),
+      // Get recent conversations as a proxy for history/intent
+      prisma.conversation.findMany({
+        where: { userId: payload.userId },
+        take: 5,
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true, title: true, model: true, updatedAt: true, orgId: true },
+      }),
+    ]);
 
     // Derive intent from recent activity
     let primaryIntent = 'Starting a new task';
