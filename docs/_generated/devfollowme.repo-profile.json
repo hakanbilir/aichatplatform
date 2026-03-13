@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAt": "2026-03-04T00:49:29.191Z",
+    "generatedAt": "2026-03-13T00:59:45.302Z",
     "generatorVersion": "1.0.0"
   },
   "repo": {
@@ -11,7 +11,7 @@
     "monorepoTool": "turbo",
     "nodeVersion": {
       "source": "package.json#engines.node",
-      "value": ">=24.0.0"
+      "value": ">=18.18.0"
     },
     "rootScripts": {
       "dev": "turbo run dev --parallel",
@@ -111,7 +111,7 @@
         "name": "web",
         "scripts": {
           "dev": "vite",
-          "build": "vite build",
+          "build": "bun run generate-a11y-manifest && vite build",
           "preview": "vite preview",
           "lint": "eslint src --ext .ts,.tsx",
           "test": "bun test ./src",
@@ -316,7 +316,13 @@
       "reactNativeConfig": false,
       "expoDependency": false
     },
-    "envExamples": [".env.example"],
-    "envIgnored": [".env.backup", ".env.development", "apps/api-gateway/.env.test"]
+    "envExamples": [
+      ".env.example"
+    ],
+    "envIgnored": [
+      ".env.backup",
+      ".env.development",
+      "apps/api-gateway/.env.test"
+    ]
   }
 }
