@@ -18,12 +18,14 @@
 ## 2) Repo Mimarisi ve Modül Haritası
 
 ### Uygulamalar
+
 - `api-gateway` → `apps/api-gateway/package.json`
 - `web-app` → `apps/web-app/package.json`
 - `web` → `apps/web/package.json`
 - `worker-jobs` → `apps/worker-jobs/package.json`
 
 ### Paketler
+
 - `@ai-chat/chat-orchestrator` → `packages/chat-orchestrator/package.json`
 - `@ai-chat/config` → `packages/config/package.json`
 - `@ai-chat/core-types` → `packages/core-types/package.json`
@@ -35,6 +37,7 @@
 ## 3) Çalıştırma, Build, Test ve Lint Akışları
 
 ### Kök scriptler
+
 - `audit:deps`: `bash ./scripts/security-checks.sh`
 - `build`: `turbo run build`
 - `ci`: `turbo run lint typecheck test build --continue`
@@ -61,6 +64,7 @@
 - `typecheck`: `turbo run typecheck`
 
 ### Workspace script özetleri
+
 - `@ai-chat/chat-orchestrator` (packages/chat-orchestrator/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `@ai-chat/config` (packages/config/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `@ai-chat/core-types` (packages/core-types/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
@@ -76,14 +80,17 @@
 ## 4) Altyapı ve Operasyonel Entegrasyonlar
 
 ### PM2
+
 - `apps/api-gateway/ecosystem.config.js`
 - `apps/worker-jobs/ecosystem.config.js`
 - `ecosystem.config.js`
 
 ### Docker
+
 - Dockerfile veya docker-compose dosyası tespit edilmedi.
 
 ### Mobil sinyaller
+
 - ios/ klasörü: yok
 - android/ klasörü: yok
 - app.json: yok
@@ -93,9 +100,11 @@
 ## 5) Ortam Değişkenleri ve Konfigürasyon Prensipleri
 
 ### Güvenli okunan env dosyaları
+
 - `.env.example`
 
 ### Bilinçli olarak okunmayan env dosyaları
+
 - `.env.backup` (gizli değer riski nedeniyle içerik okunmadı)
 - `.env.development` (gizli değer riski nedeniyle içerik okunmadı)
 - `apps/api-gateway/.env.test` (gizli değer riski nedeniyle içerik okunmadı)
@@ -103,11 +112,13 @@
 ## 6) CI/CD ve Dokümantasyon Tutarlılığı
 
 ### CI workflow dosyaları
+
 - `.github/workflows/ci.yml`
 - `.github/workflows/docs-devfollowme.yml`
 - `.github/workflows/security.yml`
 
 ### Dokümantasyon kaynakları
+
 - `docs/_generated/devfollowme.repo-profile.json`
 - `docs/ai/DEVFOLLOWME_WORKFLOW.md`
 - `docs/ai/RELEASE.md`

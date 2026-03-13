@@ -37,9 +37,9 @@ export const LandingPage: React.FC = () => {
               Kinetic Refraction
             </KineticTypography>
           </Box>
-          <Typography variant="h5" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
+          <KineticTypography variant="h5" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
             The next generation of AI agent interaction, designed for speed, clarity, and depth.
-          </Typography>
+          </KineticTypography>
         </Box>
 
         <BentoGrid>

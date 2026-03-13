@@ -111,57 +111,88 @@ export default async function orgAnalyticsRoutes(
       : 'dist/workers/token-aggregation.worker.js';
     const workerPath = path.join(process.cwd(), workerRelPath);
 
-    const { totals, completions, firstMessageAt, lastMessageAt, byDay, byModel } =
-      await new Promise<any>((resolve, reject) => {
-        const worker = new Worker(workerPath, {
-          workerData: { messages },
-          execArgv: isDev ? ['--import', 'tsx/esm'] : undefined,
-        });
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
 
-        worker.on('message', resolve);
-        worker.on('error', reject);
-        worker.on('exit', (code) => {
-          if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
-        });
+    reply.raw.write('data: "processing"\n\n');
+
+    try {
+      const worker = new Worker(workerPath, {
+        workerData: { messages },
+        execArgv: isDev ? ['--import', 'tsx/esm'] : undefined,
       });
 
-    // Quota view – evaluated in the same window as the analytics chart.
-    // Kota görünümü – analitik grafiğiyle aynı pencerede değerlendirilir.
-    const usageInWindowTokens = totals.totalTokens;
+      worker.on('message', (result) => {
+        const { totals, completions, firstMessageAt, lastMessageAt, byDay, byModel } = result;
+        const usageInWindowTokens = totals.totalTokens;
 
-    const quota = {
-      monthlySoftLimitTokens: org.monthlySoftLimitTokens,
-      monthlyHardLimitTokens: org.monthlyHardLimitTokens,
-      usageInWindowTokens,
-      softLimitRemainingTokens:
-        org.monthlySoftLimitTokens != null
-          ? Math.max(org.monthlySoftLimitTokens - usageInWindowTokens, 0)
-          : null,
-      hardLimitRemainingTokens:
-        org.monthlyHardLimitTokens != null
-          ? Math.max(org.monthlyHardLimitTokens - usageInWindowTokens, 0)
-          : null,
-      softLimitExceeded:
-        org.monthlySoftLimitTokens != null && usageInWindowTokens >= org.monthlySoftLimitTokens,
-      hardLimitExceeded:
-        org.monthlyHardLimitTokens != null && usageInWindowTokens >= org.monthlyHardLimitTokens,
-    };
+        const quota = {
+          monthlySoftLimitTokens: org.monthlySoftLimitTokens,
+          monthlyHardLimitTokens: org.monthlyHardLimitTokens,
+          usageInWindowTokens,
+          softLimitRemainingTokens:
+            org.monthlySoftLimitTokens != null
+              ? Math.max(org.monthlySoftLimitTokens - usageInWindowTokens, 0)
+              : null,
+          hardLimitRemainingTokens:
+            org.monthlyHardLimitTokens != null
+              ? Math.max(org.monthlyHardLimitTokens - usageInWindowTokens, 0)
+              : null,
+          softLimitExceeded:
+            org.monthlySoftLimitTokens != null && usageInWindowTokens >= org.monthlySoftLimitTokens,
+          hardLimitExceeded:
+            org.monthlyHardLimitTokens != null && usageInWindowTokens >= org.monthlyHardLimitTokens,
+        };
 
-    return reply.send({
-      orgId,
-      range: {
-        from: from.toISOString(),
-        to: now.toISOString(),
-        days,
-      },
-      plan: org.plan,
-      quota,
-      totals,
-      completions,
-      firstMessageAt: firstMessageAt ? firstMessageAt.toISOString() : null,
-      lastMessageAt: lastMessageAt ? lastMessageAt.toISOString() : null,
-      byDay,
-      byModel,
+        const finalResult = {
+          orgId,
+          range: {
+            from: from.toISOString(),
+            to: now.toISOString(),
+            days,
+          },
+          plan: org.plan,
+          quota,
+          totals,
+          completions,
+          firstMessageAt: firstMessageAt ? new Date(firstMessageAt).toISOString() : null,
+          lastMessageAt: lastMessageAt ? new Date(lastMessageAt).toISOString() : null,
+          byDay,
+          byModel,
+        };
+
+        reply.raw.write(`data: ${JSON.stringify(finalResult)}\n\n`);
+        reply.raw.end();
+      });
+
+      worker.on('error', (err) => {
+        request.log.error(err, 'Worker error in usage stream');
+        reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+        reply.raw.end();
+      });
+
+      worker.on('exit', (code) => {
+        if (code !== 0) {
+          request.log.error(`Worker stopped with exit code ${code}`);
+          if (!reply.raw.writableEnded) {
+            reply.raw.end();
+          }
+        }
+      });
+    } catch (err) {
+      request.log.error(err, 'Usage streaming error');
+      reply.raw.write(
+        `event: error\ndata: ${JSON.stringify({ error: (err as Error).message })}\n\n`,
+      );
+      reply.raw.end();
+    }
+
+    return new Promise<void>((resolve) => {
+      request.raw.on('close', resolve);
     });
   });
 
@@ -292,12 +323,34 @@ export default async function orgAnalyticsRoutes(
       'analytics:view',
     );
 
-    const { getOrgAnalytics } = await import('../services/orgAnalytics');
-    const result = await getOrgAnalytics({
-      orgId,
-      windowDays: parsedQuery.data.windowDays,
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
     });
 
-    return reply.send(result);
+    reply.raw.write('data: "processing"\n\n');
+
+    try {
+      const { getOrgAnalytics } = await import('../services/orgAnalytics');
+      const result = await getOrgAnalytics({
+        orgId,
+        windowDays: parsedQuery.data.windowDays,
+      });
+
+      reply.raw.write(`data: ${JSON.stringify(result)}\n\n`);
+      reply.raw.end();
+    } catch (err) {
+      request.log.error(err, 'Analytics stream error');
+      reply.raw.write(
+        `event: error\ndata: ${JSON.stringify({ error: (err as Error).message })}\n\n`,
+      );
+      reply.raw.end();
+    }
+
+    return new Promise<void>((resolve) => {
+      request.raw.on('close', resolve);
+    });
   });
 }
