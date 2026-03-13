@@ -54,6 +54,7 @@ const DashboardBentoGridComponent: React.FC = () => {
       {/* Priority: New Chat (Large Tile) */}
       <GlassPanel
         refractive={!isEcoMode}
+        data-ai-action="new-conversation"
         sx={{
           gridColumn: 'span 2',
           gridRow: 'span 2',

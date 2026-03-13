@@ -107,7 +107,17 @@ describe('Org Analytics Routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.payload);
+
+    const payload = response.payload;
+    const lines = payload.split('\n');
+    let body = null;
+    for (const line of lines) {
+      if (line.startsWith('data: ') && line !== 'data: "processing"') {
+        body = JSON.parse(line.slice(6));
+        break;
+      }
+    }
+    expect(body).not.toBeNull();
 
     // Verify Totals
     expect(body.totals.promptTokens).toBe(15);
