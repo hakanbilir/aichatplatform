@@ -2,7 +2,7 @@
 
 > Bu doküman otomatik üretilir. Manuel düzenlemeler bir sonraki üretimde üzerine yazılır.
 
-- **Son Üretim:** 2026-03-04T00:49:29.191Z
+- **Son Üretim:** 2026-03-13T00:59:45.302Z
 - **Üretici Sürümü:** 1.0.0
 - **Profil Dosyası:** `docs/_generated/devfollowme.repo-profile.json`
 
@@ -11,21 +11,19 @@
 - **Paket yöneticisi:** bun (bun@1.2.14)
 - **Monorepo aracı:** turbo
 - **Node sürüm kaynağı:** package.json#engines.node
-- **Node sürüm değeri:** >=24.0.0
+- **Node sürüm değeri:** >=18.18.0
 - **Workspace paket sayısı:** 11
 - **CI workflow sayısı:** 3
 
 ## 2) Repo Mimarisi ve Modül Haritası
 
 ### Uygulamalar
-
 - `api-gateway` → `apps/api-gateway/package.json`
 - `web-app` → `apps/web-app/package.json`
 - `web` → `apps/web/package.json`
 - `worker-jobs` → `apps/worker-jobs/package.json`
 
 ### Paketler
-
 - `@ai-chat/chat-orchestrator` → `packages/chat-orchestrator/package.json`
 - `@ai-chat/config` → `packages/config/package.json`
 - `@ai-chat/core-types` → `packages/core-types/package.json`
@@ -37,7 +35,6 @@
 ## 3) Çalıştırma, Build, Test ve Lint Akışları
 
 ### Kök scriptler
-
 - `audit:deps`: `bash ./scripts/security-checks.sh`
 - `build`: `turbo run build`
 - `ci`: `turbo run lint typecheck test build --continue`
@@ -64,7 +61,6 @@
 - `typecheck`: `turbo run typecheck`
 
 ### Workspace script özetleri
-
 - `@ai-chat/chat-orchestrator` (packages/chat-orchestrator/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `@ai-chat/config` (packages/config/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `@ai-chat/core-types` (packages/core-types/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
@@ -74,23 +70,20 @@
 - `@ai-chat/tools-engine` (packages/tools-engine/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `api-gateway` (apps/api-gateway/package.json): `build` → `tsc -p tsconfig.json` | `dev` → `node --watch --import tsx/esm src/main.ts` | `lint` → `eslint src --ext .ts` | `start` → `bun run dist/main.js` | `test` → `bun test ./src` | `typecheck` → `tsc --noEmit`
 - `web-app` (apps/web-app/package.json): `build` → `bun --bun next build` | `dev` → `bun --bun next dev` | `lint` → `eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern next-env.d.ts` | `start` → `bun --bun next start` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
-- `web` (apps/web/package.json): `build` → `vite build` | `dev` → `vite` | `lint` → `eslint src --ext .ts,.tsx` | `test` → `bun test ./src` | `typecheck` → `tsc --noEmit`
+- `web` (apps/web/package.json): `build` → `bun run generate-a11y-manifest && vite build` | `dev` → `vite` | `lint` → `eslint src --ext .ts,.tsx` | `test` → `bun test ./src` | `typecheck` → `tsc --noEmit`
 - `worker-jobs` (apps/worker-jobs/package.json): `build` → `tsc -p tsconfig.json` | `dev` → `node --watch --import tsx/esm src/main.ts` | `lint` → `eslint src --ext .ts` | `start` → `bun run dist/main.js` | `test` → `bun test ./test` | `typecheck` → `tsc --noEmit`
 
 ## 4) Altyapı ve Operasyonel Entegrasyonlar
 
 ### PM2
-
 - `apps/api-gateway/ecosystem.config.js`
 - `apps/worker-jobs/ecosystem.config.js`
 - `ecosystem.config.js`
 
 ### Docker
-
 - Dockerfile veya docker-compose dosyası tespit edilmedi.
 
 ### Mobil sinyaller
-
 - ios/ klasörü: yok
 - android/ klasörü: yok
 - app.json: yok
@@ -100,11 +93,9 @@
 ## 5) Ortam Değişkenleri ve Konfigürasyon Prensipleri
 
 ### Güvenli okunan env dosyaları
-
 - `.env.example`
 
 ### Bilinçli olarak okunmayan env dosyaları
-
 - `.env.backup` (gizli değer riski nedeniyle içerik okunmadı)
 - `.env.development` (gizli değer riski nedeniyle içerik okunmadı)
 - `apps/api-gateway/.env.test` (gizli değer riski nedeniyle içerik okunmadı)
@@ -112,13 +103,11 @@
 ## 6) CI/CD ve Dokümantasyon Tutarlılığı
 
 ### CI workflow dosyaları
-
 - `.github/workflows/ci.yml`
 - `.github/workflows/docs-devfollowme.yml`
 - `.github/workflows/security.yml`
 
 ### Dokümantasyon kaynakları
-
 - `docs/_generated/devfollowme.repo-profile.json`
 - `docs/ai/DEVFOLLOWME_WORKFLOW.md`
 - `docs/ai/RELEASE.md`
