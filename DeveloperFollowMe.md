@@ -2,7 +2,7 @@
 
 > Bu doküman otomatik üretilir. Manuel düzenlemeler bir sonraki üretimde üzerine yazılır.
 
-- **Son Üretim:** 2026-03-13T00:59:45.302Z
+- **Son Üretim:** 2026-03-15T01:12:03.254Z
 - **Üretici Sürümü:** 1.0.0
 - **Profil Dosyası:** `docs/_generated/devfollowme.repo-profile.json`
 
@@ -51,7 +51,7 @@
 - `dev:api`: `turbo run dev --filter=api-gateway`
 - `dev:web`: `turbo run dev --filter=web-app`
 - `dev:worker`: `turbo run dev --filter=worker-jobs`
-- `docs:devfollowme`: `node ./scripts/devfollowme/generate.mjs`
+- `docs:devfollowme`: `node ./scripts/devfollowme/generate.mjs && prettier --write DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json`
 - `docs:devfollowme:check`: `bun run docs:devfollowme && git diff --exit-code -I '^\s*"generatedAt":' -I '^- \*\*Son Üretim:\*\*' -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json`
 - `format`: `turbo run format`
 - `format:check`: `prettier --check . --cache`

@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAt": "2026-03-13T00:59:45.302Z",
+    "generatedAt": "2026-03-15T01:12:03.254Z",
     "generatorVersion": "1.0.0"
   },
   "repo": {
@@ -36,7 +36,7 @@
       "repair:ai": "bash ./scripts/ai-repair-loop.sh",
       "security": "bun run audit:deps",
       "audit:deps": "bash ./scripts/security-checks.sh",
-      "docs:devfollowme": "node ./scripts/devfollowme/generate.mjs",
+      "docs:devfollowme": "node ./scripts/devfollowme/generate.mjs && prettier --write DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json",
       "docs:devfollowme:check": "bun run docs:devfollowme && git diff --exit-code -I '^\\s*\"generatedAt\":' -I '^- \\*\\*Son Üretim:\\*\\*' -- DeveloperFollowMe.md docs/_generated/devfollowme.repo-profile.json"
     },
     "workspacePackages": [
