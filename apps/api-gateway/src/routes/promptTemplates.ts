@@ -359,4 +359,42 @@ export default async function promptTemplatesRoutes(
       });
     },
   );
+
+  // Delete template (42.md)
+  app.delete(
+    '/orgs/:orgId/prompt-templates/:templateId',
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const payload = req.user as JwtPayload;
+      const { orgId, templateId } = req.params as any;
+
+      await assertOrgPermission(
+        { id: payload.userId, isSuperadmin: payload.isSuperadmin },
+        orgId,
+        'org:prompt-templates:write',
+      );
+
+      const tmpl = await prisma.promptTemplate.findFirst({
+        where: { id: templateId, orgId },
+      });
+
+      if (!tmpl) {
+        return reply.code(404).send({ error: 'NOT_FOUND' });
+      }
+
+      await prisma.$transaction([
+        prisma.promptTemplateVersion.deleteMany({
+          where: { templateId },
+        }),
+        prisma.promptUsage.deleteMany({
+          where: { templateId },
+        }),
+        prisma.promptTemplate.delete({
+          where: { id: templateId },
+        }),
+      ]);
+
+      return reply.send({ ok: true });
+    },
+  );
 }

@@ -102,7 +102,6 @@ export async function updatePromptTemplateApi(
   );
 }
 
-// NOTE: No DELETE endpoint in backend yet.
 export async function deletePromptTemplateApi(
   token: string,
   orgId: string,
