@@ -69,8 +69,7 @@ export const KineticTypography: React.FC<KineticTypographyProps> = ({
 
   return (
     <Component
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ref={textRef as any}
+      ref={textRef as React.RefObject<HTMLElement>}
       className={`kinetic-typography ${className || ''}`}
       {...props}
     >
