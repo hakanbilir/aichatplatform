@@ -149,6 +149,7 @@ const DashboardBentoGridComponent: React.FC = () => {
                 <ListItemButton
                   sx={{ borderRadius: 2, justifyContent: 'center' }}
                   onClick={() => navigate(`/app/orgs/${orgId}/inbox`)}
+                  data-ai-action="view-all-conversations"
                 >
                   <Typography variant="caption" color="primary">
                     {t('dashboard.viewAll', 'View All')}
@@ -201,6 +202,8 @@ const DashboardBentoGridComponent: React.FC = () => {
                     onClick={() => {
                       navigate(`/app/orgs/${orgId}/prompt-templates`);
                     }}
+                    data-ai-action="select-template"
+                    aiAction="select-template"
                   >
                     {template.name}
                   </SpecularButton>
