@@ -191,6 +191,7 @@ const DashboardBentoGridComponent: React.FC = () => {
                   <SpecularButton
                     key={template.id}
                     variant="outlined"
+                    data-ai-action={`use-template-${template.id}`}
                     sx={{
                       justifyContent: 'flex-start',
                       textAlign: 'left',
