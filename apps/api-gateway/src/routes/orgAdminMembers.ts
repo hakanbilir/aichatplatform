@@ -42,24 +42,30 @@ export default async function orgAdminMembersRoutes(
         'org:admin:members:read',
       );
 
-      const members = await prisma.orgMember.findMany({
-        where: { orgId },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              createdAt: true,
+      // ⚡ Bolt: Fetch members and invitations concurrently
+      // 💡 What: Used Promise.all to run independent database queries in parallel.
+      // 🎯 Why: Previously, these queries ran sequentially, causing the second query to wait for the first to complete.
+      // 📊 Impact: Reduces total database query latency by roughly the duration of the shorter query, making the /orgs/:orgId/admin/members endpoint faster.
+      // 🔬 Measurement: Verify endpoint latency using a tool like Postman or the browser's Network tab.
+      const [members, invitations] = await Promise.all([
+        prisma.orgMember.findMany({
+          where: { orgId },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                createdAt: true,
+              },
             },
           },
-        },
-      });
-
-      const invitations = await prisma.orgInvitation.findMany({
-        where: { orgId },
-        orderBy: { createdAt: 'desc' },
-      });
+        }),
+        prisma.orgInvitation.findMany({
+          where: { orgId },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
 
       return reply.send({
         members: members.map(
