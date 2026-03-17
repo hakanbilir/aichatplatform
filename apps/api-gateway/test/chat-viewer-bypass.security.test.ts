@@ -36,7 +36,7 @@ mock.module('@ai-chat/db', () => {
         }),
       },
       conversation: {
-        findFirst: mock(() => Promise.resolve({ id: 'conv1', orgId: 'org1', userId: 'user2' })),
+        findUnique: mock(() => Promise.resolve({ id: 'conv1', orgId: 'org1', userId: 'user2' })),
       },
       message: {
         findMany: mock(() => Promise.resolve([])),
