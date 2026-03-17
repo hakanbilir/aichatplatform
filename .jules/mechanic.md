@@ -45,3 +45,9 @@
 **Issue:** Turborepo emitted "no output files found for task" warnings during CI pipelines for the `test` task.
 **Learning:** The `test` task was configured with `outputs: ["coverage/**"]`, but not all packages generate coverage by default.
 **Fix:** Updated the `test` task in `turbo.json` to `outputs: []` to prevent Turborepo from expecting missing output files.
+
+## 2026-03-17 - Monolithic CI Step Obscured Errors and Bypassed Lint Flags
+
+**Issue:** The monolithic `bun run ci` step in `ci.yml` invoked `turbo run lint ...`, bypassing the `--max-warnings=0` flag defined in the root `package.json`'s `lint` script. It also grouped all output into a single step, harming CI observability.
+**Learning:** Avoid monolithic CI script wrappers in GitHub Actions. Splitting them into distinct steps leverages the CI platform's native observability and ensures root-level script wrappers (like `bun run lint` which adds necessary strictness flags) are explicitly invoked.
+**Fix:** Split `bun run ci` into distinct `Lint`, `Typecheck`, `Test`, and `Build` steps in `ci.yml`. Also ensured `actions/setup-node@v4` is used across workflows to stabilize Node environments.
