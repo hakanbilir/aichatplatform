@@ -17,3 +17,7 @@
 
 **Learning:** Declaring inline functions inside the component body, such as `handleMenuClose` and `handleBeginRename` in `ConversationList`, breaks the `React.memo` optimization of child components like `ConversationListItemView` by passing new references on every render, leading to unnecessary full-list updates.
 **Action:** Always wrap event handlers passed to `React.memo` child components in `useCallback` to maintain stable references across parent renders.
+
+## 2025-03-17 - Optimize Database Queries in chat routes
+**Learning:** In Fastify routes like `apps/api-gateway/src/routes/chat.ts`, building a complex `OR` filter by pre-fetching associated user records (e.g., `orgMember`) to look up a primary key introduces an N+1 performance bottleneck. Furthermore, removing the `OR` filter to query by `id` directly changes the behavior for unauthorized access from returning `null` (404) to returning the object and failing later (403). This behavioral change exposes existing resource IDs, introducing an IDOR vulnerability.
+**Action:** When refactoring database queries from authorization-filtered lookups to direct `findUnique` lookups, explicitly return `404 Not Found` upon authorization failure if the original behavior hid the resource's existence. Additionally, always update the corresponding Prisma test mocks (e.g., `findFirst` -> `findUnique`) to prevent test suite breakages.
