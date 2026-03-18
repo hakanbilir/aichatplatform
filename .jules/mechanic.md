@@ -51,3 +51,9 @@
 **Issue:** The monolithic `bun run ci` step in `ci.yml` invoked `turbo run lint ...`, bypassing the `--max-warnings=0` flag defined in the root `package.json`'s `lint` script. It also grouped all output into a single step, harming CI observability.
 **Learning:** Avoid monolithic CI script wrappers in GitHub Actions. Splitting them into distinct steps leverages the CI platform's native observability and ensures root-level script wrappers (like `bun run lint` which adds necessary strictness flags) are explicitly invoked.
 **Fix:** Split `bun run ci` into distinct `Lint`, `Typecheck`, `Test`, and `Build` steps in `ci.yml`. Also ensured `actions/setup-node@v4` is used across workflows to stabilize Node environments.
+
+## 2026-03-18 - Missing Root File Linting and API Gateway Test Directory
+
+**Issue:** Root files like scripts were not linted because Turborepo `lint` targets only scoped packages/apps. Additionally, API gateway security tests located in `./test` were completely skipped because `bun test ./src` ignored them to avoid `dist`.
+**Learning:** Always explicitly include root-level lint commands in CI. When using explicitly scoped directories in test scripts (like `./src`) to avoid building outputs, verify no other test directories (like `./test`) are inadvertently skipped.
+**Fix:** Added an explicit `Lint Root` step in `ci.yml` using `bun x eslint .`. Fixed `apps/api-gateway/package.json` test script to include both directories with `bun test --dir ./src --dir ./test`.
