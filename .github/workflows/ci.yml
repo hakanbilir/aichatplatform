@@ -76,6 +76,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Lint Root
+        run: bun x eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0
+
       - name: Typecheck
         run: bun run typecheck
 
