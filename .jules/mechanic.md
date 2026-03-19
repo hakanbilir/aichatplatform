@@ -57,3 +57,9 @@
 **Issue:** Root files like scripts were not linted because Turborepo `lint` targets only scoped packages/apps. Additionally, API gateway security tests located in `./test` were completely skipped because `bun test ./src` ignored them to avoid `dist`.
 **Learning:** Always explicitly include root-level lint commands in CI. When using explicitly scoped directories in test scripts (like `./src`) to avoid building outputs, verify no other test directories (like `./test`) are inadvertently skipped.
 **Fix:** Added an explicit `Lint Root` step in `ci.yml` using `bun x eslint .`. Fixed `apps/api-gateway/package.json` test script to include both directories with `bun test --dir ./src --dir ./test`.
+
+## 2026-03-19 - Redundant Parallel Workflow Execution for Drift Checks
+
+**Issue:** The `docs-devfollowme.yml` workflow created an entirely separate, parallel CI pipeline to run a single `docs:devfollowme:check` script. This wasted CI minutes by duplicating the checkout, Node/Bun setup, and dependency installation steps that were already happening concurrently in `ci.yml`.
+**Learning:** Scripts that run quickly and require the standard Node/Bun environment should be appended as steps within the main build-and-test job rather than placed in their own isolated workflows, saving duplicate setup time and reducing concurrent API hits.
+**Fix:** Moved the `Check DeveloperFollowMe drift` step into `ci.yml` immediately after formatting checks, and deleted the redundant `docs-devfollowme.yml` workflow.
