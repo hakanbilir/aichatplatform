@@ -213,7 +213,6 @@ const ToolsPanelComponent: React.FC<ToolsPanelProps> = ({
                     onClick={handleRun}
                     disabled={!selectedTool || executing}
                     sx={{ borderRadius: 999, textTransform: 'none' }}
-                    data-ai-action="button-action"
                   >
                     {executing ? t('tools.running') : t('tools.run')}
                   </Button>

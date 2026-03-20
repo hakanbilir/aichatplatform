@@ -93,7 +93,6 @@ export const PlaygroundPage: React.FC = () => {
               startIcon={<SendIcon />}
               onClick={handleRun}
               disabled={loading || !prompt.trim()}
-              data-ai-action="button-action"
             >
               {loading ? 'Running...' : 'Run'}
             </Button>
