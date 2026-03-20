@@ -2,7 +2,7 @@
 
 > Bu doküman otomatik üretilir. Manuel düzenlemeler bir sonraki üretimde üzerine yazılır.
 
-- **Son Üretim:** 2026-03-15T01:12:03.254Z
+- **Son Üretim:** 2026-03-20T00:45:55.657Z
 - **Üretici Sürümü:** 1.0.0
 - **Profil Dosyası:** `docs/_generated/devfollowme.repo-profile.json`
 
@@ -13,7 +13,7 @@
 - **Node sürüm kaynağı:** package.json#engines.node
 - **Node sürüm değeri:** >=18.18.0
 - **Workspace paket sayısı:** 11
-- **CI workflow sayısı:** 3
+- **CI workflow sayısı:** 2
 
 ## 2) Repo Mimarisi ve Modül Haritası
 
@@ -72,7 +72,7 @@
 - `@ai-chat/ollama-client` (packages/ollama-client/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `@ai-chat/telemetry` (packages/telemetry/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `@ai-chat/tools-engine` (packages/tools-engine/package.json): `build` → `tsc -p tsconfig.json` | `lint` → `eslint src --ext .ts` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
-- `api-gateway` (apps/api-gateway/package.json): `build` → `tsc -p tsconfig.json` | `dev` → `node --watch --import tsx/esm src/main.ts` | `lint` → `eslint src --ext .ts` | `start` → `bun run dist/main.js` | `test` → `bun test ./src` | `typecheck` → `tsc --noEmit`
+- `api-gateway` (apps/api-gateway/package.json): `build` → `tsc -p tsconfig.json` | `dev` → `node --watch --import tsx/esm src/main.ts` | `lint` → `eslint src --ext .ts` | `start` → `bun run dist/main.js` | `test` → `bun test ./src ./test` | `typecheck` → `tsc --noEmit`
 - `web-app` (apps/web-app/package.json): `build` → `bun --bun next build` | `dev` → `bun --bun next dev` | `lint` → `eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern next-env.d.ts` | `start` → `bun --bun next start` | `test` → `echo "no tests yet"` | `typecheck` → `tsc --noEmit`
 - `web` (apps/web/package.json): `build` → `bun run generate-a11y-manifest && vite build` | `dev` → `vite` | `lint` → `eslint src --ext .ts,.tsx` | `test` → `bun test ./src` | `typecheck` → `tsc --noEmit`
 - `worker-jobs` (apps/worker-jobs/package.json): `build` → `tsc -p tsconfig.json` | `dev` → `node --watch --import tsx/esm src/main.ts` | `lint` → `eslint src --ext .ts` | `start` → `bun run dist/main.js` | `test` → `bun test ./test` | `typecheck` → `tsc --noEmit`
@@ -114,7 +114,6 @@
 ### CI workflow dosyaları
 
 - `.github/workflows/ci.yml`
-- `.github/workflows/docs-devfollowme.yml`
 - `.github/workflows/security.yml`
 
 ### Dokümantasyon kaynakları

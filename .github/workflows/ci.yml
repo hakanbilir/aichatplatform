@@ -70,6 +70,9 @@ jobs:
       - name: Check Formatting
         run: bun run format:check
 
+      - name: Check DeveloperFollowMe drift
+        run: bun run docs:devfollowme:check
+
       - name: Generate Prisma Client
         run: bun run db:generate
 

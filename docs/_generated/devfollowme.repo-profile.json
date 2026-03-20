@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAt": "2026-03-15T01:12:03.254Z",
+    "generatedAt": "2026-03-20T00:45:55.657Z",
     "generatorVersion": "1.0.0"
   },
   "repo": {
@@ -49,7 +49,7 @@
           "build": "tsc -p tsconfig.json",
           "start": "bun run dist/main.js",
           "lint": "eslint src --ext .ts",
-          "test": "bun test ./src",
+          "test": "bun test ./src ./test",
           "clean": "rm -rf dist",
           "typecheck": "tsc --noEmit"
         },
@@ -287,11 +287,7 @@
         "devDependencies": {}
       }
     ],
-    "ciWorkflows": [
-      ".github/workflows/ci.yml",
-      ".github/workflows/docs-devfollowme.yml",
-      ".github/workflows/security.yml"
-    ],
+    "ciWorkflows": [".github/workflows/ci.yml", ".github/workflows/security.yml"],
     "docsFiles": [
       "docs/_generated/devfollowme.repo-profile.json",
       "docs/ai/DEVFOLLOWME_WORKFLOW.md",
