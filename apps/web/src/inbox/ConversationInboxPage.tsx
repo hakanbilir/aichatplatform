@@ -211,7 +211,6 @@ export const ConversationInboxPage: React.FC = () => {
                   <IconButton
                     size="small"
                     aria-label={t('advancedFilters')}
-                    data-ai-action="button-action"
                   >
                     <FilterAltOutlinedIcon fontSize="small" />
                   </IconButton>
