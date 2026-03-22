@@ -16,6 +16,13 @@ mock.module('@ai-chat/db', () => {
             userId: 'user_1',
           });
         }),
+        findUnique: mock((args) => {
+          return Promise.resolve({
+            id: 'conv_1',
+            orgId: 'org_1',
+            userId: 'user_1',
+          });
+        }),
       },
       message: {
         findMany: mock((args) => {

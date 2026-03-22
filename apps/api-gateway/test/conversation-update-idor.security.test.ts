@@ -19,6 +19,15 @@ mock.module('@ai-chat/db', () => {
             title: 'Original Title',
           });
         }),
+        findUnique: mock((args) => {
+          // Return a conversation in the org, owned by someone else
+          return Promise.resolve({
+            id: 'conv_1',
+            orgId: 'org_1',
+            userId: 'user_owner', // Conversation Creator is NOT the attacker
+            title: 'Original Title',
+          });
+        }),
         update: mock(() =>
           Promise.resolve({
             id: 'conv_1',
