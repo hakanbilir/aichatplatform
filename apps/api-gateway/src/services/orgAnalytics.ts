@@ -60,32 +60,71 @@ export async function getOrgAnalytics(options: OrgAnalyticsOptions): Promise<Org
     throw new Error('Org not found');
   }
 
-  const quota = await getOrgQuotaWindowUsage(org.id, windowDays);
-
-  // Chat turns = assistant messages in conversations belonging to this org
-  // Chat turn'ları = bu org'a ait konuşmalardaki asistan mesajları
-  const assistantMessages = await prisma.message.findMany({
-    where: {
-      role: 'ASSISTANT',
-      createdAt: {
-        gte: since,
-      },
-      conversation: {
-        orgId: org.id,
-      },
-    },
-    select: {
-      id: true,
-      createdAt: true,
-      conversationId: true,
-      conversation: {
-        select: {
-          model: true,
+  // ⚡ Bolt: Fetch quota and messages concurrently
+  // 💡 What: Grouped quota, assistantMessages, toolMessages, and userMessages queries into a Promise.all block.
+  // 🎯 Why: These queries are independent and running them sequentially was adding unnecessary latency.
+  // 📊 Impact: Significantly reduces overall endpoint latency by executing queries in parallel rather than serially.
+  // 🔬 Measurement: Verify /analytics endpoint latency via the browser network tab or load testing.
+  const [quota, assistantMessages, toolMessages, userMessages] = await Promise.all([
+    getOrgQuotaWindowUsage(org.id, windowDays),
+    // Chat turns = assistant messages in conversations belonging to this org
+    // Chat turn'ları = bu org'a ait konuşmalardaki asistan mesajları
+    prisma.message.findMany({
+      where: {
+        role: 'ASSISTANT',
+        createdAt: {
+          gte: since,
+        },
+        conversation: {
+          orgId: org.id,
         },
       },
-      meta: true,
-    },
-  });
+      select: {
+        id: true,
+        createdAt: true,
+        conversationId: true,
+        conversation: {
+          select: {
+            model: true,
+          },
+        },
+        meta: true,
+      },
+    }),
+    // Top tools by calls: we look at TOOL messages in this org
+    // En çok kullanılan araçlar: bu org'daki TOOL mesajlarına bakıyoruz
+    prisma.message.findMany({
+      where: {
+        role: 'TOOL',
+        createdAt: {
+          gte: since,
+        },
+        conversation: {
+          orgId: org.id,
+        },
+      },
+      select: {
+        meta: true,
+      },
+    }),
+    // Top users: we count USER messages in org conversations
+    // En aktif kullanıcılar: org konuşmalarındaki USER mesajlarını sayıyoruz
+    prisma.message.groupBy({
+      by: ['authorId'],
+      where: {
+        role: 'USER',
+        createdAt: {
+          gte: since,
+        },
+        conversation: {
+          orgId: org.id,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    }),
+  ]);
 
   const totals = {
     chatTurns: 0,
@@ -128,23 +167,6 @@ export async function getOrgAnalytics(options: OrgAnalyticsOptions): Promise<Org
     }
   }
 
-  // Top tools by calls: we look at TOOL messages in this org
-  // En çok kullanılan araçlar: bu org'daki TOOL mesajlarına bakıyoruz
-  const toolMessages = await prisma.message.findMany({
-    where: {
-      role: 'TOOL',
-      createdAt: {
-        gte: since,
-      },
-      conversation: {
-        orgId: org.id,
-      },
-    },
-    select: {
-      meta: true,
-    },
-  });
-
   for (const msg of toolMessages) {
     const toolsMeta = (msg.meta as any) || {};
     const results = toolsMeta.toolResults as { tool: string }[] | undefined;
@@ -162,24 +184,6 @@ export async function getOrgAnalytics(options: OrgAnalyticsOptions): Promise<Org
       byToolMap.set(toolsMeta.tool, (byToolMap.get(toolsMeta.tool) || 0) + 1);
     }
   }
-
-  // Top users: we count USER messages in org conversations
-  // En aktif kullanıcılar: org konuşmalarındaki USER mesajlarını sayıyoruz
-  const userMessages = await prisma.message.groupBy({
-    by: ['authorId'],
-    where: {
-      role: 'USER',
-      createdAt: {
-        gte: since,
-      },
-      conversation: {
-        orgId: org.id,
-      },
-    },
-    _count: {
-      _all: true,
-    },
-  });
 
   for (const row of userMessages) {
     if (!row.authorId) continue;
