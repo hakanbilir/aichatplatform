@@ -64,14 +64,6 @@ const createOrgConversationBodySchema = z.object({
   chatProfileId: z.string().optional(), // Optional ChatProfile ID (42.md)
 });
 
-async function getUserOrgIds(userId: string): Promise<string[]> {
-  const memberships = await prisma.orgMember.findMany({
-    where: { userId },
-    select: { orgId: true },
-  });
-  return memberships.map((r: { orgId: string }) => r.orgId);
-}
-
 export default async function conversationsRoutes(
   app: FastifyInstance,
   _opts: FastifyPluginOptions,
@@ -366,16 +358,23 @@ export default async function conversationsRoutes(
       const parsedQuery = listPersonalQuerySchema.safeParse(request.query);
       const limit = parsedQuery.success ? parsedQuery.data.limit : 100;
 
-      const orgIds = await getUserOrgIds(payload.userId);
-
-      const orConditions: any[] = [{ userId: payload.userId }];
-      if (orgIds.length > 0) {
-        orConditions.push({ orgId: { in: orgIds } });
-      }
-
+      // ⚡ Bolt: Fetch visible conversations in a single database query
+      // 💡 What: Replaced a separate `getUserOrgIds` database query and an `in: orgIds` filter with a Prisma relation filter (`org.members.some`).
+      // 🎯 Why: Previously, this endpoint queried `orgMember` first to get an array of `orgIds`, then queried `conversation`. This required two sequential round trips to the database.
+      // 📊 Impact: Eliminates an entire database round trip, reducing the latency of the `GET /conversations` endpoint.
+      // 🔬 Measurement: Observe lower execution time in DB query traces or general endpoint latency via browser network tab.
       const conversations = await prisma.conversation.findMany({
         where: {
-          OR: orConditions,
+          OR: [
+            { userId: payload.userId },
+            {
+              org: {
+                members: {
+                  some: { userId: payload.userId },
+                },
+              },
+            },
+          ],
         },
         select: {
           id: true,
