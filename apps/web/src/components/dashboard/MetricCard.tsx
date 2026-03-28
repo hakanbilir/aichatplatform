@@ -3,6 +3,7 @@ import { Box, CardContent, Typography, Tooltip, useTheme } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
 
 import { GlassPanel } from '../ui/kinetic/GlassPanel';
+import { KineticTypography } from '../ui/kinetic/KineticTypography';
 
 // Metric card component with gradient background, icon, value, label, trend indicator, and micro-animations
 // Gradyan arka plan, ikon, değer, etiket, trend göstergesi ve mikro animasyonlarla metrik kartı bileşeni
@@ -120,8 +121,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
         {/* Main value / Ana değer */}
         <Box mb={secondaryValue || trend ? 1 : 0}>
-          <Typography
+          <KineticTypography
             variant="h4"
+            component="h2"
             sx={{
               fontWeight: 700,
               fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
@@ -131,7 +133,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             }}
           >
             {typeof value === 'number' ? value.toLocaleString() : value}
-          </Typography>
+          </KineticTypography>
         </Box>
 
         {/* Secondary value or trend / İkincil değer veya trend */}
