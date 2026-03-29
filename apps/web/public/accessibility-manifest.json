@@ -1,11 +1,11 @@
 {
   "version": "2026.1.1",
-  "generatedAt": "2026-03-20T22:44:01.976Z",
+  "generatedAt": "2026-03-28T16:19:50.915Z",
   "auditStats": {
     "filesScanned": 80,
     "ariaLabelsFound": 25,
     "glassComponentsDetected": 104,
-    "kineticTypographyUsage": 112,
+    "kineticTypographyUsage": 116,
     "explicitTabIndices": 2,
     "explicitRoles": 7
   },
