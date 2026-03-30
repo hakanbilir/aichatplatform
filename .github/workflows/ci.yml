@@ -18,6 +18,8 @@ jobs:
       contents: read
     env:
       DATABASE_URL: 'postgresql://postgres:password@localhost:5432/testdb'
+      REDIS_URL: 'redis://localhost:6379'
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
       CI: true
     steps:
       - uses: actions/checkout@v4
