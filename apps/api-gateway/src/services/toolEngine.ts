@@ -206,9 +206,7 @@ export async function executeToolEnvelope(
   // 🎯 Why: Tool calls within a single envelope are typically independent. Running them sequentially introduces unnecessary blocking latency per tool.
   // 📊 Impact: Significantly reduces total execution time when multiple tools are invoked in parallel (e.g., retrieving data from several independent sources).
   // 🔬 Measurement: Observe the tool execution duration in observability metrics/logs or measure latency for the agentic chat endpoint when multiple tools are called.
-  const results = await Promise.all(
-    envelope.toolCalls.map((call) => executeToolCall(call, ctx))
-  );
+  const results = await Promise.all(envelope.toolCalls.map((call) => executeToolCall(call, ctx)));
 
   return results;
 }

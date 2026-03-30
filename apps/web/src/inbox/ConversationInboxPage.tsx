@@ -208,10 +208,7 @@ export const ConversationInboxPage: React.FC = () => {
             endAdornment: (
               <InputAdornment position="end">
                 <Tooltip title={t('advancedFilters')}>
-                  <IconButton
-                    size="small"
-                    aria-label={t('advancedFilters')}
-                  >
+                  <IconButton size="small" aria-label={t('advancedFilters')}>
                     <FilterAltOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
