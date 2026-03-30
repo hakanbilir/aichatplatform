@@ -82,7 +82,6 @@ export async function runEmbeddingJob(jobId: string): Promise<void> {
 
   const { provider } = getDefaultEmbeddingProvider();
 
-  // If provider is not implemented, this will throw; you can skip embeddings initially.
   let embeddings: number[][];
   try {
     embeddings = await provider.embed(chunks);

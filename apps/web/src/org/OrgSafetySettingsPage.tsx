@@ -15,6 +15,7 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useParams } from 'react-router-dom';
 
+import { LoadingState } from '../components/dashboard/LoadingState';
 import { useAuth } from '../auth/AuthContext';
 import { fetchOrgSafetyConfig, updateOrgSafetyConfig, OrgSafetyConfigDto } from '../api/orgSafety';
 
@@ -138,7 +139,7 @@ export const OrgSafetySettingsPage: React.FC = () => {
   };
 
   if (!config && loading) {
-    return null; // Or a loading spinner
+    return <LoadingState message="Loading..." />;
   }
 
   if (!config && error) {
