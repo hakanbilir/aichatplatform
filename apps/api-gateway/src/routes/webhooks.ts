@@ -223,28 +223,26 @@ export default async function webhooksRoutes(app: FastifyInstance, _opts: Fastif
         },
       });
 
-      // Update integration config if name/description provided
-      if (parsed.data.name || parsed.data.description !== undefined) {
-        const integration = await prisma.orgIntegration.findUnique({
-          where: { id: webhook.orgIntegrationId },
-        });
-        if (integration) {
-          await prisma.orgIntegration.update({
-            where: { id: webhook.orgIntegrationId },
-            data: {
-              config: {
-                ...((integration.config as any) || {}),
-                name: parsed.data.name,
-                description: parsed.data.description,
-              },
-            },
-          });
-        }
-      }
+      // ⚡ Bolt: Eliminate redundant database queries
+      // 💡 What: Used the pre-fetched `updated.orgIntegration` instead of querying the database twice with `findUnique`.
+      // 🎯 Why: Previously, the endpoint executed two identical `findUnique` queries sequentially, even though `orgIntegration` was already retrieved during the webhook update.
+      // 📊 Impact: Eliminates two database round trips, significantly reducing endpoint latency.
+      // 🔬 Measurement: Observe lower execution time in DB query traces or general endpoint latency via browser network tab.
+      let integration = updated.orgIntegration;
 
-      const integration = await prisma.orgIntegration.findUnique({
-        where: { id: webhook.orgIntegrationId },
-      });
+      // Update integration config if name/description provided
+      if (integration && (parsed.data.name || parsed.data.description !== undefined)) {
+        integration = await prisma.orgIntegration.update({
+          where: { id: webhook.orgIntegrationId },
+          data: {
+            config: {
+              ...((integration.config as any) || {}),
+              name: parsed.data.name,
+              description: parsed.data.description,
+            },
+          },
+        });
+      }
 
       return reply.send({
         webhook: {
