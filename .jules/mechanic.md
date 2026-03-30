@@ -63,3 +63,9 @@
 **Issue:** Separate workflows for fast isolated checks (like `docs-devfollowme.yml`) waste CI minutes by duplicating environment setup.
 **Learning:** Consolidating fast isolated checks into the main CI workflow prevents redundant environment setup and saves CI minutes.
 **Fix:** Moved the `Check DeveloperFollowMe drift` step into `ci.yml` and deleted the redundant `docs-devfollowme.yml` workflow.
+
+## 2026-03-30 - Missing Environment Variables for CI Tests
+
+**Issue:** API gateway tests failed in CI due to missing environment variables (`REDIS_URL`, `JWT_SECRET`), causing `loadConfig` validation to fail during `bun run test`.
+**Learning:** CI workflows running tests that require environment configuration must explicitly provide them, even if they are mocked within the tests, because configuration validation often runs at module initialization time before mocks are applied.
+**Fix:** Added the missing environment variables to the `env` block of the `build-and-test` job in `.github/workflows/ci.yml`.
