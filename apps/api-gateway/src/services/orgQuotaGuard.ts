@@ -44,37 +44,27 @@ export async function getOrgQuotaWindowUsage(
   const now = new Date();
   const from = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
 
-  const messages = await prisma.message.findMany({
-    where: {
-      role: 'ASSISTANT',
-      createdAt: {
-        gte: from,
-      },
-      conversation: {
-        orgId,
-      },
-    },
-    select: {
-      meta: true,
-    },
-  });
+  // ⚡ Bolt: Use database-level aggregation for token counts
+  // 💡 What: Replaced prisma.message.findMany() loop with a prisma.$queryRaw SQL aggregation.
+  // 🎯 Why: Previously, fetching all message `meta` JSON payloads into Node.js and summing them in a JavaScript loop was highly inefficient, blocking the event loop and wasting network/memory bandwidth. Doing the sum directly in PostgreSQL is an O(1) network operation.
+  // 📊 Impact: Significantly reduces memory overhead and speeds up the quota calculation, especially for organizations with large message histories.
+  // 🔬 Measurement: Benchmark getOrgQuotaWindowUsage latency under heavy data load (thousands of messages) using APM or load tests.
+  const result: any[] = await prisma.$queryRaw`
+    SELECT
+      COALESCE(SUM(CASE WHEN m.meta->'usage'->>'promptTokens' ~ '^[0-9]+$' THEN CAST(m.meta->'usage'->>'promptTokens' AS INTEGER) ELSE 0 END), 0) as "promptTokens",
+      COALESCE(SUM(CASE WHEN m.meta->'usage'->>'completionTokens' ~ '^[0-9]+$' THEN CAST(m.meta->'usage'->>'completionTokens' AS INTEGER) ELSE 0 END), 0) as "completionTokens"
+    FROM "Message" m
+    JOIN "Conversation" c ON m."conversationId" = c.id
+    WHERE c."orgId" = ${orgId}
+      AND m."role" = 'ASSISTANT'
+      AND m."createdAt" >= ${from}
+  `;
 
-  let usageTokens = 0;
+  const row = result[0] || {};
+  const totalPromptTokens = Number(row.promptTokens || 0);
+  const totalCompletionTokens = Number(row.completionTokens || 0);
 
-  for (const m of messages) {
-    const meta: any = m.meta ?? {};
-    const usage = meta?.usage;
-
-    if (!usage || typeof usage !== 'object') {
-      continue;
-    }
-
-    const promptTokens = typeof usage.promptTokens === 'number' ? usage.promptTokens : 0;
-    const completionTokens =
-      typeof usage.completionTokens === 'number' ? usage.completionTokens : 0;
-
-    usageTokens += promptTokens + completionTokens;
-  }
+  const usageTokens = totalPromptTokens + totalCompletionTokens;
 
   const monthlySoftLimitTokens = org.monthlySoftLimitTokens ?? null;
   const monthlyHardLimitTokens = org.monthlyHardLimitTokens ?? null;
