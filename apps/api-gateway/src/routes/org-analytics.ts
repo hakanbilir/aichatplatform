@@ -57,52 +57,58 @@ export default async function orgAnalyticsRoutes(
       'analytics:view',
     );
 
-    // Load org plan & quota configuration
-    // Org plan ve kota yapılandırmasını yükle
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
-      select: {
-        id: true,
-        plan: true,
-        monthlySoftLimitTokens: true,
-        monthlyHardLimitTokens: true,
-      },
-    });
-
-    if (!org) {
-      return reply.code(404).send({ error: request.i18n.t('errors.orgNotFound') });
-    }
-
     // Time window – aligned with analytics chart
     // Zaman penceresi – analitik grafiğiyle hizalı
     const now = new Date();
     const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-    // Fetch ASSISTANT messages for this org in the time window, including conversation.model
-    // Bu org için zaman penceresindeki ASSISTANT mesajlarını, conversation.model dahil olmak üzere getir
-    const messages = await prisma.message.findMany({
-      where: {
-        role: 'ASSISTANT',
-        createdAt: {
-          gte: from,
+    // ⚡ Bolt: Fetch organization quota details and messages concurrently
+    // 💡 What: Used Promise.all to fetch the organization details and assistant messages in parallel.
+    // 🎯 Why: Previously, the org fetch blocked the messages query, adding a sequential database round trip.
+    // 📊 Impact: Decreases latency of the /usage endpoint by executing both database queries at once.
+    // 🔬 Measurement: Verify endpoint performance via Network tab or APM tracing tools.
+    const [org, messages] = await Promise.all([
+      // Load org plan & quota configuration
+      // Org plan ve kota yapılandırmasını yükle
+      prisma.organization.findUnique({
+        where: { id: orgId },
+        select: {
+          id: true,
+          plan: true,
+          monthlySoftLimitTokens: true,
+          monthlyHardLimitTokens: true,
         },
-        conversation: {
-          orgId,
-        },
-      },
-      select: {
-        meta: true,
-        createdAt: true,
-        conversation: {
-          select: {
-            model: true,
+      }),
+      // Fetch ASSISTANT messages for this org in the time window, including conversation.model
+      // Bu org için zaman penceresindeki ASSISTANT mesajlarını, conversation.model dahil olmak üzere getir
+      prisma.message.findMany({
+        where: {
+          role: 'ASSISTANT',
+          createdAt: {
+            gte: from,
+          },
+          conversation: {
+            orgId,
           },
         },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+        select: {
+          meta: true,
+          createdAt: true,
+          conversation: {
+            select: {
+              model: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      }),
+    ]);
+
+    if (!org) {
+      return reply.code(404).send({ error: request.i18n.t('errors.orgNotFound') });
+    }
 
     // Offload CPU-heavy aggregation to worker
     const isDev = process.env.NODE_ENV !== 'production';
