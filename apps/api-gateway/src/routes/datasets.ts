@@ -425,29 +425,34 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
         'org:read',
       );
 
-      // Verify dataset exists
-      const dataset = await prisma.dataset.findFirst({
-        where: {
-          id: parsedParams.data.datasetId,
-          orgId,
-          projectId,
-          deletedAt: null,
-        },
-      });
+      // ⚡ Bolt: Parallelize dataset and version verification queries
+      // 💡 What: Combined sequential `findFirst` calls for `dataset` and `version` into a `Promise.all`.
+      // 🎯 Why: These two DB lookups are independent. Running them in parallel eliminates one database round trip.
+      // 📊 Impact: Decreases latency of the `GET /api/v1/datasets/:datasetId/versions/:versionId` endpoint.
+      // 🔬 Measurement: Observe lower execution time in DB query traces or general endpoint latency via browser network tab.
+      const [dataset, version] = await Promise.all([
+        prisma.dataset.findFirst({
+          where: {
+            id: parsedParams.data.datasetId,
+            orgId,
+            projectId,
+            deletedAt: null,
+          },
+        }),
+        prisma.datasetVersion.findFirst({
+          where: {
+            id: parsedParams.data.versionId,
+            datasetId: parsedParams.data.datasetId,
+          },
+          include: {
+            files: true,
+          },
+        }),
+      ]);
 
       if (!dataset) {
         return reply.code(404).send({ error: 'Dataset not found' });
       }
-
-      const version = await prisma.datasetVersion.findFirst({
-        where: {
-          id: parsedParams.data.versionId,
-          datasetId: parsedParams.data.datasetId,
-        },
-        include: {
-          files: true,
-        },
-      });
 
       if (!version) {
         return reply.code(404).send({ error: 'Dataset version not found' });
@@ -486,26 +491,31 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
         return reply.code(400).send({ error: 'fileName query parameter required' });
       }
 
-      // Verify dataset and version exist
-      const dataset = await prisma.dataset.findFirst({
-        where: {
-          id: parsedParams.data.datasetId,
-          orgId,
-          projectId,
-          deletedAt: null,
-        },
-      });
+      // ⚡ Bolt: Parallelize dataset and version verification queries
+      // 💡 What: Combined sequential `findFirst` calls for `dataset` and `version` into a `Promise.all`.
+      // 🎯 Why: These two DB lookups are independent. Running them in parallel eliminates one database round trip.
+      // 📊 Impact: Decreases latency of the `GET /api/v1/datasets/:datasetId/versions/:versionId/upload-url` endpoint.
+      // 🔬 Measurement: Observe lower execution time in DB query traces or general endpoint latency via browser network tab.
+      const [dataset, version] = await Promise.all([
+        prisma.dataset.findFirst({
+          where: {
+            id: parsedParams.data.datasetId,
+            orgId,
+            projectId,
+            deletedAt: null,
+          },
+        }),
+        prisma.datasetVersion.findFirst({
+          where: {
+            id: parsedParams.data.versionId,
+            datasetId: parsedParams.data.datasetId,
+          },
+        }),
+      ]);
 
       if (!dataset) {
         return reply.code(404).send({ error: 'Dataset not found' });
       }
-
-      const version = await prisma.datasetVersion.findFirst({
-        where: {
-          id: parsedParams.data.versionId,
-          datasetId: parsedParams.data.datasetId,
-        },
-      });
 
       if (!version) {
         return reply.code(404).send({ error: 'Dataset version not found' });
@@ -559,26 +569,31 @@ export default async function datasetsRoutes(app: FastifyInstance, _opts: Fastif
           .send({ error: 'Invalid file info', details: parseBody.error.format() });
       }
 
-      // Verify dataset and version exist
-      const dataset = await prisma.dataset.findFirst({
-        where: {
-          id: parsedParams.data.datasetId,
-          orgId,
-          projectId,
-          deletedAt: null,
-        },
-      });
+      // ⚡ Bolt: Parallelize dataset and version verification queries
+      // 💡 What: Combined sequential `findFirst` calls for `dataset` and `version` into a `Promise.all`.
+      // 🎯 Why: These two DB lookups are independent. Running them in parallel eliminates one database round trip.
+      // 📊 Impact: Decreases latency of the `POST /api/v1/datasets/:datasetId/versions/:versionId/finalize` endpoint.
+      // 🔬 Measurement: Observe lower execution time in DB query traces or general endpoint latency via browser network tab.
+      const [dataset, version] = await Promise.all([
+        prisma.dataset.findFirst({
+          where: {
+            id: parsedParams.data.datasetId,
+            orgId,
+            projectId,
+            deletedAt: null,
+          },
+        }),
+        prisma.datasetVersion.findFirst({
+          where: {
+            id: parsedParams.data.versionId,
+            datasetId: parsedParams.data.datasetId,
+          },
+        }),
+      ]);
 
       if (!dataset) {
         return reply.code(404).send({ error: 'Dataset not found' });
       }
-
-      const version = await prisma.datasetVersion.findFirst({
-        where: {
-          id: parsedParams.data.versionId,
-          datasetId: parsedParams.data.datasetId,
-        },
-      });
 
       if (!version) {
         return reply.code(404).send({ error: 'Dataset version not found' });

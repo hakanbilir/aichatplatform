@@ -189,29 +189,37 @@ export default async function trainingRunsRoutes(
     // Use provided projectId or context projectId
     const projectId = parseBody.data.projectId || contextProjectId;
 
-    // Verify project exists
-    const project = await prisma.project.findFirst({
-      where: { id: projectId, orgId, deletedAt: null },
-    });
+    // ⚡ Bolt: Parallelize independent verification queries
+    // 💡 What: Combined sequential queries for `project`, `baseModel`, `datasetVersion`, and `auxDatasetVersion` into a `Promise.all`.
+    // 🎯 Why: These database lookups are completely independent. Fetching them sequentially introduces up to 4 sequential network round trips.
+    // 📊 Impact: Eliminates up to 3 database round trips, significantly reducing latency for `POST /api/v1/training-runs`.
+    // 🔬 Measurement: Observe execution time in DB query traces or general endpoint latency via browser network tab.
+    const [project, baseModel, datasetVersion, auxDatasetVersion] = await Promise.all([
+      prisma.project.findFirst({
+        where: { id: projectId, orgId, deletedAt: null },
+      }),
+      prisma.baseModel.findUnique({
+        where: { id: parseBody.data.baseModelId },
+      }),
+      prisma.datasetVersion.findUnique({
+        where: { id: parseBody.data.datasetVersionId },
+        include: { dataset: true },
+      }),
+      parseBody.data.auxDatasetVersionId
+        ? prisma.datasetVersion.findUnique({
+            where: { id: parseBody.data.auxDatasetVersionId },
+            include: { dataset: true },
+          })
+        : Promise.resolve(null),
+    ]);
 
     if (!project) {
       return reply.code(404).send({ error: 'Project not found' });
     }
 
-    // Verify base model exists
-    const baseModel = await prisma.baseModel.findUnique({
-      where: { id: parseBody.data.baseModelId },
-    });
-
     if (!baseModel) {
       return reply.code(404).send({ error: 'Base model not found' });
     }
-
-    // Verify dataset version exists
-    const datasetVersion = await prisma.datasetVersion.findUnique({
-      where: { id: parseBody.data.datasetVersionId },
-      include: { dataset: true },
-    });
 
     if (!datasetVersion) {
       return reply.code(404).send({ error: 'Dataset version not found' });
@@ -228,11 +236,6 @@ export default async function trainingRunsRoutes(
 
     // Verify aux dataset version if provided
     if (parseBody.data.auxDatasetVersionId) {
-      const auxDatasetVersion = await prisma.datasetVersion.findUnique({
-        where: { id: parseBody.data.auxDatasetVersionId },
-        include: { dataset: true },
-      });
-
       if (!auxDatasetVersion) {
         return reply.code(404).send({ error: 'Auxiliary dataset version not found' });
       }
