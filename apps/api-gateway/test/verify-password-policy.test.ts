@@ -1,4 +1,9 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, mock } from 'bun:test';
+
+mock.module('@ai-chat/db', () => ({
+  prisma: {},
+  cleanupExpiredTokens: mock(() => Promise.resolve()),
+}));
 
 import { signupBodySchema } from '../src/routes/auth';
 

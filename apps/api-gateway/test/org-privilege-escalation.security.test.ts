@@ -33,6 +33,8 @@ mock.module('../src/rbac/guards', () => {
   return {
     assertOrgPermission: mock(() => Promise.resolve(true)),
     getUserOrgRole: mock(() => Promise.resolve('ADMIN')), // Requester is ADMIN
+    userHasOrgPermission: mock(() => Promise.resolve(true)),
+    assertSuperadmin: mock(() => Promise.resolve(true)),
   };
 });
 import fastify from 'fastify';
