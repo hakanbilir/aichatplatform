@@ -69,3 +69,9 @@
 **Issue:** API gateway tests failed in CI due to missing environment variables (`REDIS_URL`, `JWT_SECRET`), causing `loadConfig` validation to fail during `bun run test`.
 **Learning:** CI workflows running tests that require environment configuration must explicitly provide them, even if they are mocked within the tests, because configuration validation often runs at module initialization time before mocks are applied.
 **Fix:** Added the missing environment variables to the `env` block of the `build-and-test` job in `.github/workflows/ci.yml`.
+
+## 2026-04-12 - Node.js Engine Mismatch in CI Workflows
+
+**Issue:** The project's `package.json` enforced a strict `"engines": { "node": ">=24.0.0" }` requirement, but the GitHub Actions workflows (`ci.yml`, `security.yml`) were still using `node-version: 20` in the `actions/setup-node@v4` step.
+**Learning:** A mismatch between the project's required Node engine and the CI runner's node version can cause dependency installation or script execution failures, leading to deprecated/mismatched node version issues. CI environments must explicitly match the project's strict engine requirements.
+**Fix:** Updated `node-version` from `20` to `24` in all relevant workflow files to ensure compatibility with the project's engine requirements.
