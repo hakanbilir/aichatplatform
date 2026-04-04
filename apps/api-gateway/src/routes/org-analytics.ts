@@ -113,9 +113,14 @@ export default async function orgAnalyticsRoutes(
     // Offload CPU-heavy aggregation to worker
     const isDev = process.env.NODE_ENV !== 'production';
     const workerRelPath = isDev
-      ? 'src/workers/token-aggregation.worker.ts'
-      : 'dist/workers/token-aggregation.worker.js';
-    const workerPath = path.join(process.cwd(), workerRelPath);
+      ? 'apps/api-gateway/src/workers/token-aggregation.worker.ts'
+      : 'apps/api-gateway/dist/workers/token-aggregation.worker.js';
+
+    // In some environments, process.cwd() is already apps/api-gateway.
+    // Ensure we don't duplicate the path.
+    const workerPath = process.cwd().endsWith('api-gateway')
+      ? path.join(process.cwd(), isDev ? 'src/workers/token-aggregation.worker.ts' : 'dist/workers/token-aggregation.worker.js')
+      : path.join(process.cwd(), workerRelPath);
 
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -249,9 +254,12 @@ export default async function orgAnalyticsRoutes(
         // Use process.cwd() to resolve worker path for both dev (TS) and prod (JS)
         const isDev = process.env.NODE_ENV !== 'production';
         const workerRelPath = isDev
-          ? 'src/workers/analytics.worker.ts'
-          : 'dist/workers/analytics.worker.js';
-        const workerPath = path.join(process.cwd(), workerRelPath);
+          ? 'apps/api-gateway/src/workers/analytics.worker.ts'
+          : 'apps/api-gateway/dist/workers/analytics.worker.js';
+
+        const workerPath = process.cwd().endsWith('api-gateway')
+          ? path.join(process.cwd(), isDev ? 'src/workers/analytics.worker.ts' : 'dist/workers/analytics.worker.js')
+          : path.join(process.cwd(), workerRelPath);
 
         const worker = new Worker(workerPath, {
           workerData: {
