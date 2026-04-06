@@ -74,7 +74,7 @@ export async function assertOrgPermission(
   }
 
   const { roleHasPermission } = await import('./roles');
-  if (!roleHasPermission(role, permission)) {
+  if (!roleHasPermission(role as OrgRole, permission)) {
     const error = new Error('Forbidden');
     (error as any).statusCode = 403;
     throw error;
