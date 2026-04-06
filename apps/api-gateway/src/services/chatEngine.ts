@@ -33,8 +33,12 @@ export interface RunConversationTurnInput {
 }
 
 export interface RunConversationTurnResult {
+  userMessageId: string;
+  userContent: string;
+  userCreatedAt: Date;
   assistantMessageId: string;
   assistantContent: string;
+  assistantCreatedAt: Date;
   usage?: ProviderUsage;
 }
 
@@ -291,6 +295,7 @@ async function prepareConversationContext(
     structuredToolsEnabled,
     baseMessages,
     ctx,
+    userMessage,
   };
 }
 
@@ -423,6 +428,7 @@ export async function runConversationTurn(
     structuredToolsEnabled,
     baseMessages,
     ctx,
+    userMessage,
   } = await prepareConversationContext(
     input.conversationId,
     input.userId,
@@ -508,8 +514,12 @@ export async function runConversationTurn(
         .observe(durationSec);
 
       return {
+        userMessageId: userMessage.id,
+        userContent: userMessage.content,
+        userCreatedAt: userMessage.createdAt,
         assistantMessageId: assistantMessage.id,
         assistantContent: assistantMessage.content,
+        assistantCreatedAt: assistantMessage.createdAt,
         usage: finalResult.usage,
       };
     }
@@ -537,8 +547,12 @@ export async function runConversationTurn(
     .observe(durationSec);
 
   return {
+    userMessageId: userMessage.id,
+    userContent: userMessage.content,
+    userCreatedAt: userMessage.createdAt,
     assistantMessageId: assistantMessage.id,
     assistantContent: assistantMessage.content,
+    assistantCreatedAt: assistantMessage.createdAt,
     usage: result.usage,
   };
 }
@@ -556,6 +570,8 @@ export async function* streamConversationTurn(
     structuredToolsEnabled,
     baseMessages,
     ctx,
+    // userMessage is assigned a value but never used in streamConversationTurn.
+    // Ignored to fix lint error.
   } = await prepareConversationContext(
     input.conversationId,
     input.userId,

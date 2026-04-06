@@ -71,6 +71,11 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
       }
 
       try {
+        // ⚡ Bolt: Removed redundant `findMany` query after chat turn.
+        // 💡 What: Modified `runConversationTurn` to return the `userMessageId`, `userContent`, and timestamps instead of re-fetching the last two messages from the database.
+        // 🎯 Why: Fetching the messages immediately after they were created during the chat turn was an unnecessary database call, adding latency to every message sent.
+        // 📊 Impact: Reduces database queries by 1 per message sent, improving the endpoint's response time and reducing load.
+        // 🔬 Measurement: Verify endpoint latency using a load testing tool or application performance monitoring (APM) system.
         const result = await runConversationTurn({
           conversationId: conversation.id,
           userId: payload.userId,
@@ -84,35 +89,20 @@ export default async function chatRoutes(app: FastifyInstance, _opts: FastifyPlu
           },
         });
 
-        // Fetch the created messages to return them in expected format
-        // Note: This is slightly inefficient but ensures consistency with old API response format
-        const messages = await prisma.message.findMany({
-          where: { conversationId: conversation.id },
-          orderBy: { createdAt: 'desc' },
-          take: 2,
-        });
-
-        const assistantMessage = messages.find((m: { role: string }) => m.role === 'ASSISTANT');
-        const userMessage = messages.find((m: { role: string }) => m.role === 'USER');
-
         return reply.send({
           conversationId: conversation.id,
-          userMessage: userMessage
-            ? {
-                id: userMessage.id,
-                role: userMessage.role,
-                content: userMessage.content,
-                createdAt: userMessage.createdAt,
-              }
-            : undefined,
-          assistantMessage: assistantMessage
-            ? {
-                id: assistantMessage.id,
-                role: assistantMessage.role,
-                content: assistantMessage.content,
-                createdAt: assistantMessage.createdAt,
-              }
-            : undefined,
+          userMessage: {
+            id: result.userMessageId,
+            role: 'USER',
+            content: result.userContent,
+            createdAt: result.userCreatedAt,
+          },
+          assistantMessage: {
+            id: result.assistantMessageId,
+            role: 'ASSISTANT',
+            content: result.assistantContent,
+            createdAt: result.assistantCreatedAt,
+          },
           usage: result.usage,
         });
       } catch (err) {
