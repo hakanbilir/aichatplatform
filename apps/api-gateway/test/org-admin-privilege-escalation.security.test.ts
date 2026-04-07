@@ -39,6 +39,8 @@ mock.module('../src/rbac/guards', () => {
   return {
     assertOrgPermission: mock(() => Promise.resolve('ADMIN')),
     getUserOrgRole: mock(() => Promise.resolve('ADMIN')),
+    userHasOrgPermission: mock(() => Promise.resolve(true)),
+    assertSuperadmin: mock(() => Promise.resolve(true)),
   };
 });
 

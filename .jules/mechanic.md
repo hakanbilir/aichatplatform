@@ -75,3 +75,9 @@
 **Issue:** The project's `package.json` enforced a strict `"engines": { "node": ">=24.0.0" }` requirement, but the GitHub Actions workflows (`ci.yml`, `security.yml`) were still using `node-version: 20` in the `actions/setup-node@v4` step.
 **Learning:** A mismatch between the project's required Node engine and the CI runner's node version can cause dependency installation or script execution failures, leading to deprecated/mismatched node version issues. CI environments must explicitly match the project's strict engine requirements.
 **Fix:** Updated `node-version` from `20` to `24` in all relevant workflow files to ensure compatibility with the project's engine requirements.
+
+## 2026-05-18 - Bun Test Mock Leakage and Missing Exports
+
+**Issue:** `SyntaxError: Export named 'getUserOrgRole' not found in module '/app/apps/api-gateway/src/rbac/guards.ts'` and `cleanupExpiredTokens not found in '@ai-chat/db'` failed CI build `bun run test` entirely. The tests passed in isolation but failed globally.
+**Learning:** Bun's `mock.module` replaces the real module with the mocked one globally for the context. If a test file partially mocks a module's exports (e.g. only `getUserOrgRole` instead of all imported exports), other tests needing the omitted exports will fail. This is the root cause of the "Bun Test Mock Leakage" failures.
+**Fix:** Always define explicitly all the utilized module exports when using `mock.module`, to prevent leakage and missing export errors during parallel test suite runs.

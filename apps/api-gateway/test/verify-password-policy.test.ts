@@ -3,6 +3,8 @@ import { describe, it, expect, mock } from 'bun:test';
 mock.module('@ai-chat/db', () => ({
   prisma: {},
   cleanupExpiredTokens: mock(() => Promise.resolve()),
+  ensureDbExtensions: mock(() => Promise.resolve()),
+  checkDbConnection: mock(() => Promise.resolve(true)),
 }));
 
 import { signupBodySchema } from '../src/routes/auth';
