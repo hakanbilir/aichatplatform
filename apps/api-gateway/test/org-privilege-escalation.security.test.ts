@@ -35,6 +35,10 @@ mock.module('../src/rbac/guards', () => {
     getUserOrgRole: mock(() => Promise.resolve('ADMIN')), // Requester is ADMIN
     userHasOrgPermission: mock(() => Promise.resolve(true)),
     assertSuperadmin: mock(() => Promise.resolve(true)),
+    getSystemRole: mock(() => Promise.resolve('USER')),
+    assertSystemPermission: mock(() => Promise.resolve(true)),
+    checkSystemPermission: mock(() => Promise.resolve(true)),
+    requireSystemPermission: mock(() => Promise.resolve(true)),
   };
 });
 import fastify from 'fastify';
