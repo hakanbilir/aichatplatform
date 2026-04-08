@@ -13,10 +13,11 @@ import {
   IconButton,
   TablePagination,
   useTheme,
-  Paper,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+
+import { GlassPanel } from '../ui/kinetic/GlassPanel';
 
 // Enhanced data grid component with sorting, filtering, pagination, and resizable columns
 // Sıralama, filtreleme, sayfalama ve yeniden boyutlandırılabilir sütunlarla gelişmiş veri ızgarası bileşeni
@@ -213,7 +214,7 @@ export function DataGrid<T extends Record<string, any>>({
 
       {/* Table / Tablo */}
       <TableContainer
-        component={Paper}
+        component={GlassPanel}
         sx={{
           maxHeight: 'calc(100vh - 300px)',
           '& .MuiPaper-root': {
