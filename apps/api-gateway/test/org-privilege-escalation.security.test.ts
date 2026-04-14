@@ -26,6 +26,13 @@ mock.module('@ai-chat/db', () => {
         findUnique: mock(() => Promise.resolve({ id: 'org_id', name: 'Org 1' })),
       },
     },
+    cleanupExpiredTokens: mock(() => Promise.resolve()),
+    ensureDbExtensions: mock(() => Promise.resolve()),
+    checkDbConnection: mock(() => Promise.resolve(true)),
+    clearAllData: mock(() => Promise.resolve()),
+    checkDbHealth: mock(() => Promise.resolve(true)),
+    initializeDb: mock(() => Promise.resolve()),
+    closeDb: mock(() => Promise.resolve()),
   };
 });
 // Mock guards
