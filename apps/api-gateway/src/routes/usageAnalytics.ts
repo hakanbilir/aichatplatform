@@ -171,7 +171,16 @@ export default async function usageAnalyticsRoutes(
         });
 
         const userIds = raw.map((r: { userId: string }) => r.userId);
-        const users = await prisma.user.findMany({ where: { id: { in: userIds } } });
+
+        // ⚡ Bolt: Fetch only required fields for top users mapping
+        // 💡 What: Added `select: { id: true, name: true, email: true }` to the `prisma.user.findMany` query.
+        // 🎯 Why: Previously, the query fetched all user columns, including large texts (`customInstructions`) and sensitive data (`passwordHash`), transferring unnecessary data over the network and increasing Node.js memory overhead.
+        // 📊 Impact: Significantly reduces database payload size and processing time, making the analytics streaming slightly faster and more memory efficient.
+        // 🔬 Measurement: Verify memory usage and network payload via APM tooling or inspecting query time in a database console.
+        const users = await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true, email: true }
+        });
         const userMap = new Map<string, { id: string; name: string | null; email: string }>(
           users.map((u: { id: string; name: string | null; email: string }) => [u.id, u]),
         );
@@ -323,7 +332,16 @@ export default async function usageAnalyticsRoutes(
       });
 
       const userIds = raw.map((r: { userId: string }) => r.userId);
-      const users = await prisma.user.findMany({ where: { id: { in: userIds } } });
+
+      // ⚡ Bolt: Fetch only required fields for top users mapping
+      // 💡 What: Added `select: { id: true, name: true, email: true }` to the `prisma.user.findMany` query.
+      // 🎯 Why: Previously, the query fetched all user columns, including large texts (`customInstructions`) and sensitive data (`passwordHash`), transferring unnecessary data over the network and increasing Node.js memory overhead.
+      // 📊 Impact: Significantly reduces database payload size and processing time, making the analytics top users route slightly faster and more memory efficient.
+      // 🔬 Measurement: Verify memory usage and network payload via APM tooling or inspecting query time in a database console.
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, email: true }
+      });
       const userMap = new Map<string, { id: string; name: string | null; email: string }>(
         users.map((u: { id: string; name: string | null; email: string }) => [u.id, u]),
       );
