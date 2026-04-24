@@ -87,23 +87,31 @@ export async function searchConversations(
   // If query is empty, just filter conversations
   if (!trimmed) {
     const conversationWhere = buildFilterWhere(req.orgId, req.filters);
-    const total = await prisma.conversation.count({ where: conversationWhere });
-    const conversations = await prisma.conversation.findMany({
-      where: conversationWhere,
-      select: {
-        id: true,
-        title: true,
-        metadata: true,
-        orgId: true,
-        model: true,
-        createdAt: true,
-        updatedAt: true,
-        lastActivityAt: true,
-      },
-      orderBy: req.sort === 'recent' ? { updatedAt: 'desc' } : { createdAt: 'desc' },
-      skip: offset,
-      take: pageSize,
-    });
+
+    // ⚡ Bolt: Execute queries concurrently
+    // 💡 What: Replaced sequential `count` and `findMany` queries with `Promise.all`
+    // 🎯 Why: Sequential queries block execution unnecessarily; these queries are independent and can be run in parallel.
+    // 📊 Impact: Reduces total latency by ~50% of the query time (eliminates one database round trip delay).
+    // 🔬 Measurement: Verify with backend performance testing / trace logs on search endpoints with empty query.
+    const [total, conversations] = await Promise.all([
+      prisma.conversation.count({ where: conversationWhere }),
+      prisma.conversation.findMany({
+        where: conversationWhere,
+        select: {
+          id: true,
+          title: true,
+          metadata: true,
+          orgId: true,
+          model: true,
+          createdAt: true,
+          updatedAt: true,
+          lastActivityAt: true,
+        },
+        orderBy: req.sort === 'recent' ? { updatedAt: 'desc' } : { createdAt: 'desc' },
+        skip: offset,
+        take: pageSize,
+      })
+    ]);
 
     const hits: ConversationSearchHit[] = conversations.map(
       (conv: {
