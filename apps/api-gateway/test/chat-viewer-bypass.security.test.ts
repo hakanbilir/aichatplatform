@@ -18,6 +18,7 @@ mock.module('../src/rbac/guards', () => {
       return role;
     }),
     getUserOrgRole: mock(() => Promise.resolve('VIEWER')),
+    userHasOrgPermission: mock(() => Promise.resolve(true)),
   };
 });
 // Mock DB
@@ -42,6 +43,13 @@ mock.module('@ai-chat/db', () => {
         findMany: mock(() => Promise.resolve([])),
       },
     },
+    cleanupExpiredTokens: mock(() => Promise.resolve()),
+    ensureDbExtensions: mock(() => Promise.resolve()),
+    checkDbConnection: mock(() => Promise.resolve(true)),
+    clearAllData: mock(() => Promise.resolve()),
+    checkDbHealth: mock(() => Promise.resolve(true)),
+    initializeDb: mock(() => Promise.resolve()),
+    closeDb: mock(() => Promise.resolve()),
   };
 });
 // Mock Chat Engine

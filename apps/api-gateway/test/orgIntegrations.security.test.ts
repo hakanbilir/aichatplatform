@@ -43,6 +43,13 @@ mock.module('@ai-chat/db', () => {
         findFirst: mock(() => Promise.resolve({ id: 'prov_1', key: 'generic-webhook' })),
       },
     },
+    cleanupExpiredTokens: mock(() => Promise.resolve()),
+    ensureDbExtensions: mock(() => Promise.resolve()),
+    checkDbConnection: mock(() => Promise.resolve(true)),
+    clearAllData: mock(() => Promise.resolve()),
+    checkDbHealth: mock(() => Promise.resolve(true)),
+    initializeDb: mock(() => Promise.resolve()),
+    closeDb: mock(() => Promise.resolve()),
   };
 });
 
@@ -50,6 +57,8 @@ mock.module('@ai-chat/db', () => {
 mock.module('../src/rbac/guards', () => {
   return {
     assertOrgPermission: mock(() => Promise.resolve('OWNER')),
+    getUserOrgRole: mock(() => Promise.resolve('ADMIN')),
+    userHasOrgPermission: mock(() => Promise.resolve(true)),
   };
 });
 

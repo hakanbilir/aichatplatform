@@ -13,6 +13,13 @@ mock.module('@ai-chat/db', () => ({
       findMany: mock(),
     },
   },
+  cleanupExpiredTokens: mock(() => Promise.resolve()),
+  ensureDbExtensions: mock(() => Promise.resolve()),
+  checkDbConnection: mock(() => Promise.resolve(true)),
+  clearAllData: mock(() => Promise.resolve()),
+  checkDbHealth: mock(() => Promise.resolve(true)),
+  initializeDb: mock(() => Promise.resolve()),
+  closeDb: mock(() => Promise.resolve()),
 }));
 
 // Import the route handler (we'll register it to a test app)

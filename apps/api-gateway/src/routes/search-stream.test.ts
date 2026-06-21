@@ -19,6 +19,8 @@ mock.module('../search/service', () => ({
 
 mock.module('../rbac/guards', () => ({
   assertOrgPermission: mock(() => Promise.resolve()),
+  getUserOrgRole: mock(() => Promise.resolve('ADMIN')),
+  userHasOrgPermission: mock(() => Promise.resolve(true)),
 }));
 
 import searchRoutes from './search';

@@ -40,6 +40,13 @@ mock.module('@ai-chat/db', () => {
         findFirst: mock(() => Promise.resolve(null)),
       },
     },
+    cleanupExpiredTokens: mock(() => Promise.resolve()),
+    ensureDbExtensions: mock(() => Promise.resolve()),
+    checkDbConnection: mock(() => Promise.resolve(true)),
+    clearAllData: mock(() => Promise.resolve()),
+    checkDbHealth: mock(() => Promise.resolve(true)),
+    initializeDb: mock(() => Promise.resolve()),
+    closeDb: mock(() => Promise.resolve()),
   };
 });
 // Mock guards
@@ -47,6 +54,7 @@ mock.module('../src/rbac/guards', () => {
   return {
     assertOrgPermission: mock(() => Promise.resolve('MEMBER')), // Requester is MEMBER
     getUserOrgRole: mock(() => Promise.resolve('MEMBER')),
+    userHasOrgPermission: mock(() => Promise.resolve(true)),
   };
 });
 // Mock emitter

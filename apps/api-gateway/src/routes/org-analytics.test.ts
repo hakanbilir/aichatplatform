@@ -22,12 +22,21 @@ mock.module('@ai-chat/db', () => {
       },
       $queryRaw: mockQueryRaw,
     },
+    cleanupExpiredTokens: mock(() => Promise.resolve()),
+    ensureDbExtensions: mock(() => Promise.resolve()),
+    checkDbConnection: mock(() => Promise.resolve(true)),
+    clearAllData: mock(() => Promise.resolve()),
+    checkDbHealth: mock(() => Promise.resolve(true)),
+    initializeDb: mock(() => Promise.resolve()),
+    closeDb: mock(() => Promise.resolve()),
   };
 });
 
 // Mock assertOrgPermission
 mock.module('../rbac/guards', () => ({
   assertOrgPermission: mock(async () => true),
+  getUserOrgRole: mock(() => Promise.resolve('ADMIN')),
+  userHasOrgPermission: mock(() => Promise.resolve(true)),
 }));
 
 describe('Org Analytics Routes', () => {
